@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleGlobal {
+  ADMIN
+  MEMBRE
+}
+
+enum RoleBureau {
+  MANAGER
+  COLLABORATEUR
+}
+
+enum StatutProjet {
+  EN_COURS
+  TERMINE
+  ARCHIVE
+}
+
+enum StatutTache {
+  A_FAIRE
+  DECLARE
+  VALIDE
+  A_REVOIR
+}
+
+enum StatutValidationDeclaration {
+  EN_ATTENTE
+  VALIDEE
+  LITIGE
+}
+
+model Organisation {
+  id              String   @id @default(uuid())
+  nom             String
+  planAbonnement  String?  @map("plan_abonnement")
+  dateCreation    DateTime @default(now()) @map("date_creation")
+
+  bureaux Bureau[]
+  users   User[]
+
+  @@map("organisations")
+}
+
+model Bureau {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  nom            String
+  fuseauHoraire  String   @default("UTC") @map("fuseau_horaire")
+
+  // Rituel de déclaration quotidienne (paramétrable par le manager, cf. 2.6)
+  heureDeclaration      String @default("18:30") @map("heure_declaration")
+  delaiRelanceMinutes   Int    @default(60) @map("delai_relance_minutes")
+  classementFiabiliteVisible Boolean @default(true) @map("classement_fiabilite_visible")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  membres      UserBureau[]
+  projets      Projet[]
+
+  @@index([organisationId])
+  @@map("bureaux")
+}
+
+model User {
+  id             String     @id @default(uuid())
+  organisationId String     @map("organisation_id")
+  nom            String
+  email          String     @unique
+  passwordHash   String     @map("password_hash")
+  roleGlobal     RoleGlobal @default(MEMBRE) @map("role_global")
+  poste          String?
+  bio            String?
+  photoUrl       String?    @map("photo_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organisation           Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  bureaux                UserBureau[]
+  tachesAssignees        Tache[]               @relation("TachesAssignees")
+  tachesValidees         Tache[]               @relation("TachesValidees")
+  declarationsJournalieres DeclarationJournaliere[]
+  scoresFiabilite        ScoreFiabilite[]
+  refreshTokens          RefreshToken[]
+
+  @@index([organisationId])
+  @@map("users")
+}
+
+model UserBureau {
+  userId        String     @map("user_id")
+  bureauId      String     @map("bureau_id")
+  roleDansBureau RoleBureau @default(COLLABORATEUR) @map("role_dans_bureau")
+  roleInterne   String?    @map("role_interne") // ex. "Développeur", "Designer" — utilisé par l'IA
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bureau Bureau @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+
+  @@id([userId, bureauId])
+  @@map("users_bureaux")
+}
+
+model Projet {
+  id          String       @id @default(uuid())
+  bureauId    String       @map("bureau_id")
+  nom         String
+  description String?
+  dateDebut   DateTime?    @map("date_debut")
+  dateFin     DateTime?    @map("date_fin")
+  statut      StatutProjet @default(EN_COURS)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bureau Bureau  @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+  taches Tache[]
+
+  @@index([bureauId])
+  @@map("projets")
+}
+
+model Tache {
+  id              String      @id @default(uuid())
+  projetId        String      @map("projet_id")
+  titre           String
+  description     String?
+  assigneAId      String?     @map("assigne_a")
+  statut          StatutTache @default(A_FAIRE)
+  dateDeclaration DateTime?   @map("date_declaration")
+  dateValidation  DateTime?   @map("date_validation")
+  valideParId     String?     @map("valide_par")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  projet      Projet       @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  assigneA    User?        @relation("TachesAssignees", fields: [assigneAId], references: [id])
+  valideur    User?        @relation("TachesValidees", fields: [valideParId], references: [id])
+  sousTaches  SousTache[]
+  declarationTaches DeclarationTache[]
+
+  @@index([projetId])
+  @@index([assigneAId])
+  @@map("taches")
+}
+
+model SousTache {
+  id       String  @id @default(uuid())
+  tacheId  String  @map("tache_id")
+  titre    String
+  estCoche Boolean @default(false) @map("est_coche")
+
+  tache Tache @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+
+  @@index([tacheId])
+  @@map("sous_taches")
+}
+
+model DeclarationJournaliere {
+  id                String                      @id @default(uuid())
+  userId            String                      @map("user_id")
+  date              DateTime                    @db.Date
+  heureDeclaration  DateTime?                   @map("heure_declaration")
+  statutValidation  StatutValidationDeclaration @default(EN_ATTENTE) @map("statut_validation")
+
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taches DeclarationTache[]
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("declarations_journalieres")
+}
+
+model DeclarationTache {
+  declarationId String @map("declaration_id")
+  tacheId       String @map("tache_id")
+
+  declaration DeclarationJournaliere @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  tache       Tache                  @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+
+  @@id([declarationId, tacheId])
+  @@map("declarations_taches")
+}
+
+model ScoreFiabilite {
+  id                    String   @id @default(uuid())
+  userId                String   @map("user_id")
+  periode               String   // ex. "2026-W06"
+  tauxPonctualite       Float    @default(0) @map("taux_ponctualite")
+  tauxValidationDirecte Float    @default(0) @map("taux_validation_directe")
+  regularite            Float    @default(0)
+  scoreGlobal           Float    @default(0) @map("score_global")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periode])
+  @@map("scores_fiabilite")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
