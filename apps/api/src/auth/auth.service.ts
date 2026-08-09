@@ -1,21 +1,37 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { RoleGlobal } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './jwt-payload.interface';
 
 const REFRESH_TOKEN_SALT_ROUNDS = 10;
+const EMAIL_VERIFICATION_TTL_HOURS = 24;
+
+function hashVerificationToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -41,7 +57,43 @@ export class AuthService {
       });
     });
 
+    await this.sendVerificationEmail(user.id).catch((error) =>
+      this.logger.warn(`Échec d'envoi de l'email de vérification: ${error}`),
+    );
+
     return this.issueTokens(user.id, user.organisationId, user.roleGlobal);
+  }
+
+  async sendVerificationEmail(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+
+    const rawToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + EMAIL_VERIFICATION_TTL_HOURS);
+
+    await this.prisma.emailVerificationToken.create({
+      data: { userId: user.id, tokenHash: hashVerificationToken(rawToken), expiresAt },
+    });
+
+    await this.emailService.sendVerificationEmail(user.email, user.nom, rawToken);
+  }
+
+  async verifyEmail(token: string) {
+    const tokenHash = hashVerificationToken(token);
+    const record = await this.prisma.emailVerificationToken.findFirst({
+      where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!record) {
+      throw new BadRequestException('Lien de vérification invalide ou expiré');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: record.userId }, data: { emailVerifie: true } }),
+      this.prisma.emailVerificationToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
   }
 
   async login(dto: LoginDto) {
