@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eef0f6;
+  --foreground: #0a1440;
+
+  /* Brand palette — sampled from the OnOffix logo */
+  --brand-navy: #0a1440;
+  --brand-navy-light: #16225c;
+  --brand-blue: #0b63f6;
+  --brand-blue-dark: #0030a0;
+  --brand-blue-light: #eaf1ff;
+
+  /* Neutrals */
+  --surface: #ffffff;
+  --surface-muted: #f2f4f8;
+  --border: #e3e7f0;
+  --muted-foreground: #5b6178;
+
+  /* Status colors (task/declaration states) */
+  --status-todo: #8a8fa3;
+  --status-declared: #d97706;
+  --status-validated: #16a34a;
+  --status-review: #dc2626;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-light: var(--brand-navy-light);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-dark: var(--brand-blue-dark);
+  --color-brand-blue-light: var(--brand-blue-light);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-status-todo: var(--status-todo);
+  --color-status-declared: var(--status-declared);
+  --color-status-validated: var(--status-validated);
+  --color-status-review: var(--status-review);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
