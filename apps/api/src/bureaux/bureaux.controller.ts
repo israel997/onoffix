@@ -1,0 +1,159 @@
+import { randomUUID } from 'crypto';
+import { extname } from 'path';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { RoleBureau, RoleGlobal } from '@prisma/client';
+import { diskStorage } from 'multer';
+import { BureauxService } from './bureaux.service';
+import { BureauRole } from '../common/decorators/bureau-role.decorator';
+import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
+import { BUREAUX_UPLOADS_DIR } from '../common/uploads';
+import { AddMembreDto } from './dto/add-membre.dto';
+import { CreateBureauDto } from './dto/create-bureau.dto';
+import { ReorderBureauxDto } from './dto/reorder-bureaux.dto';
+import { UpdateBureauDto } from './dto/update-bureau.dto';
+import { UpdateMembreDto } from './dto/update-membre.dto';
+import { UpdateParametresDto } from './dto/update-parametres.dto';
+
+const ANY_MEMBER = [RoleBureau.MANAGER, RoleBureau.COLLABORATEUR];
+const MAX_PHOTO_SIZE = 2 * 1024 * 1024; // 2 Mo — juste une photo de bureau, pas un fichier lourd
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+@UseGuards(BureauRoleGuard)
+@Controller('bureaux')
+export class BureauxController {
+  constructor(private readonly bureauxService: BureauxService) {}
+
+  @Roles(RoleGlobal.ADMIN)
+  @Post()
+  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBureauDto) {
+    return this.bureauxService.create(user.organisationId, dto);
+  }
+
+  @Get()
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.bureauxService.findAllForUser(user);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Patch('reordonner')
+  reorder(@CurrentUser() user: AuthenticatedUser, @Body() dto: ReorderBureauxDto) {
+    return this.bureauxService.reorder(user.organisationId, dto);
+  }
+
+  @BureauRole(...ANY_MEMBER)
+  @Get(':bureauId')
+  findOne(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.bureauxService.findOne(bureauId, user);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Patch(':bureauId')
+  update(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateBureauDto,
+  ) {
+    return this.bureauxService.update(bureauId, user.organisationId, dto);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Patch(':bureauId/parametres')
+  updateParametres(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateParametresDto,
+  ) {
+    return this.bureauxService.updateParametres(bureauId, user.organisationId, dto);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Delete(':bureauId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.bureauxService.remove(bureauId, user.organisationId);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Post(':bureauId/photo')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: BUREAUX_UPLOADS_DIR,
+        filename: (_req, file, cb) => cb(null, `${randomUUID()}${extname(file.originalname)}`),
+      }),
+      limits: { fileSize: MAX_PHOTO_SIZE },
+      fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+          cb(
+            new BadRequestException('Format d’image non supporté (PNG, JPEG ou WebP uniquement)'),
+            false,
+          );
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  uploadPhoto(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu');
+    return this.bureauxService.setPhoto(
+      bureauId,
+      user.organisationId,
+      `/uploads/bureaux/${file.filename}`,
+    );
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Delete(':bureauId/photo')
+  removePhoto(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.bureauxService.setPhoto(bureauId, user.organisationId, null);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Post(':bureauId/membres')
+  addMembre(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AddMembreDto,
+  ) {
+    return this.bureauxService.addMembre(bureauId, user.organisationId, dto);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Patch(':bureauId/membres/:userId')
+  updateMembre(
+    @Param('bureauId') bureauId: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateMembreDto,
+  ) {
+    return this.bureauxService.updateMembre(bureauId, userId, dto);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Delete(':bureauId/membres/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeMembre(@Param('bureauId') bureauId: string, @Param('userId') userId: string) {
+    return this.bureauxService.removeMembre(bureauId, userId);
+  }
+}

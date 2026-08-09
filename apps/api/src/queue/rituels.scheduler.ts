@@ -75,6 +75,13 @@ export class RituelsScheduler implements OnModuleInit {
       { jobId: `${bureau.id}:rapport`, repeat: { pattern: '0 8 * * 1', tz } },
     );
   }
+
+  /** Annule tous les jobs récurrents d'un bureau (à appeler avant sa suppression). */
+  async removeBureauJobs(bureauId: string) {
+    const jobs = await this.queue.getRepeatableJobs();
+    const toRemove = jobs.filter((job) => job.id?.startsWith(`${bureauId}:`));
+    await Promise.all(toRemove.map((job) => this.queue.removeRepeatableByKey(job.key)));
+  }
 }
 
 function cronPlusMinutes(heure: number, minute: number, delaiMinutes: number): string {

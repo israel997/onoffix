@@ -20,5 +20,6 @@ import { RituelsScheduler } from './rituels.scheduler';
     BullModule.registerQueue({ name: RITUELS_QUEUE }),
   ],
   providers: [RituelsProcessor, RituelsScheduler],
+  exports: [RituelsScheduler],
 })
 export class QueueModule {}
