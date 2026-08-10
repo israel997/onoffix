@@ -1,5 +1,3 @@
-import { randomUUID } from 'crypto';
-import { extname } from 'path';
 import {
   BadRequestException,
   Body,
@@ -17,13 +15,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleBureau, RoleGlobal } from '@prisma/client';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { BureauxService } from './bureaux.service';
 import { BureauRole } from '../common/decorators/bureau-role.decorator';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
-import { BUREAUX_UPLOADS_DIR } from '../common/uploads';
+import { StorageService } from '../common/storage.service';
 import { AddMembreDto } from './dto/add-membre.dto';
 import { CreateBureauDto } from './dto/create-bureau.dto';
 import { ReorderBureauxDto } from './dto/reorder-bureaux.dto';
@@ -38,7 +36,10 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 @UseGuards(BureauRoleGuard)
 @Controller('bureaux')
 export class BureauxController {
-  constructor(private readonly bureauxService: BureauxService) {}
+  constructor(
+    private readonly bureauxService: BureauxService,
+    private readonly storage: StorageService,
+  ) {}
 
   @Roles(RoleGlobal.ADMIN)
   @Post()
@@ -94,10 +95,7 @@ export class BureauxController {
   @Post(':bureauId/photo')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: BUREAUX_UPLOADS_DIR,
-        filename: (_req, file, cb) => cb(null, `${randomUUID()}${extname(file.originalname)}`),
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: MAX_PHOTO_SIZE },
       fileFilter: (_req, file, cb) => {
         if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
@@ -111,17 +109,14 @@ export class BureauxController {
       },
     }),
   )
-  uploadPhoto(
+  async uploadPhoto(
     @Param('bureauId') bureauId: string,
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
-    return this.bureauxService.setPhoto(
-      bureauId,
-      user.organisationId,
-      `/uploads/bureaux/${file.filename}`,
-    );
+    const url = await this.storage.upload(file.buffer, 'bureaux', file.originalname, file.mimetype);
+    return this.bureauxService.setPhoto(bureauId, user.organisationId, url);
   }
 
   @BureauRole(RoleBureau.MANAGER)

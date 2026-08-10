@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { TodayChecklist } from '@/components/rituel/today-checklist';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth-context';
 
@@ -16,28 +18,33 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      <TodayChecklist />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Offices</CardTitle>
-            <CardDescription>Manage your teams and their members.</CardDescription>
-          </CardHeader>
-          <p className="text-sm text-muted-foreground">Coming soon.</p>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Projects & tasks</CardTitle>
-            <CardDescription>Track work across every office.</CardDescription>
-          </CardHeader>
-          <p className="text-sm text-muted-foreground">Coming soon.</p>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily check-in</CardTitle>
-            <CardDescription>Declare and validate daily progress.</CardDescription>
-          </CardHeader>
-          <p className="text-sm text-muted-foreground">Coming soon.</p>
-        </Card>
+        <Link href="/offices">
+          <Card className="h-full transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle>Offices</CardTitle>
+              <CardDescription>Manage your teams and their members.</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/my-tasks">
+          <Card className="h-full transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle>My Tasks</CardTitle>
+              <CardDescription>Everything assigned to you, everywhere.</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link href="/my-organizer">
+          <Card className="h-full transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle>My Organizer</CardTitle>
+              <CardDescription>Your private brain dump.</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   );

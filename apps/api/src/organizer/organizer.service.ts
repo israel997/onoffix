@@ -1,113 +1,92 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { RoleBureau, RoleGlobal } from '@prisma/client';
+import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { AddOrganizerMembreDto } from './dto/add-organizer-membre.dto';
-import { CreateOrganizerDto } from './dto/create-organizer.dto';
-import { OrganizerScheduler } from './organizer.scheduler';
+import { CreateTacheDto } from './dto/create-tache.dto';
 
-const MEMBRE_SELECT = { user: { select: { id: true, nom: true, email: true, photoUrl: true } } };
+const TACHE_INCLUDE = {
+  assigneA: { select: { id: true, nom: true } },
+  assignePar: { select: { id: true, nom: true } },
+  valideur: { select: { id: true, nom: true } },
+};
 
 @Injectable()
 export class OrganizerService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly scheduler: OrganizerScheduler,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async create(bureauId: string, organisationId: string, userId: string, dto: CreateOrganizerDto) {
-    const bureau = await this.prisma.bureau.findFirst({ where: { id: bureauId, organisationId } });
-    if (!bureau) throw new NotFoundException('Bureau introuvable');
+  /** Crée l'Organizer unique d'un bureau (chat en vrac + génération de tâches). */
+  async createDefaultForBureau(bureauId: string, nom = 'Organizer') {
+    return this.prisma.$transaction(async (tx) => {
+      const projet = await tx.projet.create({ data: { bureauId, nom, estOrganizer: true } });
+      await tx.conversation.create({ data: { projetId: projet.id } });
+      return projet;
+    });
+  }
 
-    const projet = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.projet.create({
-        data: { bureauId, nom: dto.nom, estOrganizer: true },
+  /** Crée l'Organizer personnel d'un utilisateur, strictement privé. */
+  async createPersonal(userId: string, nom = 'My Organizer') {
+    return this.prisma.$transaction(async (tx) => {
+      const projet = await tx.projet.create({
+        data: { proprietaireId: userId, nom, estOrganizer: true },
       });
-      await tx.conversation.create({ data: { projetId: created.id } });
-      await tx.projetMembre.create({ data: { projetId: created.id, userId } });
-      return created;
+      await tx.conversation.create({ data: { projetId: projet.id } });
+      return projet;
     });
-
-    await this.scheduler.schedule(projet.id);
-    return projet;
   }
 
-  async findAllForBureau(bureauId: string, organisationId: string) {
+  async findForBureau(bureauId: string, organisationId: string) {
     const bureau = await this.prisma.bureau.findFirst({ where: { id: bureauId, organisationId } });
     if (!bureau) throw new NotFoundException('Bureau introuvable');
 
-    const organizers = await this.prisma.projet.findMany({
+    return this.prisma.projet.findFirstOrThrow({
       where: { bureauId, estOrganizer: true },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        nom: true,
-        createdAt: true,
-        derniereGenerationTaches: true,
-        _count: { select: { membres: true, taches: true } },
-      },
-    });
-    return organizers;
-  }
-
-  async findOne(projetId: string) {
-    const projet = await this.prisma.projet.findUniqueOrThrow({
-      where: { id: projetId },
       include: {
-        membres: { select: MEMBRE_SELECT },
-        taches: {
-          orderBy: { createdAt: 'desc' },
-          include: {
-            assigneA: { select: { id: true, nom: true } },
-            assignePar: { select: { id: true, nom: true } },
-            valideur: { select: { id: true, nom: true } },
-          },
-        },
+        taches: { orderBy: { createdAt: 'desc' }, include: TACHE_INCLUDE },
       },
     });
-    return projet;
   }
 
-  async addMembre(projetId: string, dto: AddOrganizerMembreDto) {
+  async findPersonal(userId: string) {
+    return this.prisma.projet.findFirstOrThrow({
+      where: { proprietaireId: userId, estOrganizer: true },
+      include: {
+        taches: { orderBy: { createdAt: 'desc' }, include: TACHE_INCLUDE },
+      },
+    });
+  }
+
+  async createTache(projetId: string, user: AuthenticatedUser, dto: CreateTacheDto) {
     const projet = await this.prisma.projet.findUniqueOrThrow({ where: { id: projetId } });
 
-    const membre = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!membre) throw new NotFoundException("Ce collaborateur n'existe pas dans l'organisation");
-
-    const bureauMembership = await this.prisma.userBureau.findUnique({
-      where: { userId_bureauId: { userId: membre.id, bureauId: projet.bureauId } },
-    });
-    if (!bureauMembership) {
-      throw new ForbiddenException(
-        'Ce collaborateur ne fait pas partie du bureau de cet organizer',
-      );
+    if (projet.proprietaireId) {
+      // Organizer personnel : la tâche s'assigne directement au propriétaire.
+      return this.prisma.tache.create({
+        data: {
+          projetId,
+          titre: dto.titre,
+          description: dto.description,
+          assigneAId: projet.proprietaireId,
+          assigneParId: projet.proprietaireId,
+        },
+        include: TACHE_INCLUDE,
+      });
     }
 
-    const existing = await this.prisma.projetMembre.findUnique({
-      where: { projetId_userId: { projetId, userId: membre.id } },
-    });
-    if (existing) throw new ConflictException('Ce collaborateur est déjà dans cet organizer');
+    await this.assertManager(projet.bureauId!, user);
 
-    await this.prisma.projetMembre.create({ data: { projetId, userId: membre.id } });
-    return this.prisma.user.findUnique({
-      where: { id: membre.id },
-      select: { id: true, nom: true, email: true, photoUrl: true },
+    return this.prisma.tache.create({
+      data: { projetId, titre: dto.titre, description: dto.description },
+      include: TACHE_INCLUDE,
     });
   }
 
-  async removeMembre(projetId: string, userId: string) {
-    await this.prisma.projetMembre
-      .delete({ where: { projetId_userId: { projetId, userId } } })
-      .catch(() => {
-        throw new NotFoundException('Ce collaborateur ne fait pas partie de cet organizer');
-      });
-  }
-
-  async remove(projetId: string) {
-    await this.scheduler.cancel(projetId);
-    await this.prisma.projet.delete({ where: { id: projetId } });
+  private async assertManager(bureauId: string, user: AuthenticatedUser) {
+    if (user.roleGlobal === RoleGlobal.ADMIN) return;
+    const membership = await this.prisma.userBureau.findUnique({
+      where: { userId_bureauId: { userId: user.userId, bureauId } },
+    });
+    if (!membership || membership.roleDansBureau !== RoleBureau.MANAGER) {
+      throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
+    }
   }
 }

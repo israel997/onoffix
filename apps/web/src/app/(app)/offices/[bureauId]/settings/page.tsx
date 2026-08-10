@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { OfficeNav } from '@/components/offices/office-nav';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -147,6 +148,8 @@ export default function OfficeSettingsPage() {
         <h1 className="text-2xl font-bold text-foreground">Office settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">{bureau.nom}</p>
       </div>
+
+      <OfficeNav bureauId={bureauId} showSettings />
 
       <Card>
         <CardTitle>Photo</CardTitle>

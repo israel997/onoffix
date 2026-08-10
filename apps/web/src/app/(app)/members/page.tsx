@@ -7,7 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { addOrganisationMembre, listOrganisationMembres, type OrganisationMembre } from '@/lib/api';
+import {
+  addOrganisationMembre,
+  listOrganisationMembres,
+  updateOrganisationMembreRole,
+  type OrganisationMembre,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
 export default function MembersPage() {
@@ -19,6 +24,7 @@ export default function MembersPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
 
   async function load() {
     setMembres(await listOrganisationMembres());
@@ -48,6 +54,20 @@ export default function MembersPage() {
   }
 
   const isAdmin = user?.roleGlobal === 'ADMIN';
+  const isOwner = !!user && user.organisation.proprietaireId === user.id;
+
+  async function handleRoleChange(membre: OrganisationMembre, roleGlobal: 'ADMIN' | 'MEMBRE') {
+    setUpdatingRoleId(membre.id);
+    setError(null);
+    try {
+      await updateOrganisationMembreRole(membre.id, roleGlobal);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,9 +128,25 @@ export default function MembersPage() {
                       {b.bureau.nom}
                     </Badge>
                   ))}
-                  <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
-                    {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
-                  </Badge>
+                  {m.id === user?.organisation.proprietaireId ? (
+                    <Badge tone="brand">Owner</Badge>
+                  ) : (
+                    <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
+                      {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
+                    </Badge>
+                  )}
+                  {isOwner && m.id !== user?.organisation.proprietaireId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={updatingRoleId === m.id}
+                      onClick={() =>
+                        handleRoleChange(m, m.roleGlobal === 'ADMIN' ? 'MEMBRE' : 'ADMIN')
+                      }
+                    >
+                      {m.roleGlobal === 'ADMIN' ? 'Remove admin' : 'Make admin'}
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

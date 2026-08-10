@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RoleBureau, RoleGlobal, StatutTache } from '@prisma/client';
+import { NotificationType, RoleBureau, RoleGlobal, StatutTache } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const TACHE_INCLUDE = {
@@ -16,18 +17,31 @@ const TACHE_INCLUDE = {
 
 @Injectable()
 export class TachesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
-  private async loadWithBureau(tacheId: string, organisationId: string) {
+  /** Charge une tâche accessible à l'utilisateur : soit via son bureau, soit via son Organizer personnel. */
+  private async loadWithBureau(tacheId: string, user: AuthenticatedUser) {
     const tache = await this.prisma.tache.findFirst({
-      where: { id: tacheId, projet: { bureau: { organisationId } } },
-      include: { projet: { select: { bureauId: true } } },
+      where: {
+        id: tacheId,
+        projet: {
+          OR: [
+            { bureau: { organisationId: user.organisationId } },
+            { proprietaireId: user.userId },
+          ],
+        },
+      },
+      include: { projet: { select: { bureauId: true, proprietaireId: true } } },
     });
     if (!tache) throw new NotFoundException('Tâche introuvable');
     return tache;
   }
 
-  private async assertManager(bureauId: string, user: AuthenticatedUser) {
+  private async assertManager(bureauId: string | null, user: AuthenticatedUser) {
+    if (bureauId === null) return; // Tâche personnelle : déjà filtrée par appartenance dans loadWithBureau
     if (user.roleGlobal === RoleGlobal.ADMIN) return;
     const membership = await this.prisma.userBureau.findUnique({
       where: { userId_bureauId: { userId: user.userId, bureauId } },
@@ -37,7 +51,8 @@ export class TachesService {
     }
   }
 
-  private async assertBureauMember(bureauId: string, user: AuthenticatedUser) {
+  private async assertBureauMember(bureauId: string | null, user: AuthenticatedUser) {
+    if (bureauId === null) return; // Tâche personnelle : déjà filtrée par appartenance dans loadWithBureau
     if (user.roleGlobal === RoleGlobal.ADMIN) return;
     const membership = await this.prisma.userBureau.findUnique({
       where: { userId_bureauId: { userId: user.userId, bureauId } },
@@ -45,8 +60,17 @@ export class TachesService {
     if (!membership) throw new ForbiddenException('Vous ne faites pas partie de ce bureau');
   }
 
+  private lienTache(bureauId: string | null) {
+    return bureauId ? `/offices/${bureauId}/tasks` : '/my-tasks';
+  }
+
   async assigner(tacheId: string, user: AuthenticatedUser, assigneeUserId: string) {
-    const tache = await this.loadWithBureau(tacheId, user.organisationId);
+    const tache = await this.loadWithBureau(tacheId, user);
+
+    if (tache.projet.bureauId === null) {
+      throw new BadRequestException('Une tâche personnelle est déjà assignée à vous-même');
+    }
+
     await this.assertManager(tache.projet.bureauId, user);
 
     const assigneeMembership = await this.prisma.userBureau.findUnique({
@@ -56,21 +80,79 @@ export class TachesService {
       throw new BadRequestException('Ce collaborateur ne fait pas partie de ce bureau');
     }
 
-    return this.prisma.tache.update({
+    const updated = await this.prisma.tache.update({
       where: { id: tacheId },
       data: { assigneAId: assigneeUserId, assigneParId: user.userId },
+      include: TACHE_INCLUDE,
+    });
+
+    await this.notifications.create(
+      assigneeUserId,
+      NotificationType.TACHE_ASSIGNEE,
+      `On vous a assigné la tâche « ${updated.titre} »`,
+      this.lienTache(tache.projet.bureauId),
+    );
+
+    return updated;
+  }
+
+  async accepter(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertBureauMember(tache.projet.bureauId, user);
+
+    if (tache.assigneAId !== user.userId) {
+      throw new ForbiddenException('Seule la personne assignée peut accepter cette tâche');
+    }
+    if (tache.statut !== StatutTache.A_FAIRE) {
+      throw new BadRequestException('Cette tâche ne peut pas être acceptée dans son état actuel');
+    }
+
+    const updated = await this.prisma.tache.update({
+      where: { id: tacheId },
+      data: { statut: StatutTache.ACCEPTEE },
+      include: TACHE_INCLUDE,
+    });
+
+    if (tache.assigneParId && tache.assigneParId !== tache.assigneAId) {
+      await this.notifications.create(
+        tache.assigneParId,
+        NotificationType.TACHE_ACCEPTEE,
+        `${updated.assigneA?.nom ?? 'Un collaborateur'} a accepté la tâche « ${updated.titre} »`,
+        this.lienTache(tache.projet.bureauId),
+      );
+    }
+
+    return updated;
+  }
+
+  async modifier(
+    tacheId: string,
+    user: AuthenticatedUser,
+    dto: { titre?: string; description?: string; dateCible?: string | null },
+  ) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertManager(tache.projet.bureauId, user);
+
+    return this.prisma.tache.update({
+      where: { id: tacheId },
+      data: {
+        titre: dto.titre,
+        description: dto.description,
+        dateCible:
+          dto.dateCible === undefined ? undefined : dto.dateCible ? new Date(dto.dateCible) : null,
+      },
       include: TACHE_INCLUDE,
     });
   }
 
   async demarrer(tacheId: string, user: AuthenticatedUser) {
-    const tache = await this.loadWithBureau(tacheId, user.organisationId);
+    const tache = await this.loadWithBureau(tacheId, user);
     await this.assertBureauMember(tache.projet.bureauId, user);
 
     if (tache.assigneAId !== user.userId) {
       throw new ForbiddenException('Seule la personne assignée peut démarrer cette tâche');
     }
-    const demarrableDepuis: StatutTache[] = [StatutTache.A_FAIRE, StatutTache.A_REVOIR];
+    const demarrableDepuis: StatutTache[] = [StatutTache.ACCEPTEE, StatutTache.A_REVOIR];
     if (!demarrableDepuis.includes(tache.statut)) {
       throw new BadRequestException('Cette tâche ne peut pas être démarrée dans son état actuel');
     }
@@ -83,7 +165,7 @@ export class TachesService {
   }
 
   async declarer(tacheId: string, user: AuthenticatedUser) {
-    const tache = await this.loadWithBureau(tacheId, user.organisationId);
+    const tache = await this.loadWithBureau(tacheId, user);
     await this.assertBureauMember(tache.projet.bureauId, user);
 
     if (tache.assigneAId !== user.userId) {
@@ -93,15 +175,26 @@ export class TachesService {
       throw new BadRequestException("Il faut d'abord démarrer la tâche avant de la déclarer faite");
     }
 
-    return this.prisma.tache.update({
+    const updated = await this.prisma.tache.update({
       where: { id: tacheId },
       data: { statut: StatutTache.DECLARE, dateDeclaration: new Date() },
       include: TACHE_INCLUDE,
     });
+
+    if (tache.assigneParId && tache.assigneParId !== tache.assigneAId) {
+      await this.notifications.create(
+        tache.assigneParId,
+        NotificationType.VALIDATION_A_FAIRE,
+        `${updated.assigneA?.nom ?? 'Un collaborateur'} a déclaré la tâche « ${updated.titre} » comme terminée`,
+        this.lienTache(tache.projet.bureauId),
+      );
+    }
+
+    return updated;
   }
 
   async valider(tacheId: string, user: AuthenticatedUser, decision: 'ok' | 'litige') {
-    const tache = await this.loadWithBureau(tacheId, user.organisationId);
+    const tache = await this.loadWithBureau(tacheId, user);
 
     const isAssigner = tache.assigneParId === user.userId;
     if (!isAssigner) {
@@ -112,18 +205,58 @@ export class TachesService {
       throw new BadRequestException('Cette tâche n’a pas encore été déclarée comme faite');
     }
 
-    if (decision === 'ok') {
-      return this.prisma.tache.update({
-        where: { id: tacheId },
-        data: { statut: StatutTache.VALIDE, dateValidation: new Date(), valideParId: user.userId },
-        include: TACHE_INCLUDE,
-      });
+    const updated =
+      decision === 'ok'
+        ? await this.prisma.tache.update({
+            where: { id: tacheId },
+            data: {
+              statut: StatutTache.VALIDE,
+              dateValidation: new Date(),
+              valideParId: user.userId,
+            },
+            include: TACHE_INCLUDE,
+          })
+        : await this.prisma.tache.update({
+            where: { id: tacheId },
+            data: { statut: StatutTache.A_REVOIR },
+            include: TACHE_INCLUDE,
+          });
+
+    if (tache.assigneAId && tache.assigneAId !== user.userId) {
+      await this.notifications.create(
+        tache.assigneAId,
+        decision === 'ok' ? NotificationType.TACHE_VALIDEE : NotificationType.TACHE_A_REVOIR,
+        decision === 'ok'
+          ? `Votre tâche « ${updated.titre} » a été validée`
+          : `Votre tâche « ${updated.titre} » doit être revue`,
+        this.lienTache(tache.projet.bureauId),
+      );
     }
 
-    return this.prisma.tache.update({
-      where: { id: tacheId },
-      data: { statut: StatutTache.A_REVOIR },
-      include: TACHE_INCLUDE,
+    return updated;
+  }
+
+  /** Agrège toutes les tâches pertinentes pour l'utilisateur : assignées dans un bureau + Organizer personnel. */
+  async mesTaches(user: AuthenticatedUser) {
+    return this.prisma.tache.findMany({
+      where: {
+        OR: [
+          { assigneAId: user.userId, projet: { bureau: { organisationId: user.organisationId } } },
+          { projet: { proprietaireId: user.userId } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        ...TACHE_INCLUDE,
+        projet: {
+          select: {
+            id: true,
+            nom: true,
+            proprietaireId: true,
+            bureau: { select: { id: true, nom: true } },
+          },
+        },
+      },
     });
   }
 }

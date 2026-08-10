@@ -18,7 +18,7 @@ export class UsersService {
         photoUrl: true,
         roleGlobal: true,
         emailVerifie: true,
-        organisation: { select: { id: true, nom: true } },
+        organisation: { select: { id: true, nom: true, logoUrl: true, proprietaireId: true } },
         bureaux: {
           select: {
             roleDansBureau: true,

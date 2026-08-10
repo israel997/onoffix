@@ -9,8 +9,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { RoleGlobal } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
+import { OrganizerScheduler } from '../organizer/organizer.scheduler';
+import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -32,6 +34,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly organizerService: OrganizerService,
+    private readonly organizerScheduler: OrganizerScheduler,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -41,13 +45,15 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const ownerId = randomUUID();
 
     const user = await this.prisma.$transaction(async (tx) => {
       const organisation = await tx.organisation.create({
-        data: { nom: dto.organisationNom },
+        data: { nom: dto.organisationNom, proprietaireId: ownerId },
       });
       return tx.user.create({
         data: {
+          id: ownerId,
           organisationId: organisation.id,
           nom: dto.nom,
           email: dto.email,
@@ -56,6 +62,9 @@ export class AuthService {
         },
       });
     });
+
+    const personalOrganizer = await this.organizerService.createPersonal(user.id);
+    await this.organizerScheduler.schedule(personalOrganizer.id);
 
     await this.sendVerificationEmail(user.id).catch((error) =>
       this.logger.warn(`Échec d'envoi de l'email de vérification: ${error}`),

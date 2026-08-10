@@ -1,6 +1,10 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
+import { NotificationType } from '@prisma/client';
 import { Job } from 'bullmq';
+import { todayDate } from '../common/date.util';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RITUELS_QUEUE, RituelJob } from './queue.constants';
 
 /**
@@ -12,10 +16,17 @@ import { RITUELS_QUEUE, RituelJob } from './queue.constants';
 export class RituelsProcessor extends WorkerHost {
   private readonly logger = new Logger(RituelsProcessor.name);
 
-  process(job: Job<{ bureauId: string }>): Promise<void> {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {
+    super();
+  }
+
+  async process(job: Job<{ bureauId: string }>): Promise<void> {
     switch (job.name as RituelJob) {
       case RituelJob.RAPPEL_DECLARATION:
-        this.logger.log(`Rappel de déclaration — bureau ${job.data.bureauId}`);
+        await this.rappelDeclaration(job.data.bureauId);
         break;
       case RituelJob.RELANCE_RETARD:
         this.logger.log(`Relance de retard — bureau ${job.data.bureauId}`);
@@ -32,6 +43,29 @@ export class RituelsProcessor extends WorkerHost {
       default:
         this.logger.warn(`Job inconnu: ${job.name}`);
     }
-    return Promise.resolve();
+  }
+
+  /** Notifie chaque collaborateur du bureau ayant au moins une tâche à date cible aujourd'hui. */
+  private async rappelDeclaration(bureauId: string) {
+    const taches = await this.prisma.tache.findMany({
+      where: { projet: { bureauId }, dateCible: todayDate(), assigneAId: { not: null } },
+      select: { assigneAId: true },
+    });
+    const userIds = [...new Set(taches.map((t) => t.assigneAId!))];
+
+    await Promise.all(
+      userIds.map((userId) =>
+        this.notifications.create(
+          userId,
+          NotificationType.RAPPEL_DECLARATION,
+          "Vous avez des tâches à déclarer aujourd'hui",
+          '/dashboard',
+        ),
+      ),
+    );
+
+    this.logger.log(
+      `Rappel de déclaration — bureau ${bureauId} (${userIds.length} collaborateur(s) notifié(s))`,
+    );
   }
 }

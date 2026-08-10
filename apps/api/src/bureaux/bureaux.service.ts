@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { OrganizerScheduler } from '../organizer/organizer.scheduler';
+import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RituelsScheduler } from '../queue/rituels.scheduler';
 import { AddMembreDto } from './dto/add-membre.dto';
@@ -27,6 +29,8 @@ export class BureauxService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rituelsScheduler: RituelsScheduler,
+    private readonly organizerService: OrganizerService,
+    private readonly organizerScheduler: OrganizerScheduler,
   ) {}
 
   async create(organisationId: string, dto: CreateBureauDto) {
@@ -35,6 +39,10 @@ export class BureauxService {
       data: { organisationId, nom: dto.nom, ordre },
     });
     await this.rituelsScheduler.syncBureau(bureau);
+
+    const organizer = await this.organizerService.createDefaultForBureau(bureau.id);
+    await this.organizerScheduler.schedule(organizer.id);
+
     return bureau;
   }
 
@@ -82,6 +90,13 @@ export class BureauxService {
   async remove(bureauId: string, organisationId: string) {
     await this.assertInOrganisation(bureauId, organisationId);
     await this.rituelsScheduler.removeBureauJobs(bureauId);
+
+    const organizer = await this.prisma.projet.findFirst({
+      where: { bureauId, estOrganizer: true },
+      select: { id: true },
+    });
+    if (organizer) await this.organizerScheduler.cancel(organizer.id);
+
     await this.prisma.bureau.delete({ where: { id: bureauId } });
   }
 

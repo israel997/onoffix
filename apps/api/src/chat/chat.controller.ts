@@ -14,6 +14,7 @@ import { RoleBureau } from '@prisma/client';
 import { BureauRole } from '../common/decorators/bureau-role.decorator';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
+import { StorageService } from '../common/storage.service';
 import { assertImageWeight, messageFileMulterOptions } from './chat-file.config';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
@@ -26,6 +27,7 @@ export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly chatGateway: ChatGateway,
+    private readonly storage: StorageService,
   ) {}
 
   @BureauRole(...ANY_MEMBER)
@@ -45,10 +47,16 @@ export class ChatController {
     @Body('contenu') contenu?: string,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
-    await assertImageWeight(file);
+    assertImageWeight(file);
+    const url = await this.storage.upload(
+      file.buffer,
+      'messages',
+      file.originalname,
+      file.mimetype,
+    );
     const conversation = await this.chatService.ensureConversationForBureau(bureauId);
     const message = await this.chatService.createMessage(conversation.id, user.userId, contenu, {
-      url: `/uploads/messages/${file.filename}`,
+      url,
       nom: file.originalname,
       type: file.mimetype,
       tailleOctets: file.size,

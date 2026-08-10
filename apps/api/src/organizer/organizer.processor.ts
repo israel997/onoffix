@@ -62,7 +62,14 @@ export class OrganizerProcessor extends WorkerHost {
 
     if (suggestions.length > 0) {
       await this.prisma.tache.createMany({
-        data: suggestions.map((s) => ({ projetId, titre: s.titre, description: s.description })),
+        data: suggestions.map((s) => ({
+          projetId,
+          titre: s.titre,
+          description: s.description,
+          // Organizer personnel : les tâches générées s'assignent directement au propriétaire.
+          assigneAId: projet.proprietaireId ?? undefined,
+          assigneParId: projet.proprietaireId ?? undefined,
+        })),
       });
     }
 

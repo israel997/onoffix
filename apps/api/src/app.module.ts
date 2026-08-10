@@ -8,16 +8,20 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { BureauxModule } from './bureaux/bureaux.module';
 import { ChatModule } from './chat/chat.module';
 import { RolesGuard } from './common/guards/roles.guard';
+import { NotificationsModule } from './notifications/notifications.module';
 import { OrganisationModule } from './organisation/organisation.module';
 import { OrganizerModule } from './organizer/organizer.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
+import { RituelModule } from './rituel/rituel.module';
+import { StorageModule } from './common/storage.module';
 import { TachesModule } from './taches/taches.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    StorageModule,
     PrismaModule,
     AuthModule,
     QueueModule,
@@ -26,7 +30,9 @@ import { UsersModule } from './users/users.module';
     OrganisationModule,
     ChatModule,
     OrganizerModule,
+    NotificationsModule,
     TachesModule,
+    RituelModule,
   ],
   controllers: [AppController],
   providers: [

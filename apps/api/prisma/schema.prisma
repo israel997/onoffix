@@ -25,6 +25,7 @@ enum StatutProjet {
 
 enum StatutTache {
   A_FAIRE
+  ACCEPTEE
   EN_COURS
   DECLARE
   VALIDE
@@ -40,6 +41,8 @@ enum StatutValidationDeclaration {
 model Organisation {
   id              String   @id @default(uuid())
   nom             String
+  logoUrl         String?  @map("logo_url")
+  proprietaireId  String   @map("proprietaire_id")
   planAbonnement  String?  @map("plan_abonnement")
   dateCreation    DateTime @default(now()) @map("date_creation")
 
@@ -142,7 +145,7 @@ model User {
   notifications          Notification[]
   emailVerificationTokens EmailVerificationToken[]
   messages               Message[]
-  organizersMembre       ProjetMembre[]
+  projetsPersonnels      Projet[]
 
   @@index([organisationId])
   @@map("users")
@@ -163,39 +166,31 @@ model UserBureau {
 
 model Projet {
   id          String       @id @default(uuid())
-  bureauId    String       @map("bureau_id")
-  nom         String
-  description String?
-  dateDebut   DateTime?    @map("date_debut")
-  dateFin     DateTime?    @map("date_fin")
-  statut      StatutProjet @default(EN_COURS)
+  // Un projet est soit rattaché à un bureau, soit à l'espace personnel d'un
+  // utilisateur (Organizer personnel) — jamais les deux (cf. contrainte SQL).
+  bureauId       String?      @map("bureau_id")
+  proprietaireId String?      @map("proprietaire_id")
+  nom            String
+  description    String?
+  dateDebut      DateTime?    @map("date_debut")
+  dateFin        DateTime?    @map("date_fin")
+  statut         StatutProjet @default(EN_COURS)
 
   // Organizer : espace de discussion en vrac, dont le contenu est transformé
-  // en tâches automatiquement toutes les 4h (cf. phase C).
+  // en tâches automatiquement toutes les 30 minutes (cf. phase C).
   estOrganizer             Boolean   @default(false) @map("est_organizer")
   derniereGenerationTaches DateTime? @map("derniere_generation_taches")
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  bureau       Bureau         @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+  bureau       Bureau?        @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+  proprietaire User?          @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
   taches       Tache[]
   conversation Conversation?
-  membres      ProjetMembre[]
 
   @@index([bureauId])
+  @@index([proprietaireId])
   @@map("projets")
-}
-
-model ProjetMembre {
-  projetId String   @map("projet_id")
-  userId   String   @map("user_id")
-  addedAt  DateTime @default(now()) @map("added_at")
-
-  projet Projet @relation(fields: [projetId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([projetId, userId])
-  @@map("projets_membres")
 }
 
 model Tache {
@@ -210,6 +205,8 @@ model Tache {
   dateDeclaration DateTime?   @map("date_declaration")
   dateValidation  DateTime?   @map("date_validation")
   valideParId     String?     @map("valide_par")
+  // Date cible du rituel quotidien (cf. 2.6) — définie par le manager, jamais par l'IA.
+  dateCible       DateTime?   @db.Date @map("date_cible")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -253,8 +250,11 @@ model DeclarationJournaliere {
 }
 
 model DeclarationTache {
-  declarationId String @map("declaration_id")
-  tacheId       String @map("tache_id")
+  declarationId  String  @map("declaration_id")
+  tacheId        String  @map("tache_id")
+  // Une tâche du jour ne compte comme faite que si le membre ET le manager l'ont cochée.
+  cocheParMembre Boolean @default(false) @map("coche_par_membre")
+  cocheParAdmin  Boolean @default(false) @map("coche_par_admin")
 
   declaration DeclarationJournaliere @relation(fields: [declarationId], references: [id], onDelete: Cascade)
   tache       Tache                  @relation(fields: [tacheId], references: [id], onDelete: Cascade)
@@ -281,6 +281,8 @@ model ScoreFiabilite {
 }
 
 enum NotificationType {
+  TACHE_ASSIGNEE
+  TACHE_ACCEPTEE
   RAPPEL_DECLARATION
   RELANCE_RETARD
   VALIDATION_A_FAIRE

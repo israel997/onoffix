@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BureauChat } from '@/components/chat/bureau-chat';
+import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -107,28 +107,14 @@ export default function OfficeDetailPage() {
           { label: bureau.nom },
         ]}
       />
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{bureau.nom}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Daily check-in at {bureau.heureDeclaration} ({bureau.fuseauHoraire})
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href={`/offices/${bureauId}/organizers`}>
-            <Button variant="secondary" size="sm">
-              Organizers
-            </Button>
-          </Link>
-          {isManager && (
-            <Link href={`/offices/${bureauId}/settings`}>
-              <Button variant="secondary" size="sm">
-                Settings
-              </Button>
-            </Link>
-          )}
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">{bureau.nom}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Daily check-in at {bureau.heureDeclaration} ({bureau.fuseauHoraire})
+        </p>
       </div>
+
+      <OfficeNav bureauId={bureauId} showSettings={!!isManager} />
 
       <Card>
         <div className="mb-4 flex items-center justify-between">

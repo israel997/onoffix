@@ -9,7 +9,7 @@ function jobId(projetId: string) {
   return `organizer:${projetId}`;
 }
 
-/** Programme/annule le job récurrent de génération de tâches (toutes les N heures) par Organizer. */
+/** Programme/annule le job récurrent de génération de tâches (toutes les N minutes) par Organizer. */
 @Injectable()
 export class OrganizerScheduler implements OnModuleInit {
   private readonly logger = new Logger(OrganizerScheduler.name);
@@ -34,11 +34,11 @@ export class OrganizerScheduler implements OnModuleInit {
   }
 
   async schedule(projetId: string) {
-    const hours = this.config.get<number>('ORGANIZER_INTERVAL_HOURS', 4);
+    const minutes = this.config.get<number>('ORGANIZER_INTERVAL_MINUTES', 30);
     await this.queue.add(
       ORGANIZER_PROCESS_JOB,
       { projetId },
-      { jobId: jobId(projetId), repeat: { every: hours * 60 * 60 * 1000 } },
+      { jobId: jobId(projetId), repeat: { every: minutes * 60 * 1000 } },
     );
   }
 

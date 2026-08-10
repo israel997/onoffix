@@ -3,10 +3,14 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
+  accepterTache,
   assignerTache,
   declarerTache,
   demarrerTache,
+  updateTache,
   validerTache,
   type Tache,
 } from '@/lib/api';
@@ -23,6 +27,7 @@ function formatDuration(ms: number) {
 
 const STATUT_TONE: Record<Tache['statut'], 'neutral' | 'declared' | 'validated' | 'review' | 'brand'> = {
   A_FAIRE: 'neutral',
+  ACCEPTEE: 'brand',
   EN_COURS: 'brand',
   DECLARE: 'declared',
   VALIDE: 'validated',
@@ -31,6 +36,7 @@ const STATUT_TONE: Record<Tache['statut'], 'neutral' | 'declared' | 'validated' 
 
 const STATUT_LABEL: Record<Tache['statut'], string> = {
   A_FAIRE: 'To do',
+  ACCEPTEE: 'Accepted',
   EN_COURS: 'In progress',
   DECLARE: 'Waiting for validation',
   VALIDE: 'Validated',
@@ -61,6 +67,10 @@ export function TaskItem({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [titre, setTitre] = useState(tache.titre);
+  const [description, setDescription] = useState(tache.description ?? '');
+  const [dateCible, setDateCible] = useState(tache.dateCible ?? '');
 
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
@@ -79,16 +89,74 @@ export function TaskItem({
     }
   }
 
+  async function handleSaveEdit() {
+    await run(() =>
+      updateTache(tache.id, { titre, description: description || undefined, dateCible: dateCible || null }),
+    );
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-lg border border-border p-3">
+        <div className="flex flex-col gap-2">
+          <Label>
+            Title
+            <Input value={titre} onChange={(e) => setTitre(e.target.value)} />
+          </Label>
+          <Label>
+            Description
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          </Label>
+          <Label>
+            Target date (daily ritual)
+            <Input type="date" value={dateCible} onChange={(e) => setDateCible(e.target.value)} />
+          </Label>
+          {error && <p className="text-xs text-status-review">{error}</p>}
+          <div className="flex gap-2">
+            <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
+              Save
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setTitre(tache.titre);
+                setDescription(tache.description ?? '');
+                setDateCible(tache.dateCible ?? '');
+                setEditing(false);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-foreground">{tache.titre}</p>
-        <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
+        <div className="flex shrink-0 items-center gap-2">
+          <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
+          {isManager && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </div>
       {tache.description && <p className="mt-1 text-xs text-muted-foreground">{tache.description}</p>}
 
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {tache.assigneA ? <span>Assigned to {tache.assigneA.nom}</span> : <span>Unassigned</span>}
+        {tache.dateCible && <span>· due {tache.dateCible}</span>}
         {tache.statut === 'EN_COURS' && tache.dateDebut && (
           <span>
             · running for <LiveTimer since={tache.dateDebut} />
@@ -124,7 +192,13 @@ export function TaskItem({
           </select>
         )}
 
-        {isAssignee && (tache.statut === 'A_FAIRE' || tache.statut === 'A_REVOIR') && (
+        {isAssignee && tache.statut === 'A_FAIRE' && (
+          <Button size="sm" disabled={busy} onClick={() => run(() => accepterTache(tache.id))}>
+            Accept
+          </Button>
+        )}
+
+        {isAssignee && (tache.statut === 'ACCEPTEE' || tache.statut === 'A_REVOIR') && (
           <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id))}>
             Start
           </Button>

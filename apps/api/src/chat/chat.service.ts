@@ -41,25 +41,44 @@ export class ChatService {
     if (!membership) throw new ForbiddenException('Vous ne faites pas partie de ce bureau');
   }
 
-  /** Vérifie que l'utilisateur est invité dans l'organizer (ou est admin) avant tout accès à son chat. */
+  /**
+   * Vérifie l'accès à l'organizer : bureau propriétaire (ou admin) pour un
+   * organizer de bureau, strictement le propriétaire pour un organizer personnel.
+   */
   async assertOrganizerAccess(
     projetId: string,
     userId: string,
     organisationId: string,
     roleGlobal: RoleGlobal,
   ) {
-    const projet = await this.prisma.projet.findFirst({
-      where: { id: projetId, estOrganizer: true, bureau: { organisationId } },
-      select: { id: true },
+    const projet = await this.prisma.projet.findUnique({
+      where: { id: projetId },
+      select: {
+        estOrganizer: true,
+        bureauId: true,
+        proprietaireId: true,
+        bureau: { select: { organisationId: true } },
+      },
     });
-    if (!projet) throw new NotFoundException('Organizer introuvable');
+    if (!projet || !projet.estOrganizer) throw new NotFoundException('Organizer introuvable');
+
+    if (projet.proprietaireId) {
+      if (projet.proprietaireId !== userId) {
+        throw new ForbiddenException('Cet organizer est personnel et privé');
+      }
+      return;
+    }
+
+    if (!projet.bureau || projet.bureau.organisationId !== organisationId) {
+      throw new NotFoundException('Organizer introuvable');
+    }
 
     if (roleGlobal === RoleGlobal.ADMIN) return;
 
-    const membership = await this.prisma.projetMembre.findUnique({
-      where: { projetId_userId: { projetId, userId } },
+    const membership = await this.prisma.userBureau.findUnique({
+      where: { userId_bureauId: { userId, bureauId: projet.bureauId! } },
     });
-    if (!membership) throw new ForbiddenException('Vous ne faites pas partie de cet organizer');
+    if (!membership) throw new ForbiddenException('Vous ne faites pas partie de ce bureau');
   }
 
   async ensureConversationForBureau(bureauId: string) {

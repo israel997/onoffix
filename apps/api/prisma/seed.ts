@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { PrismaClient, RoleBureau, RoleGlobal, StatutTache } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -5,13 +6,15 @@ const prisma = new PrismaClient();
 
 async function main() {
   const passwordHash = await bcrypt.hash('password123', 10);
+  const adminId = randomUUID();
 
   const organisation = await prisma.organisation.create({
-    data: { nom: 'Acme SARL' },
+    data: { nom: 'Acme SARL', proprietaireId: adminId },
   });
 
   const admin = await prisma.user.create({
     data: {
+      id: adminId,
       organisationId: organisation.id,
       nom: 'Admin Acme',
       email: 'admin@acme.test',

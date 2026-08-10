@@ -3,27 +3,32 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/cn';
 
 interface NavItem {
   label: string;
   href: string;
   available: boolean;
+  adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true },
+  { label: 'My Organizer', href: '/my-organizer', available: true },
+  { label: 'My Tasks', href: '/my-tasks', available: true },
   { label: 'Offices', href: '/offices', available: true },
   { label: 'Members', href: '/members', available: true },
-  { label: 'Projects & tasks', href: '/projects', available: false },
   { label: 'Daily check-in', href: '/check-in', available: false },
   { label: 'Reporting', href: '/reporting', available: false },
   { label: 'Performance', href: '/performance', available: false },
+  { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true },
   { label: 'Profile', href: '/profile', available: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 md:flex">
@@ -31,7 +36,7 @@ export function Sidebar() {
         <Image src="/logo.png" alt="OnOffix" width={176} height={88} priority className="h-14 w-auto" />
       </Link>
       <nav className="flex flex-1 flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => !item.adminOnly || user?.roleGlobal === 'ADMIN').map((item) => {
           const active =
             pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
           if (!item.available) {
