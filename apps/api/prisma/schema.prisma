@@ -39,12 +39,12 @@ enum StatutValidationDeclaration {
 }
 
 model Organisation {
-  id              String   @id @default(uuid())
-  nom             String
-  logoUrl         String?  @map("logo_url")
-  proprietaireId  String   @map("proprietaire_id")
-  planAbonnement  String?  @map("plan_abonnement")
-  dateCreation    DateTime @default(now()) @map("date_creation")
+  id             String   @id @default(uuid())
+  nom            String
+  logoUrl        String?  @map("logo_url")
+  proprietaireId String   @map("proprietaire_id")
+  planAbonnement String?  @map("plan_abonnement")
+  dateCreation   DateTime @default(now()) @map("date_creation")
 
   bureaux     Bureau[]
   users       User[]
@@ -63,14 +63,14 @@ enum CouleurBureau {
 }
 
 model Bureau {
-  id             String   @id @default(uuid())
-  organisationId String   @map("organisation_id")
+  id             String @id @default(uuid())
+  organisationId String @map("organisation_id")
   nom            String
-  fuseauHoraire  String   @default("UTC") @map("fuseau_horaire")
+  fuseauHoraire  String @default("UTC") @map("fuseau_horaire")
 
   // Rituel de déclaration quotidienne (paramétrable par le manager, cf. 2.6)
-  heureDeclaration      String @default("18:30") @map("heure_declaration")
-  delaiRelanceMinutes   Int    @default(60) @map("delai_relance_minutes")
+  heureDeclaration           String  @default("18:30") @map("heure_declaration")
+  delaiRelanceMinutes        Int     @default(60) @map("delai_relance_minutes")
   classementFiabiliteVisible Boolean @default(true) @map("classement_fiabilite_visible")
 
   couleur  CouleurBureau @default(BLUE)
@@ -89,15 +89,23 @@ model Bureau {
 }
 
 model Conversation {
-  id        String   @id @default(uuid())
-  bureauId  String?  @unique @map("bureau_id")
-  projetId  String?  @unique @map("projet_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                       String    @id @default(uuid())
+  bureauId                 String?   @unique @map("bureau_id")
+  // Un Organizer (projet) peut avoir plusieurs Conversations nommées ("Subjects") ;
+  // le chat de bureau, lui, en a toujours exactement une (bureauId reste unique).
+  projetId                 String?   @map("projet_id")
+  // Nom du Subject ; sans effet pour la conversation de bureau (toujours unique).
+  nom                      String    @default("General")
+  // Dernière génération de tâches par l'IA pour ce Subject (cf. organizer.processor).
+  derniereGenerationTaches DateTime? @map("derniere_generation_taches")
+  createdAt                DateTime  @default(now()) @map("created_at")
 
   bureau   Bureau?   @relation(fields: [bureauId], references: [id], onDelete: Cascade)
   projet   Projet?   @relation(fields: [projetId], references: [id], onDelete: Cascade)
   messages Message[]
+  taches   Tache[]
 
+  @@index([projetId])
   @@map("conversations")
 }
 
@@ -109,10 +117,10 @@ model Message {
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Pièce jointe optionnelle (cf. phase D — pas de vidéos, images limitées en poids)
-  fichierUrl         String? @map("fichier_url")
-  fichierNom         String? @map("fichier_nom")
-  fichierType        String? @map("fichier_type")
-  fichierTailleOctets Int?   @map("fichier_taille_octets")
+  fichierUrl          String? @map("fichier_url")
+  fichierNom          String? @map("fichier_nom")
+  fichierType         String? @map("fichier_type")
+  fichierTailleOctets Int?    @map("fichier_taille_octets")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   auteur       User         @relation(fields: [auteurId], references: [id], onDelete: Cascade)
@@ -148,19 +156,19 @@ model User {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  account                Account               @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  organisation           Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  bureaux                UserBureau[]
-  tachesAssignees        Tache[]               @relation("TachesAssignees")
-  tachesAttribuees       Tache[]               @relation("TachesAttribuees")
-  tachesValidees         Tache[]               @relation("TachesValidees")
+  account                  Account                  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  organisation             Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  bureaux                  UserBureau[]
+  tachesAssignees          Tache[]                  @relation("TachesAssignees")
+  tachesAttribuees         Tache[]                  @relation("TachesAttribuees")
+  tachesValidees           Tache[]                  @relation("TachesValidees")
   declarationsJournalieres DeclarationJournaliere[]
-  scoresFiabilite        ScoreFiabilite[]
-  refreshTokens          RefreshToken[]
-  notifications          Notification[]
-  emailVerificationTokens EmailVerificationToken[]
-  messages               Message[]
-  projetsPersonnels      Projet[]
+  scoresFiabilite          ScoreFiabilite[]
+  refreshTokens            RefreshToken[]
+  notifications            Notification[]
+  emailVerificationTokens  EmailVerificationToken[]
+  messages                 Message[]
+  projetsPersonnels        Projet[]
 
   @@unique([accountId, organisationId])
   @@index([organisationId])
@@ -169,10 +177,10 @@ model User {
 }
 
 model UserBureau {
-  userId        String     @map("user_id")
-  bureauId      String     @map("bureau_id")
+  userId         String     @map("user_id")
+  bureauId       String     @map("bureau_id")
   roleDansBureau RoleBureau @default(COLLABORATEUR) @map("role_dans_bureau")
-  roleInterne   String?    @map("role_interne") // ex. "Développeur", "Designer" — utilisé par l'IA
+  roleInterne    String?    @map("role_interne") // ex. "Développeur", "Designer" — utilisé par l'IA
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   bureau Bureau @relation(fields: [bureauId], references: [id], onDelete: Cascade)
@@ -182,7 +190,7 @@ model UserBureau {
 }
 
 model Projet {
-  id          String       @id @default(uuid())
+  id             String       @id @default(uuid())
   // Un projet est soit rattaché à un bureau, soit à l'espace personnel d'un
   // utilisateur (Organizer personnel) — jamais les deux (cf. contrainte SQL).
   bureauId       String?      @map("bureau_id")
@@ -193,17 +201,17 @@ model Projet {
   dateFin        DateTime?    @map("date_fin")
   statut         StatutProjet @default(EN_COURS)
 
-  // Organizer : espace de discussion en vrac, dont le contenu est transformé
-  // en tâches automatiquement toutes les 30 minutes (cf. phase C).
-  estOrganizer             Boolean   @default(false) @map("est_organizer")
-  derniereGenerationTaches DateTime? @map("derniere_generation_taches")
+  // Organizer : espace de discussion en vrac, découpé en Subjects (une
+  // Conversation nommée par Subject), dont le contenu est transformé en
+  // tâches automatiquement (cf. phase C), indépendamment par Subject.
+  estOrganizer Boolean @default(false) @map("est_organizer")
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  bureau       Bureau?        @relation(fields: [bureauId], references: [id], onDelete: Cascade)
-  proprietaire User?          @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
-  taches       Tache[]
-  conversation Conversation?
+  bureau        Bureau?        @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+  proprietaire  User?          @relation(fields: [proprietaireId], references: [id], onDelete: Cascade)
+  taches        Tache[]
+  conversations Conversation[]
 
   @@index([bureauId])
   @@index([proprietaireId])
@@ -213,6 +221,9 @@ model Projet {
 model Tache {
   id              String      @id @default(uuid())
   projetId        String      @map("projet_id")
+  // Subject (Conversation) d'où provient une tâche générée par l'IA ; nul pour
+  // les tâches créées manuellement.
+  conversationId  String?     @map("conversation_id")
   titre           String
   description     String?
   assigneAId      String?     @map("assigne_a")
@@ -223,19 +234,21 @@ model Tache {
   dateValidation  DateTime?   @map("date_validation")
   valideParId     String?     @map("valide_par")
   // Date cible du rituel quotidien (cf. 2.6) — définie par le manager, jamais par l'IA.
-  dateCible       DateTime?   @db.Date @map("date_cible")
+  dateCible       DateTime?   @map("date_cible") @db.Date
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  projet      Projet       @relation(fields: [projetId], references: [id], onDelete: Cascade)
-  assigneA    User?        @relation("TachesAssignees", fields: [assigneAId], references: [id], onDelete: SetNull)
-  assignePar  User?        @relation("TachesAttribuees", fields: [assigneParId], references: [id], onDelete: SetNull)
-  valideur    User?        @relation("TachesValidees", fields: [valideParId], references: [id], onDelete: SetNull)
-  sousTaches  SousTache[]
+  projet            Projet             @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  conversation      Conversation?      @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  assigneA          User?              @relation("TachesAssignees", fields: [assigneAId], references: [id], onDelete: SetNull)
+  assignePar        User?              @relation("TachesAttribuees", fields: [assigneParId], references: [id], onDelete: SetNull)
+  valideur          User?              @relation("TachesValidees", fields: [valideParId], references: [id], onDelete: SetNull)
+  sousTaches        SousTache[]
   declarationTaches DeclarationTache[]
 
   @@index([projetId])
   @@index([assigneAId])
+  @@index([conversationId])
   @@map("taches")
 }
 
@@ -252,11 +265,11 @@ model SousTache {
 }
 
 model DeclarationJournaliere {
-  id                String                      @id @default(uuid())
-  userId            String                      @map("user_id")
-  date              DateTime                    @db.Date
-  heureDeclaration  DateTime?                   @map("heure_declaration")
-  statutValidation  StatutValidationDeclaration @default(EN_ATTENTE) @map("statut_validation")
+  id               String                      @id @default(uuid())
+  userId           String                      @map("user_id")
+  date             DateTime                    @db.Date
+  heureDeclaration DateTime?                   @map("heure_declaration")
+  statutValidation StatutValidationDeclaration @default(EN_ATTENTE) @map("statut_validation")
 
   user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   taches DeclarationTache[]
@@ -281,13 +294,13 @@ model DeclarationTache {
 }
 
 model ScoreFiabilite {
-  id                    String   @id @default(uuid())
-  userId                String   @map("user_id")
-  periode               String   // ex. "2026-W06"
-  tauxPonctualite       Float    @default(0) @map("taux_ponctualite")
-  tauxValidationDirecte Float    @default(0) @map("taux_validation_directe")
-  regularite            Float    @default(0)
-  scoreGlobal           Float    @default(0) @map("score_global")
+  id                    String @id @default(uuid())
+  userId                String @map("user_id")
+  periode               String // ex. "2026-W06"
+  tauxPonctualite       Float  @default(0) @map("taux_ponctualite")
+  tauxValidationDirecte Float  @default(0) @map("taux_validation_directe")
+  regularite            Float  @default(0)
+  scoreGlobal           Float  @default(0) @map("score_global")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -356,12 +369,12 @@ model PasswordResetToken {
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  tokenHash String   @map("token_hash")
-  expiresAt DateTime @map("expires_at")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

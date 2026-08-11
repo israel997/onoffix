@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Chat } from '@/components/chat/chat';
+import { SubjectsChat } from '@/components/organizer/subjects-chat';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,6 @@ import {
   createTache,
   getBureau,
   getBureauOrganizer,
-  listOrganizerMessages,
-  sendOrganizerFile,
   type BureauDetail,
   type OrganizerDetail,
 } from '@/lib/api';
@@ -81,26 +79,15 @@ export default function OrganizerPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Organizer</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {organizer.derniereGenerationTaches
-            ? `Last processed ${new Date(organizer.derniereGenerationTaches).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`
-            : 'Not processed yet — tasks are generated automatically every 30 minutes.'}
+          Organize the brain dump into Subjects; each one is classified into tasks
+          independently.
         </p>
       </div>
 
       <OfficeNav bureauId={bureauId} showSettings={isManager} />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Chat
-          roomId={organizer.id}
-          roomKey="projetId"
-          joinEvent="organizer:join"
-          leaveEvent="organizer:leave"
-          messageEvent="organizer:message"
-          fetchHistory={listOrganizerMessages}
-          uploadFile={sendOrganizerFile}
-          title="Brain dump"
-          description="Write anything — it gets turned into tasks automatically."
-        />
+        <SubjectsChat projetId={organizer.id} canManage={isManager} />
 
         {isManager && (
           <Card>

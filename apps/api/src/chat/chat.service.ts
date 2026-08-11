@@ -81,16 +81,54 @@ export class ChatService {
     if (!membership) throw new ForbiddenException('Vous ne faites pas partie de ce bureau');
   }
 
+  /** Même vérification que assertOrganizerAccess, mais à partir d'un Subject (Conversation). */
+  async assertOrganizerSubjectAccess(
+    subjectId: string,
+    userId: string,
+    organisationId: string,
+    roleGlobal: RoleGlobal,
+  ) {
+    const subject = await this.prisma.conversation.findUnique({
+      where: { id: subjectId },
+      select: { projetId: true },
+    });
+    if (!subject?.projetId) throw new NotFoundException('Subject introuvable');
+    await this.assertOrganizerAccess(subject.projetId, userId, organisationId, roleGlobal);
+  }
+
+  async assertSubjectBelongsToProjet(subjectId: string, projetId: string) {
+    const subject = await this.prisma.conversation.findUnique({
+      where: { id: subjectId },
+      select: { projetId: true },
+    });
+    if (!subject || subject.projetId !== projetId) {
+      throw new NotFoundException('Subject introuvable');
+    }
+  }
+
   async ensureConversationForBureau(bureauId: string) {
     const existing = await this.prisma.conversation.findUnique({ where: { bureauId } });
     if (existing) return existing;
     return this.prisma.conversation.create({ data: { bureauId } });
   }
 
-  async ensureConversationForProjet(projetId: string) {
-    const existing = await this.prisma.conversation.findUnique({ where: { projetId } });
-    if (existing) return existing;
-    return this.prisma.conversation.create({ data: { projetId } });
+  listSubjects(projetId: string) {
+    return this.prisma.conversation.findMany({
+      where: { projetId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  createSubject(projetId: string, nom: string) {
+    return this.prisma.conversation.create({ data: { projetId, nom } });
+  }
+
+  renameSubject(subjectId: string, nom: string) {
+    return this.prisma.conversation.update({ where: { id: subjectId }, data: { nom } });
+  }
+
+  deleteSubject(subjectId: string) {
+    return this.prisma.conversation.delete({ where: { id: subjectId } });
   }
 
   async listMessages(conversationId: string, limit = 50) {

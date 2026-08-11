@@ -63,7 +63,7 @@ function Attachment({ message }: { message: ChatMessage }) {
 
 export interface ChatProps {
   roomId: string;
-  roomKey: 'bureauId' | 'projetId';
+  roomKey: 'bureauId' | 'subjectId';
   joinEvent: string;
   leaveEvent: string;
   messageEvent: string;

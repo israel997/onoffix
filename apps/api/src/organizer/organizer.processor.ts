@@ -6,9 +6,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ORGANIZER_QUEUE } from './organizer.constants';
 
 /**
- * Relit les messages de l'Organizer depuis la dernière génération et les
- * transforme en tâches via l'IA. Les tâches s'accumulent — rien n'est
- * écrasé d'un cycle à l'autre (cf. phase C du cahier des charges).
+ * Relit les messages d'un Subject (Conversation) d'Organizer depuis la
+ * dernière génération et les transforme en tâches via l'IA. Les tâches
+ * s'accumulent — rien n'est écrasé d'un cycle à l'autre (cf. phase C).
  */
 @Processor(ORGANIZER_QUEUE)
 export class OrganizerProcessor extends WorkerHost {
@@ -21,28 +21,22 @@ export class OrganizerProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<{ projetId: string }>): Promise<void> {
-    const { projetId } = job.data;
+  async process(job: Job<{ subjectId: string }>): Promise<void> {
+    const { subjectId } = job.data;
 
-    const projet = await this.prisma.projet.findUnique({ where: { id: projetId } });
-    if (!projet || !projet.estOrganizer) return;
+    const subject = await this.prisma.conversation.findUnique({
+      where: { id: subjectId },
+      include: { projet: true },
+    });
+    if (!subject || !subject.projet?.estOrganizer) return;
 
-    const conversation = await this.prisma.conversation.findUnique({ where: { projetId } });
     const now = new Date();
-
-    if (!conversation) {
-      await this.prisma.projet.update({
-        where: { id: projetId },
-        data: { derniereGenerationTaches: now },
-      });
-      return;
-    }
 
     const messages = await this.prisma.message.findMany({
       where: {
-        conversationId: conversation.id,
-        createdAt: projet.derniereGenerationTaches
-          ? { gt: projet.derniereGenerationTaches }
+        conversationId: subjectId,
+        createdAt: subject.derniereGenerationTaches
+          ? { gt: subject.derniereGenerationTaches }
           : undefined,
       },
       orderBy: { createdAt: 'asc' },
@@ -50,8 +44,8 @@ export class OrganizerProcessor extends WorkerHost {
     });
 
     if (messages.length === 0) {
-      await this.prisma.projet.update({
-        where: { id: projetId },
+      await this.prisma.conversation.update({
+        where: { id: subjectId },
         data: { derniereGenerationTaches: now },
       });
       return;
@@ -63,22 +57,23 @@ export class OrganizerProcessor extends WorkerHost {
     if (suggestions.length > 0) {
       await this.prisma.tache.createMany({
         data: suggestions.map((s) => ({
-          projetId,
+          projetId: subject.projetId!,
+          conversationId: subjectId,
           titre: s.titre,
           description: s.description,
           // Organizer personnel : les tâches générées s'assignent directement au propriétaire.
-          assigneAId: projet.proprietaireId ?? undefined,
-          assigneParId: projet.proprietaireId ?? undefined,
+          assigneAId: subject.projet!.proprietaireId ?? undefined,
+          assigneParId: subject.projet!.proprietaireId ?? undefined,
         })),
       });
     }
 
-    await this.prisma.projet.update({
-      where: { id: projetId },
+    await this.prisma.conversation.update({
+      where: { id: subjectId },
       data: { derniereGenerationTaches: now },
     });
     this.logger.log(
-      `Organizer ${projetId}: ${suggestions.length} tâche(s) générée(s) depuis ${messages.length} message(s)`,
+      `Subject ${subjectId}: ${suggestions.length} tâche(s) générée(s) depuis ${messages.length} message(s)`,
     );
   }
 }

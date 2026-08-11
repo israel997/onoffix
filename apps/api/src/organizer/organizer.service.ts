@@ -1,8 +1,10 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { RoleBureau, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { ChatService } from '../chat/chat.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTacheDto } from './dto/create-tache.dto';
+import { OrganizerScheduler } from './organizer.scheduler';
 
 const TACHE_INCLUDE = {
   assigneA: { select: { id: true, nom: true } },
@@ -12,13 +14,17 @@ const TACHE_INCLUDE = {
 
 @Injectable()
 export class OrganizerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatService: ChatService,
+    private readonly scheduler: OrganizerScheduler,
+  ) {}
 
   /** Crée l'Organizer unique d'un bureau (chat en vrac + génération de tâches). */
   async createDefaultForBureau(bureauId: string, nom = 'Organizer') {
     return this.prisma.$transaction(async (tx) => {
       const projet = await tx.projet.create({ data: { bureauId, nom, estOrganizer: true } });
-      await tx.conversation.create({ data: { projetId: projet.id } });
+      await tx.conversation.create({ data: { projetId: projet.id, nom: 'General' } });
       return projet;
     });
   }
@@ -29,7 +35,7 @@ export class OrganizerService {
       const projet = await tx.projet.create({
         data: { proprietaireId: userId, nom, estOrganizer: true },
       });
-      await tx.conversation.create({ data: { projetId: projet.id } });
+      await tx.conversation.create({ data: { projetId: projet.id, nom: 'General' } });
       return projet;
     });
   }
@@ -42,6 +48,7 @@ export class OrganizerService {
       where: { bureauId, estOrganizer: true },
       include: {
         taches: { orderBy: { createdAt: 'desc' }, include: TACHE_INCLUDE },
+        conversations: { orderBy: { createdAt: 'asc' } },
       },
     });
   }
@@ -51,8 +58,34 @@ export class OrganizerService {
       where: { proprietaireId: userId, estOrganizer: true },
       include: {
         taches: { orderBy: { createdAt: 'desc' }, include: TACHE_INCLUDE },
+        conversations: { orderBy: { createdAt: 'asc' } },
       },
     });
+  }
+
+  listSubjects(projetId: string) {
+    return this.chatService.listSubjects(projetId);
+  }
+
+  async createSubject(projetId: string, nom: string) {
+    const subject = await this.chatService.createSubject(projetId, nom);
+    await this.scheduler.scheduleSubject(subject.id);
+    return subject;
+  }
+
+  async renameSubject(projetId: string, subjectId: string, nom: string) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+    return this.chatService.renameSubject(subjectId, nom);
+  }
+
+  async deleteSubject(projetId: string, subjectId: string) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+    const remaining = await this.chatService.listSubjects(projetId);
+    if (remaining.length <= 1) {
+      throw new ForbiddenException('Un organizer doit garder au moins un Subject');
+    }
+    await this.scheduler.cancelSubject(subjectId);
+    await this.chatService.deleteSubject(subjectId);
   }
 
   async createTache(projetId: string, user: AuthenticatedUser, dto: CreateTacheDto) {

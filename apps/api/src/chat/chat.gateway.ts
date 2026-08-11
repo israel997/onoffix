@@ -23,8 +23,8 @@ function bureauRoom(bureauId: string) {
   return `bureau:${bureauId}`;
 }
 
-function organizerRoom(projetId: string) {
-  return `organizer:${projetId}`;
+function organizerRoom(subjectId: string) {
+  return `organizer:${subjectId}`;
 }
 
 function getUser(client: Socket): SocketUser {
@@ -118,46 +118,45 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('organizer:join')
   async handleOrganizerJoin(
-    @MessageBody() data: { projetId: string },
+    @MessageBody() data: { subjectId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const user = getUser(client);
-    await this.chatService.assertOrganizerAccess(
-      data.projetId,
+    await this.chatService.assertOrganizerSubjectAccess(
+      data.subjectId,
       user.userId,
       user.organisationId,
       user.roleGlobal,
     );
-    await client.join(organizerRoom(data.projetId));
+    await client.join(organizerRoom(data.subjectId));
   }
 
   @SubscribeMessage('organizer:leave')
   async handleOrganizerLeave(
-    @MessageBody() data: { projetId: string },
+    @MessageBody() data: { subjectId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    await client.leave(organizerRoom(data.projetId));
+    await client.leave(organizerRoom(data.subjectId));
   }
 
   @SubscribeMessage('organizer:message')
   async handleOrganizerMessage(
-    @MessageBody() data: { projetId: string; contenu: string },
+    @MessageBody() data: { subjectId: string; contenu: string },
     @ConnectedSocket() client: Socket,
   ) {
     const user = getUser(client);
     const contenu = data.contenu?.trim();
     if (!contenu || contenu.length > 4000) return;
 
-    await this.chatService.assertOrganizerAccess(
-      data.projetId,
+    await this.chatService.assertOrganizerSubjectAccess(
+      data.subjectId,
       user.userId,
       user.organisationId,
       user.roleGlobal,
     );
-    const conversation = await this.chatService.ensureConversationForProjet(data.projetId);
-    const message = await this.chatService.createMessage(conversation.id, user.userId, contenu);
+    const message = await this.chatService.createMessage(data.subjectId, user.userId, contenu);
 
-    this.server.to(organizerRoom(data.projetId)).emit('organizer:message', message);
+    this.server.to(organizerRoom(data.subjectId)).emit('organizer:message', message);
   }
 
   /** Diffuse un message créé hors WebSocket (ex. upload de fichier via REST) aux clients connectés. */
@@ -165,7 +164,7 @@ export class ChatGateway implements OnGatewayConnection {
     this.server.to(bureauRoom(bureauId)).emit('bureau:message', message);
   }
 
-  broadcastOrganizerMessage(projetId: string, message: unknown) {
-    this.server.to(organizerRoom(projetId)).emit('organizer:message', message);
+  broadcastOrganizerMessage(subjectId: string, message: unknown) {
+    this.server.to(organizerRoom(subjectId)).emit('organizer:message', message);
   }
 }

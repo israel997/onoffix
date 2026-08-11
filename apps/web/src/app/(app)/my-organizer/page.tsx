@@ -1,19 +1,13 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { Chat } from '@/components/chat/chat';
+import { SubjectsChat } from '@/components/organizer/subjects-chat';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  createTache,
-  getMyOrganizer,
-  listOrganizerMessages,
-  sendOrganizerFile,
-  type OrganizerDetail,
-} from '@/lib/api';
+import { createTache, getMyOrganizer, type OrganizerDetail } from '@/lib/api';
 
 export default function MyOrganizerPage() {
   const [organizer, setOrganizer] = useState<OrganizerDetail | null>(null);
@@ -56,25 +50,13 @@ export default function MyOrganizerPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">My Organizer</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your private brain dump — strictly yours, nobody else can see it.{' '}
-          {organizer.derniereGenerationTaches
-            ? `Last processed ${new Date(organizer.derniereGenerationTaches).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`
-            : 'Not processed yet — tasks are generated automatically every 30 minutes.'}
+          Your private brain dump — strictly yours, nobody else can see it. Organize it into
+          Subjects; each one is classified into tasks independently.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Chat
-          roomId={organizer.id}
-          roomKey="projetId"
-          joinEvent="organizer:join"
-          leaveEvent="organizer:leave"
-          messageEvent="organizer:message"
-          fetchHistory={listOrganizerMessages}
-          uploadFile={sendOrganizerFile}
-          title="Brain dump"
-          description="Write anything — it gets turned into tasks automatically."
-        />
+        <SubjectsChat projetId={organizer.id} canManage />
 
         <Card>
           <CardTitle>Add a task manually</CardTitle>

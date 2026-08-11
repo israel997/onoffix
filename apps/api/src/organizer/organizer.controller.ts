@@ -2,8 +2,11 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
+  Patch,
   Post,
   UploadedFile,
   UseGuards,
@@ -20,6 +23,7 @@ import { assertImageWeight, messageFileMulterOptions } from '../chat/chat-file.c
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatService } from '../chat/chat.service';
 import { CreateTacheDto } from './dto/create-tache.dto';
+import { SubjectDto } from './dto/subject.dto';
 import { OrganizerService } from './organizer.service';
 
 const ANY_MEMBER = [RoleBureau.MANAGER, RoleBureau.COLLABORATEUR];
@@ -56,21 +60,51 @@ export class OrganizerController {
     private readonly storage: StorageService,
   ) {}
 
-  @Get('messages')
-  async messages(@Param('projetId') projetId: string) {
-    const conversation = await this.chatService.ensureConversationForProjet(projetId);
-    return this.chatService.listMessages(conversation.id);
+  @Get('subjects')
+  listSubjects(@Param('projetId') projetId: string) {
+    return this.organizerService.listSubjects(projetId);
   }
 
-  @Post('messages/fichier')
+  @Post('subjects')
+  createSubject(@Param('projetId') projetId: string, @Body() dto: SubjectDto) {
+    return this.organizerService.createSubject(projetId, dto.nom);
+  }
+
+  @Patch('subjects/:subjectId')
+  renameSubject(
+    @Param('projetId') projetId: string,
+    @Param('subjectId') subjectId: string,
+    @Body() dto: SubjectDto,
+  ) {
+    return this.organizerService.renameSubject(projetId, subjectId, dto.nom);
+  }
+
+  @Delete('subjects/:subjectId')
+  @HttpCode(204)
+  async deleteSubject(
+    @Param('projetId') projetId: string,
+    @Param('subjectId') subjectId: string,
+  ) {
+    await this.organizerService.deleteSubject(projetId, subjectId);
+  }
+
+  @Get('subjects/:subjectId/messages')
+  async messages(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+    return this.chatService.listMessages(subjectId);
+  }
+
+  @Post('subjects/:subjectId/messages/fichier')
   @UseInterceptors(FileInterceptor('file', messageFileMulterOptions))
   async sendFile(
     @Param('projetId') projetId: string,
+    @Param('subjectId') subjectId: string,
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
     @Body('contenu') contenu?: string,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
     assertImageWeight(file);
     const url = await this.storage.upload(
       file.buffer,
@@ -78,14 +112,13 @@ export class OrganizerController {
       file.originalname,
       file.mimetype,
     );
-    const conversation = await this.chatService.ensureConversationForProjet(projetId);
-    const message = await this.chatService.createMessage(conversation.id, user.userId, contenu, {
+    const message = await this.chatService.createMessage(subjectId, user.userId, contenu, {
       url,
       nom: file.originalname,
       type: file.mimetype,
       tailleOctets: file.size,
     });
-    this.chatGateway.broadcastOrganizerMessage(projetId, message);
+    this.chatGateway.broadcastOrganizerMessage(subjectId, message);
     return message;
   }
 

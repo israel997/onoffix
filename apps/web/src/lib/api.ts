@@ -502,15 +502,42 @@ export function validerTache(tacheId: string, decision: 'ok' | 'litige') {
   return authFetch<Tache>(`/taches/${tacheId}/valider`, { method: 'POST', body: { decision } });
 }
 
+export interface Subject {
+  id: string;
+  projetId: string | null;
+  nom: string;
+  derniereGenerationTaches: string | null;
+  createdAt: string;
+}
+
 export interface OrganizerDetail {
   id: string;
   bureauId: string | null;
   proprietaireId: string | null;
   nom: string;
   estOrganizer: boolean;
-  derniereGenerationTaches: string | null;
   createdAt: string;
   taches: Tache[];
+  conversations: Subject[];
+}
+
+export function listOrganizerSubjects(projetId: string) {
+  return authFetch<Subject[]>(`/organizers/${projetId}/subjects`);
+}
+
+export function createOrganizerSubject(projetId: string, nom: string) {
+  return authFetch<Subject>(`/organizers/${projetId}/subjects`, { method: 'POST', body: { nom } });
+}
+
+export function renameOrganizerSubject(projetId: string, subjectId: string, nom: string) {
+  return authFetch<Subject>(`/organizers/${projetId}/subjects/${subjectId}`, {
+    method: 'PATCH',
+    body: { nom },
+  });
+}
+
+export function deleteOrganizerSubject(projetId: string, subjectId: string) {
+  return authFetch<void>(`/organizers/${projetId}/subjects/${subjectId}`, { method: 'DELETE' });
 }
 
 /** Chaque bureau a exactement un Organizer, créé automatiquement à la création du bureau. */
@@ -584,12 +611,12 @@ export function validerRituelMembre(bureauId: string, userId: string, tacheIds: 
   });
 }
 
-export function listOrganizerMessages(projetId: string) {
-  return authFetch<ChatMessage[]>(`/organizers/${projetId}/messages`);
+export function listOrganizerMessages(projetId: string, subjectId: string) {
+  return authFetch<ChatMessage[]>(`/organizers/${projetId}/subjects/${subjectId}/messages`);
 }
 
-export function sendOrganizerFile(projetId: string, file: File, contenu?: string) {
-  return sendFile(`/organizers/${projetId}/messages/fichier`, file, contenu);
+export function sendOrganizerFile(projetId: string, subjectId: string, file: File, contenu?: string) {
+  return sendFile(`/organizers/${projetId}/subjects/${subjectId}/messages/fichier`, file, contenu);
 }
 
 export function createTache(projetId: string, data: { titre: string; description?: string }) {
