@@ -277,7 +277,12 @@ export class AuthService {
     }
 
     const existingMembership = await this.prisma.user.findUnique({
-      where: { accountId_organisationId: { accountId: account.id, organisationId: invitation.organisationId } },
+      where: {
+        accountId_organisationId: {
+          accountId: account.id,
+          organisationId: invitation.organisationId,
+        },
+      },
     });
     if (existingMembership) {
       throw new ConflictException('Vous êtes déjà membre de cette organisation');
@@ -333,12 +338,18 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const userIds = (
-      await this.prisma.user.findMany({ where: { accountId: record.accountId }, select: { id: true } })
+      await this.prisma.user.findMany({
+        where: { accountId: record.accountId },
+        select: { id: true },
+      })
     ).map((u) => u.id);
 
     await this.prisma.$transaction([
       this.prisma.account.update({ where: { id: record.accountId }, data: { passwordHash } }),
-      this.prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      this.prisma.passwordResetToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
       this.prisma.refreshToken.updateMany({
         where: { userId: { in: userIds }, revoked: false },
         data: { revoked: true },

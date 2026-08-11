@@ -101,7 +101,13 @@ function passwordResetEmailTemplate(nom: string, link: string): string {
   );
 }
 
-function emailShell(nom: string, body: string, link: string, cta: string, footnote: string): string {
+function emailShell(
+  nom: string,
+  body: string,
+  link: string,
+  cta: string,
+  footnote: string,
+): string {
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
       <h1 style="color: #0a1440; font-size: 20px;">Hi ${escapeHtml(nom)},</h1>

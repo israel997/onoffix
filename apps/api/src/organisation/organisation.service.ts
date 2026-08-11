@@ -118,7 +118,10 @@ export class OrganisationService {
 
     await this.emailService.sendInvitationEmail(dto.email, dto.nom, organisation.nom, rawToken);
 
-    return { status: 'invited' as const, invitation: { id: invitation.id, email: dto.email, nom: dto.nom } };
+    return {
+      status: 'invited' as const,
+      invitation: { id: invitation.id, email: dto.email, nom: dto.nom },
+    };
   }
 
   listInvitations(organisationId: string) {
