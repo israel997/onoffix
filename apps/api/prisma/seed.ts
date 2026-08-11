@@ -12,33 +12,43 @@ async function main() {
     data: { nom: 'Acme SARL', proprietaireId: adminId },
   });
 
+  const adminAccount = await prisma.account.create({
+    data: { email: 'admin@acme.test', passwordHash },
+  });
+  const managerAccount = await prisma.account.create({
+    data: { email: 'manager@acme.test', passwordHash },
+  });
+  const collaborateurAccount = await prisma.account.create({
+    data: { email: 'collaborateur@acme.test', passwordHash },
+  });
+
   const admin = await prisma.user.create({
     data: {
       id: adminId,
+      accountId: adminAccount.id,
       organisationId: organisation.id,
       nom: 'Admin Acme',
       email: 'admin@acme.test',
-      passwordHash,
       roleGlobal: RoleGlobal.ADMIN,
     },
   });
 
   const manager = await prisma.user.create({
     data: {
+      accountId: managerAccount.id,
       organisationId: organisation.id,
       nom: 'Manager Dev',
       email: 'manager@acme.test',
-      passwordHash,
       roleGlobal: RoleGlobal.MEMBRE,
     },
   });
 
   const collaborateur = await prisma.user.create({
     data: {
+      accountId: collaborateurAccount.id,
       organisationId: organisation.id,
       nom: 'Collaborateur Dev',
       email: 'collaborateur@acme.test',
-      passwordHash,
       roleGlobal: RoleGlobal.MEMBRE,
     },
   });
@@ -51,7 +61,11 @@ async function main() {
         create: [
           { userId: admin.id, roleDansBureau: RoleBureau.MANAGER, roleInterne: 'Admin' },
           { userId: manager.id, roleDansBureau: RoleBureau.MANAGER, roleInterne: 'Lead Dev' },
-          { userId: collaborateur.id, roleDansBureau: RoleBureau.COLLABORATEUR, roleInterne: 'Développeur' },
+          {
+            userId: collaborateur.id,
+            roleDansBureau: RoleBureau.COLLABORATEUR,
+            roleInterne: 'Développeur',
+          },
         ],
       },
     },

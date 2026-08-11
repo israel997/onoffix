@@ -1,10 +1,12 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
+import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { SwitchOrganisationDto } from './dto/switch-organisation.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @Controller('auth')
@@ -49,5 +51,21 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   resendVerification(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.sendVerificationEmail(user.userId);
+  }
+
+  @Get('organisations')
+  myOrganisations(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.listMyOrganisations(user);
+  }
+
+  @Post('organisations')
+  createOrganisation(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateOrganisationDto) {
+    return this.authService.createOrganisation(user, dto);
+  }
+
+  @Post('switch-organisation')
+  @HttpCode(HttpStatus.OK)
+  switchOrganisation(@CurrentUser() user: AuthenticatedUser, @Body() dto: SwitchOrganisationDto) {
+    return this.authService.switchOrganisation(user, dto.organisationId);
   }
 }

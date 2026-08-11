@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -14,12 +15,15 @@ import { EmailService } from '../email/email.service';
 import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './jwt-payload.interface';
+import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
 const REFRESH_TOKEN_SALT_ROUNDS = 10;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
+const MAX_ORGANISATIONS_OWNED = 2;
 
 function hashVerificationToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -39,8 +43,8 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (existing) {
+    const existingAccount = await this.prisma.account.findUnique({ where: { email: dto.email } });
+    if (existingAccount) {
       throw new ConflictException('Un compte existe déjà avec cet email');
     }
 
@@ -48,16 +52,17 @@ export class AuthService {
     const ownerId = randomUUID();
 
     const user = await this.prisma.$transaction(async (tx) => {
+      const account = await tx.account.create({ data: { email: dto.email, passwordHash } });
       const organisation = await tx.organisation.create({
         data: { nom: dto.organisationNom, proprietaireId: ownerId },
       });
       return tx.user.create({
         data: {
           id: ownerId,
+          accountId: account.id,
           organisationId: organisation.id,
           nom: dto.nom,
           email: dto.email,
-          passwordHash,
           roleGlobal: RoleGlobal.ADMIN,
         },
       });
@@ -70,7 +75,7 @@ export class AuthService {
       this.logger.warn(`Échec d'envoi de l'email de vérification: ${error}`),
     );
 
-    return this.issueTokens(user.id, user.organisationId, user.roleGlobal);
+    return this.issueTokens(user.id, user.organisationId, user.roleGlobal, user.accountId);
   }
 
   async sendVerificationEmail(userId: string) {
@@ -106,11 +111,133 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+    const account = await this.prisma.account.findUnique({ where: { email: dto.email } });
+    if (!account || !(await bcrypt.compare(dto.password, account.passwordHash))) {
       throw new UnauthorizedException('Identifiants invalides');
     }
-    return this.issueTokens(user.id, user.organisationId, user.roleGlobal);
+
+    const memberships = await this.prisma.user.findMany({
+      where: { accountId: account.id },
+      include: { organisation: { select: { id: true, nom: true, logoUrl: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (memberships.length === 0) {
+      throw new UnauthorizedException("Ce compte n'appartient à aucune organisation");
+    }
+
+    if (dto.organisationId) {
+      const membership = memberships.find((m) => m.organisationId === dto.organisationId);
+      if (!membership) {
+        throw new UnauthorizedException('Vous ne faites pas partie de cette organisation');
+      }
+      return this.issueTokens(
+        membership.id,
+        membership.organisationId,
+        membership.roleGlobal,
+        account.id,
+      );
+    }
+
+    if (memberships.length > 1) {
+      return {
+        needsOrganisationSelection: true as const,
+        organisations: memberships.map((m) => ({
+          id: m.organisation.id,
+          nom: m.organisation.nom,
+          logoUrl: m.organisation.logoUrl,
+        })),
+      };
+    }
+
+    const [membership] = memberships;
+    return this.issueTokens(
+      membership.id,
+      membership.organisationId,
+      membership.roleGlobal,
+      account.id,
+    );
+  }
+
+  /** Bascule vers une autre organisation dont le compte connecté est déjà membre. */
+  async switchOrganisation(currentUser: AuthenticatedUser, organisationId: string) {
+    const membership = await this.prisma.user.findFirst({
+      where: { accountId: currentUser.accountId, organisationId },
+    });
+    if (!membership) {
+      throw new ForbiddenException('Vous ne faites pas partie de cette organisation');
+    }
+    return this.issueTokens(
+      membership.id,
+      membership.organisationId,
+      membership.roleGlobal,
+      currentUser.accountId,
+    );
+  }
+
+  /** Crée une nouvelle organisation possédée par le compte connecté (limite : MAX_ORGANISATIONS_OWNED). */
+  async createOrganisation(currentUser: AuthenticatedUser, dto: CreateOrganisationDto) {
+    const account = await this.prisma.account.findUniqueOrThrow({
+      where: { id: currentUser.accountId },
+    });
+
+    const myMembershipIds = (
+      await this.prisma.user.findMany({
+        where: { accountId: currentUser.accountId },
+        select: { id: true },
+      })
+    ).map((m) => m.id);
+
+    const ownedCount = await this.prisma.organisation.count({
+      where: { proprietaireId: { in: myMembershipIds } },
+    });
+    if (ownedCount >= MAX_ORGANISATIONS_OWNED) {
+      throw new BadRequestException(
+        `Vous ne pouvez pas posséder plus de ${MAX_ORGANISATIONS_OWNED} organisations`,
+      );
+    }
+
+    const ownerId = randomUUID();
+    const account_ = await this.prisma.user.findFirstOrThrow({
+      where: { accountId: currentUser.accountId },
+      select: { nom: true },
+    });
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const organisation = await tx.organisation.create({
+        data: { nom: dto.nom, proprietaireId: ownerId },
+      });
+      return tx.user.create({
+        data: {
+          id: ownerId,
+          accountId: account.id,
+          organisationId: organisation.id,
+          nom: account_.nom,
+          email: account.email,
+          roleGlobal: RoleGlobal.ADMIN,
+        },
+      });
+    });
+
+    const personalOrganizer = await this.organizerService.createPersonal(user.id);
+    await this.organizerScheduler.schedule(personalOrganizer.id);
+
+    return this.issueTokens(user.id, user.organisationId, user.roleGlobal, account.id);
+  }
+
+  async listMyOrganisations(currentUser: AuthenticatedUser) {
+    const memberships = await this.prisma.user.findMany({
+      where: { accountId: currentUser.accountId },
+      include: { organisation: { select: { id: true, nom: true, logoUrl: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return memberships.map((m) => ({
+      id: m.organisation.id,
+      nom: m.organisation.nom,
+      logoUrl: m.organisation.logoUrl,
+      roleGlobal: m.roleGlobal,
+      current: m.organisationId === currentUser.organisationId,
+    }));
   }
 
   async refresh(refreshToken: string) {
@@ -137,7 +264,12 @@ export class AuthService {
       data: { revoked: true },
     });
 
-    return this.issueTokens(payload.sub, payload.organisationId, payload.roleGlobal);
+    return this.issueTokens(
+      payload.sub,
+      payload.organisationId,
+      payload.roleGlobal,
+      payload.accountId,
+    );
   }
 
   async logout(refreshToken: string) {
@@ -174,8 +306,13 @@ export class AuthService {
     return null;
   }
 
-  private async issueTokens(userId: string, organisationId: string, roleGlobal: RoleGlobal) {
-    const payload: JwtPayload = { sub: userId, organisationId, roleGlobal };
+  private async issueTokens(
+    userId: string,
+    organisationId: string,
+    roleGlobal: RoleGlobal,
+    accountId: string,
+  ) {
+    const payload: JwtPayload = { sub: userId, accountId, organisationId, roleGlobal };
 
     const accessToken = await this.jwtService.signAsync(
       payload as unknown as object,

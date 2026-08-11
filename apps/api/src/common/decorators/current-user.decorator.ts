@@ -3,6 +3,7 @@ import type { Request } from 'express';
 
 export interface AuthenticatedUser {
   userId: string;
+  accountId: string;
   organisationId: string;
   roleGlobal: 'ADMIN' | 'MEMBRE';
 }

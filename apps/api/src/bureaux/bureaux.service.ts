@@ -126,8 +126,10 @@ export class BureauxService {
   async addMembre(bureauId: string, organisationId: string, dto: AddMembreDto) {
     await this.assertInOrganisation(bureauId, organisationId);
 
-    const membre = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!membre || membre.organisationId !== organisationId) {
+    const membre = await this.prisma.user.findFirst({
+      where: { email: dto.email, organisationId },
+    });
+    if (!membre) {
       throw new NotFoundException(
         "Ce collaborateur n'existe pas encore dans l'organisation — ajoutez-le d'abord depuis Membres.",
       );

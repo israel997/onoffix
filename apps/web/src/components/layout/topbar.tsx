@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { NotificationsBell } from '@/components/layout/notifications-bell';
+import { OrgSwitcher } from '@/components/layout/org-switcher';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 
@@ -46,7 +47,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           </svg>
         </button>
         <div>
-          <p className="text-sm font-semibold text-foreground">{user.organisation.nom}</p>
+          <OrgSwitcher organisationNom={user.organisation.nom} />
           <p className="text-xs text-muted-foreground">{bureauLabel}</p>
         </div>
       </div>

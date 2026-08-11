@@ -64,8 +64,25 @@ export function registerOrganisation(data: {
   return publicRequest<AuthTokens>('/auth/register', data);
 }
 
-export function login(data: { email: string; password: string }) {
-  return publicRequest<AuthTokens>('/auth/login', data);
+export interface OrganisationOption {
+  id: string;
+  nom: string;
+  logoUrl: string | null;
+}
+
+export interface NeedsOrganisationSelection {
+  needsOrganisationSelection: true;
+  organisations: OrganisationOption[];
+}
+
+export function isNeedsOrganisationSelection(
+  result: AuthTokens | NeedsOrganisationSelection,
+): result is NeedsOrganisationSelection {
+  return 'needsOrganisationSelection' in result;
+}
+
+export function login(data: { email: string; password: string; organisationId?: string }) {
+  return publicRequest<AuthTokens | NeedsOrganisationSelection>('/auth/login', data);
 }
 
 const TOKENS_KEY = 'onoffix_tokens';
@@ -530,6 +547,29 @@ export function sendOrganizerFile(projetId: string, file: File, contenu?: string
 
 export function createTache(projetId: string, data: { titre: string; description?: string }) {
   return authFetch<Tache>(`/organizers/${projetId}/taches`, { method: 'POST', body: data });
+}
+
+export interface MyOrganisation extends OrganisationOption {
+  roleGlobal: 'ADMIN' | 'MEMBRE';
+  current: boolean;
+}
+
+/** All organisations the logged-in account belongs to (for the org switcher). */
+export function getMyOrganisations() {
+  return authFetch<MyOrganisation[]>('/auth/organisations');
+}
+
+/** Creates a new organisation owned by the current account and returns tokens scoped to it. */
+export function createOrganisation(nom: string) {
+  return authFetch<AuthTokens>('/auth/organisations', { method: 'POST', body: { nom } });
+}
+
+/** Switches session to another organisation the current account already belongs to. */
+export function switchOrganisation(organisationId: string) {
+  return authFetch<AuthTokens>('/auth/switch-organisation', {
+    method: 'POST',
+    body: { organisationId },
+  });
 }
 
 export async function logout() {

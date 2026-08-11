@@ -52,18 +52,26 @@ export class OrganisationService {
   }
 
   async addMembre(organisationId: string, dto: AddOrganisationMembreDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (existing) {
-      throw new ConflictException('Un compte existe déjà avec cet email');
+    let account = await this.prisma.account.findUnique({ where: { email: dto.email } });
+
+    if (account) {
+      const existingMembership = await this.prisma.user.findUnique({
+        where: { accountId_organisationId: { accountId: account.id, organisationId } },
+      });
+      if (existingMembership) {
+        throw new ConflictException('Ce collaborateur est déjà membre de cette organisation');
+      }
+    } else {
+      const passwordHash = await bcrypt.hash(dto.password, 10);
+      account = await this.prisma.account.create({ data: { email: dto.email, passwordHash } });
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
+        accountId: account.id,
         organisationId,
         nom: dto.nom,
         email: dto.email,
-        passwordHash,
         roleGlobal: RoleGlobal.MEMBRE,
       },
       select: MEMBRE_SELECT,
