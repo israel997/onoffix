@@ -18,13 +18,17 @@ export class EmailService {
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
     if (!this.apiKey) {
-      this.logger.warn('BREVO_API_KEY non configurée — les emails seront seulement loggés, pas envoyés.');
+      this.logger.warn(
+        'BREVO_API_KEY non configurée — les emails seront seulement loggés, pas envoyés.',
+      );
     }
   }
 
   private async send(to: string, subject: string, html: string) {
     if (!this.apiKey) {
-      this.logger.log(`[dev] Email "${subject}" pour ${to} non envoyé (BREVO_API_KEY non configurée).`);
+      this.logger.log(
+        `[dev] Email "${subject}" pour ${to} non envoyé (BREVO_API_KEY non configurée).`,
+      );
       return;
     }
 
