@@ -110,6 +110,9 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Label>
+        <Link href="/forgot-password" className="-mt-2 text-sm text-brand-blue hover:underline">
+          Forgot password?
+        </Link>
         {error && <p className="text-sm text-status-review">{error}</p>}
         <Button type="submit" disabled={loading} className="mt-2 w-full">
           {loading ? 'Logging in…' : 'Log in'}

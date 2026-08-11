@@ -55,6 +55,12 @@ async function publicRequest<T>(path: string, body: unknown): Promise<T> {
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+async function publicGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`);
+  if (!res.ok) throw new ApiError(await parseErrorMessage(res), res.status);
+  return res.json();
+}
+
 export function registerOrganisation(data: {
   organisationNom: string;
   nom: string;
@@ -83,6 +89,28 @@ export function isNeedsOrganisationSelection(
 
 export function login(data: { email: string; password: string; organisationId?: string }) {
   return publicRequest<AuthTokens | NeedsOrganisationSelection>('/auth/login', data);
+}
+
+export interface InvitationPreview {
+  email: string;
+  nom: string;
+  organisationNom: string;
+}
+
+export function getInvitationPreview(token: string) {
+  return publicGet<InvitationPreview>(`/auth/invitations/${token}`);
+}
+
+export function acceptInvitation(token: string, password: string) {
+  return publicRequest<AuthTokens>('/auth/accept-invitation', { token, password });
+}
+
+export function forgotPassword(email: string) {
+  return publicRequest<void>('/auth/forgot-password', { email });
+}
+
+export function resetPassword(token: string, password: string) {
+  return publicRequest<void>('/auth/reset-password', { token, password });
 }
 
 const TOKENS_KEY = 'onoffix_tokens';
@@ -365,8 +393,27 @@ export function listOrganisationMembres() {
   return authFetch<OrganisationMembre[]>('/organisation/membres');
 }
 
-export function addOrganisationMembre(data: { email: string; nom: string; password: string }) {
-  return authFetch<OrganisationMembre>('/organisation/membres', { method: 'POST', body: data });
+export type AddMembreResult =
+  | { status: 'added'; membre: OrganisationMembre }
+  | { status: 'invited'; invitation: { id: string; email: string; nom: string } };
+
+export function addOrganisationMembre(data: { email: string; nom: string }) {
+  return authFetch<AddMembreResult>('/organisation/membres', { method: 'POST', body: data });
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  nom: string;
+  createdAt: string;
+}
+
+export function listOrganisationInvitations() {
+  return authFetch<Invitation[]>('/organisation/invitations');
+}
+
+export function cancelOrganisationInvitation(invitationId: string) {
+  return authFetch<void>(`/organisation/invitations/${invitationId}`, { method: 'DELETE' });
 }
 
 export function updateProfile(data: { nom?: string; poste?: string; bio?: string; photoUrl?: string }) {

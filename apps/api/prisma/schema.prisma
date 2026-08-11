@@ -46,8 +46,9 @@ model Organisation {
   planAbonnement  String?  @map("plan_abonnement")
   dateCreation    DateTime @default(now()) @map("date_creation")
 
-  bureaux Bureau[]
-  users   User[]
+  bureaux     Bureau[]
+  users       User[]
+  invitations Invitation[]
 
   @@map("organisations")
 }
@@ -127,7 +128,8 @@ model Account {
   passwordHash String   @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  users User[]
+  users               User[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("accounts")
 }
@@ -320,6 +322,37 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+model Invitation {
+  id             String     @id @default(uuid())
+  email          String
+  nom            String
+  organisationId String     @map("organisation_id")
+  roleGlobal     RoleGlobal @default(MEMBRE) @map("role_global")
+  tokenHash      String     @map("token_hash")
+  expiresAt      DateTime   @map("expires_at")
+  acceptedAt     DateTime?  @map("accepted_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@map("invitations")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  accountId String    @map("account_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("password_reset_tokens")
 }
 
 model EmailVerificationToken {

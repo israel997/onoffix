@@ -15,17 +15,21 @@ import { EmailService } from '../email/email.service';
 import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtPayload } from './jwt-payload.interface';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
 const REFRESH_TOKEN_SALT_ROUNDS = 10;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
+const PASSWORD_RESET_TTL_HOURS = 1;
 const MAX_ORGANISATIONS_OWNED = 2;
 
-function hashVerificationToken(token: string): string {
+function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
@@ -86,14 +90,14 @@ export class AuthService {
     expiresAt.setHours(expiresAt.getHours() + EMAIL_VERIFICATION_TTL_HOURS);
 
     await this.prisma.emailVerificationToken.create({
-      data: { userId: user.id, tokenHash: hashVerificationToken(rawToken), expiresAt },
+      data: { userId: user.id, tokenHash: hashToken(rawToken), expiresAt },
     });
 
     await this.emailService.sendVerificationEmail(user.email, user.nom, rawToken);
   }
 
   async verifyEmail(token: string) {
-    const tokenHash = hashVerificationToken(token);
+    const tokenHash = hashToken(token);
     const record = await this.prisma.emailVerificationToken.findFirst({
       where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
     });
@@ -238,6 +242,108 @@ export class AuthService {
       roleGlobal: m.roleGlobal,
       current: m.organisationId === currentUser.organisationId,
     }));
+  }
+
+  /** Aperçu d'une invitation avant acceptation (email, nom, organisation) — sans authentification. */
+  async getInvitationPreview(token: string) {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { tokenHash: hashToken(token), acceptedAt: null, expiresAt: { gt: new Date() } },
+      include: { organisation: { select: { nom: true } } },
+    });
+    if (!invitation) {
+      throw new BadRequestException('Invitation invalide ou expirée');
+    }
+    return {
+      email: invitation.email,
+      nom: invitation.nom,
+      organisationNom: invitation.organisation.nom,
+    };
+  }
+
+  async acceptInvitation(dto: AcceptInvitationDto) {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { tokenHash: hashToken(dto.token), acceptedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!invitation) {
+      throw new BadRequestException('Invitation invalide ou expirée');
+    }
+
+    let account = await this.prisma.account.findUnique({ where: { email: invitation.email } });
+    if (!account) {
+      const passwordHash = await bcrypt.hash(dto.password, 10);
+      account = await this.prisma.account.create({
+        data: { email: invitation.email, passwordHash },
+      });
+    }
+
+    const existingMembership = await this.prisma.user.findUnique({
+      where: { accountId_organisationId: { accountId: account.id, organisationId: invitation.organisationId } },
+    });
+    if (existingMembership) {
+      throw new ConflictException('Vous êtes déjà membre de cette organisation');
+    }
+
+    const [user] = await this.prisma.$transaction([
+      this.prisma.user.create({
+        data: {
+          accountId: account.id,
+          organisationId: invitation.organisationId,
+          nom: invitation.nom,
+          email: invitation.email,
+          roleGlobal: invitation.roleGlobal,
+        },
+      }),
+      this.prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date() },
+      }),
+    ]);
+
+    const personalOrganizer = await this.organizerService.createPersonal(user.id);
+    await this.organizerScheduler.schedule(personalOrganizer.id);
+
+    return this.issueTokens(user.id, user.organisationId, user.roleGlobal, account.id);
+  }
+
+  /** Toujours silencieux côté réponse pour ne pas révéler si un email est enregistré. */
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const account = await this.prisma.account.findUnique({ where: { email: dto.email } });
+    if (!account) return;
+
+    const membership = await this.prisma.user.findFirst({ where: { accountId: account.id } });
+
+    const rawToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + PASSWORD_RESET_TTL_HOURS);
+
+    await this.prisma.passwordResetToken.create({
+      data: { accountId: account.id, tokenHash: hashToken(rawToken), expiresAt },
+    });
+
+    await this.emailService.sendPasswordResetEmail(account.email, membership?.nom ?? '', rawToken);
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const record = await this.prisma.passwordResetToken.findFirst({
+      where: { tokenHash: hashToken(dto.token), usedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!record) {
+      throw new BadRequestException('Lien de réinitialisation invalide ou expiré');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const userIds = (
+      await this.prisma.user.findMany({ where: { accountId: record.accountId }, select: { id: true } })
+    ).map((u) => u.id);
+
+    await this.prisma.$transaction([
+      this.prisma.account.update({ where: { id: record.accountId }, data: { passwordHash } }),
+      this.prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: { in: userIds }, revoked: false },
+        data: { revoked: true },
+      }),
+    ]);
   }
 
   async refresh(refreshToken: string) {

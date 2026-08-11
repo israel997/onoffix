@@ -73,6 +73,22 @@ export class OrganisationController {
   }
 
   @Roles(RoleGlobal.ADMIN)
+  @Get('invitations')
+  listInvitations(@CurrentUser() user: AuthenticatedUser) {
+    return this.organisationService.listInvitations(user.organisationId);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Delete('invitations/:invitationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  cancelInvitation(
+    @Param('invitationId') invitationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.organisationService.cancelInvitation(user.organisationId, invitationId);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
   @Post('logo')
   @UseInterceptors(
     FileInterceptor('file', {

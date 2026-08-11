@@ -4,14 +4,17 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   addOrganisationMembre,
+  cancelOrganisationInvitation,
+  listOrganisationInvitations,
   listOrganisationMembres,
   removeOrganisationMembre,
   updateOrganisationMembreRole,
+  type Invitation,
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -19,17 +22,24 @@ import { useAuth } from '@/lib/auth-context';
 export default function MembersPage() {
   const { user } = useAuth();
   const [membres, setMembres] = useState<OrganisationMembre[] | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [nom, setNom] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   async function load() {
-    setMembres(await listOrganisationMembres());
+    const [membresData, invitationsData] = await Promise.all([
+      listOrganisationMembres(),
+      listOrganisationInvitations(),
+    ]);
+    setMembres(membresData);
+    setInvitations(invitationsData);
   }
 
   useEffect(() => {
@@ -40,12 +50,17 @@ export default function MembersPage() {
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setCreating(true);
     try {
-      await addOrganisationMembre({ email, nom, password });
+      const result = await addOrganisationMembre({ email, nom });
+      setNotice(
+        result.status === 'added'
+          ? `${nom} was added to the organisation.`
+          : `Invitation sent to ${email}.`,
+      );
       setEmail('');
       setNom('');
-      setPassword('');
       setShowForm(false);
       await load();
     } catch (err) {
@@ -85,6 +100,19 @@ export default function MembersPage() {
     }
   }
 
+  async function handleCancelInvitation(invitation: Invitation) {
+    setCancellingId(invitation.id);
+    setError(null);
+    try {
+      await cancelOrganisationInvitation(invitation.id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }]} />
@@ -94,7 +122,7 @@ export default function MembersPage() {
           <p className="mt-1 text-sm text-muted-foreground">Everyone in your organisation.</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'Add member'}</Button>
+          <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'Invite member'}</Button>
         )}
       </div>
 
@@ -109,23 +137,43 @@ export default function MembersPage() {
               Email
               <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </Label>
-            <Label>
-              Temporary password
-              <Input
-                type="text"
-                required
-                minLength={8}
-                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+"
-                title="At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Label>
-            <Button type="submit" disabled={creating} className="w-fit sm:col-span-3">
-              {creating ? 'Adding…' : 'Add to organisation'}
+            <Button type="submit" disabled={creating} className="w-fit">
+              {creating ? 'Sending…' : 'Send invitation'}
             </Button>
           </form>
+          <p className="mt-2 text-xs text-muted-foreground">
+            If this email already has an OnOffix account, they&apos;ll be added right away. Otherwise
+            they&apos;ll get an email invitation to set their own password.
+          </p>
           {error && <p className="mt-2 text-sm text-status-review">{error}</p>}
+        </Card>
+      )}
+
+      {notice && <p className="text-sm text-status-validated">{notice}</p>}
+
+      {invitations !== null && invitations.length > 0 && (
+        <Card>
+          <CardTitle>Pending invitations</CardTitle>
+          <div className="mt-3 flex flex-col divide-y divide-border">
+            {invitations.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between py-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{inv.nom}</p>
+                  <p className="text-xs text-muted-foreground">{inv.email}</p>
+                </div>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={cancellingId === inv.id}
+                    onClick={() => handleCancelInvitation(inv)}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 

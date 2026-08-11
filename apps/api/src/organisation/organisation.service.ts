@@ -5,15 +5,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RoleGlobal } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { createHash, randomBytes } from 'crypto';
+import { EmailService } from '../email/email.service';
 import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddOrganisationMembreDto } from './dto/add-organisation-membre.dto';
 import { UpdateMembreRoleDto } from './dto/update-membre-role.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
+
+const INVITATION_TTL_DAYS = 7;
 
 const MEMBRE_SELECT = {
   id: true,
@@ -27,12 +29,17 @@ const MEMBRE_SELECT = {
   },
 };
 
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 @Injectable()
 export class OrganisationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly organizerService: OrganizerService,
     private readonly organizerScheduler: OrganizerScheduler,
+    private readonly emailService: EmailService,
   ) {}
 
   async findOne(organisationId: string) {
@@ -51,8 +58,12 @@ export class OrganisationService {
     });
   }
 
+  /**
+   * Si un compte existe déjà pour cet email, il est rattaché immédiatement à l'organisation.
+   * Sinon, une invitation est envoyée par email et l'adhésion n'est créée qu'à son acceptation.
+   */
   async addMembre(organisationId: string, dto: AddOrganisationMembreDto) {
-    let account = await this.prisma.account.findUnique({ where: { email: dto.email } });
+    const account = await this.prisma.account.findUnique({ where: { email: dto.email } });
 
     if (account) {
       const existingMembership = await this.prisma.user.findUnique({
@@ -61,26 +72,69 @@ export class OrganisationService {
       if (existingMembership) {
         throw new ConflictException('Ce collaborateur est déjà membre de cette organisation');
       }
-    } else {
-      const passwordHash = await bcrypt.hash(dto.password, 10);
-      account = await this.prisma.account.create({ data: { email: dto.email, passwordHash } });
+
+      const user = await this.prisma.user.create({
+        data: {
+          accountId: account.id,
+          organisationId,
+          nom: dto.nom,
+          email: dto.email,
+          roleGlobal: 'MEMBRE',
+        },
+        select: MEMBRE_SELECT,
+      });
+
+      const personalOrganizer = await this.organizerService.createPersonal(user.id);
+      await this.organizerScheduler.schedule(personalOrganizer.id);
+
+      return { status: 'added' as const, membre: user };
     }
 
-    const user = await this.prisma.user.create({
-      data: {
-        accountId: account.id,
-        organisationId,
-        nom: dto.nom,
-        email: dto.email,
-        roleGlobal: RoleGlobal.MEMBRE,
-      },
-      select: MEMBRE_SELECT,
+    const pendingInvitation = await this.prisma.invitation.findFirst({
+      where: { organisationId, email: dto.email, acceptedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (pendingInvitation) {
+      throw new ConflictException('Une invitation est déjà en attente pour cet email');
+    }
+
+    const organisation = await this.prisma.organisation.findUniqueOrThrow({
+      where: { id: organisationId },
+      select: { nom: true },
     });
 
-    const personalOrganizer = await this.organizerService.createPersonal(user.id);
-    await this.organizerScheduler.schedule(personalOrganizer.id);
+    const rawToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + INVITATION_TTL_DAYS);
 
-    return user;
+    const invitation = await this.prisma.invitation.create({
+      data: {
+        email: dto.email,
+        nom: dto.nom,
+        organisationId,
+        tokenHash: hashToken(rawToken),
+        expiresAt,
+      },
+    });
+
+    await this.emailService.sendInvitationEmail(dto.email, dto.nom, organisation.nom, rawToken);
+
+    return { status: 'invited' as const, invitation: { id: invitation.id, email: dto.email, nom: dto.nom } };
+  }
+
+  listInvitations(organisationId: string) {
+    return this.prisma.invitation.findMany({
+      where: { organisationId, acceptedAt: null, expiresAt: { gt: new Date() } },
+      select: { id: true, email: true, nom: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async cancelInvitation(organisationId: string, invitationId: string) {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { id: invitationId, organisationId },
+    });
+    if (!invitation) throw new NotFoundException('Invitation introuvable');
+    await this.prisma.invitation.delete({ where: { id: invitationId } });
   }
 
   async updateNom(organisationId: string, dto: UpdateOrganisationDto) {
