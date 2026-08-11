@@ -1,73 +1,54 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import nodemailer, { type Transporter } from 'nodemailer';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly resend: Resend | null;
+  private readonly transporter: Transporter | null;
   private readonly from: string;
   private readonly frontendUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
-    this.resend = apiKey ? new Resend(apiKey) : null;
-    this.from = this.config.get<string>('EMAIL_FROM', 'OnOffix <onboarding@resend.dev>');
+    const user = this.config.get<string>('GMAIL_USER');
+    const pass = this.config.get<string>('GMAIL_APP_PASSWORD');
+    this.transporter =
+      user && pass ? nodemailer.createTransport({ service: 'gmail', auth: { user, pass } }) : null;
+    this.from = this.config.get<string>('EMAIL_FROM', user ?? 'OnOffix');
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
-    if (!this.resend) {
+    if (!this.transporter) {
       this.logger.warn(
-        'RESEND_API_KEY non configurée — les emails seront seulement loggés, pas envoyés.',
+        'GMAIL_USER/GMAIL_APP_PASSWORD non configurés — les emails seront seulement loggés, pas envoyés.',
       );
     }
   }
 
-  async sendVerificationEmail(to: string, nom: string, token: string) {
-    const link = `${this.frontendUrl}/verify-email?token=${token}`;
-
-    if (!this.resend) {
-      this.logger.log(`[dev] Lien de vérification pour ${to}: ${link}`);
+  private async send(to: string, subject: string, html: string) {
+    if (!this.transporter) {
+      this.logger.log(`[dev] Email "${subject}" pour ${to} non envoyé (SMTP non configuré).`);
       return;
     }
+    await this.transporter.sendMail({ from: this.from, to, subject, html });
+  }
 
-    await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject: 'Confirm your OnOffix email address',
-      html: verificationEmailTemplate(nom, link),
-    });
+  async sendVerificationEmail(to: string, nom: string, token: string) {
+    const link = `${this.frontendUrl}/verify-email?token=${token}`;
+    await this.send(to, 'Confirm your OnOffix email address', verificationEmailTemplate(nom, link));
   }
 
   async sendInvitationEmail(to: string, nom: string, organisationNom: string, token: string) {
     const link = `${this.frontendUrl}/accept-invite?token=${token}`;
-
-    if (!this.resend) {
-      this.logger.log(`[dev] Lien d'invitation pour ${to} (${organisationNom}): ${link}`);
-      return;
-    }
-
-    await this.resend.emails.send({
-      from: this.from,
+    await this.send(
       to,
-      subject: `You've been invited to join ${organisationNom} on OnOffix`,
-      html: invitationEmailTemplate(nom, organisationNom, link),
-    });
+      `You've been invited to join ${organisationNom} on OnOffix`,
+      invitationEmailTemplate(nom, organisationNom, link),
+    );
   }
 
   async sendPasswordResetEmail(to: string, nom: string, token: string) {
     const link = `${this.frontendUrl}/reset-password?token=${token}`;
-
-    if (!this.resend) {
-      this.logger.log(`[dev] Lien de réinitialisation pour ${to}: ${link}`);
-      return;
-    }
-
-    await this.resend.emails.send({
-      from: this.from,
-      to,
-      subject: 'Reset your OnOffix password',
-      html: passwordResetEmailTemplate(nom, link),
-    });
+    await this.send(to, 'Reset your OnOffix password', passwordResetEmailTemplate(nom, link));
   }
 }
 
