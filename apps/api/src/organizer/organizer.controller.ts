@@ -81,10 +81,7 @@ export class OrganizerController {
 
   @Delete('subjects/:subjectId')
   @HttpCode(204)
-  async deleteSubject(
-    @Param('projetId') projetId: string,
-    @Param('subjectId') subjectId: string,
-  ) {
+  async deleteSubject(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
     await this.organizerService.deleteSubject(projetId, subjectId);
   }
 
