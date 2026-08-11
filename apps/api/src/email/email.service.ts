@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import nodemailer, { type Transporter } from 'nodemailer';
+import nodemailer, { type Transporter, type TransportOptions } from 'nodemailer';
 
 @Injectable()
 export class EmailService {
@@ -13,7 +13,15 @@ export class EmailService {
     const user = this.config.get<string>('GMAIL_USER');
     const pass = this.config.get<string>('GMAIL_APP_PASSWORD');
     this.transporter =
-      user && pass ? nodemailer.createTransport({ service: 'gmail', auth: { user, pass } }) : null;
+      user && pass
+        ? nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            family: 4,
+            auth: { user, pass },
+          } as TransportOptions)
+        : null;
     this.from = this.config.get<string>('EMAIL_FROM', user ?? 'OnOffix');
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
