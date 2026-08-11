@@ -66,6 +66,13 @@ export class OrganisationController {
   }
 
   @Roles(RoleGlobal.ADMIN)
+  @Delete('membres/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeMembre(@Param('userId') userId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.organisationService.removeMembre(user.organisationId, userId, user);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
   @Post('logo')
   @UseInterceptors(
     FileInterceptor('file', {

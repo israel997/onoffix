@@ -1,4 +1,5 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '../../common/password.validator';
 
 export class RegisterDto {
   @IsString()
@@ -14,5 +15,6 @@ export class RegisterDto {
 
   @IsString()
   @MinLength(8)
+  @Matches(PASSWORD_REGEX, { message: PASSWORD_MESSAGE })
   password: string;
 }

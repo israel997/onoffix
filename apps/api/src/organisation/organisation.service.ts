@@ -123,6 +123,28 @@ export class OrganisationService {
     await this.prisma.organisation.delete({ where: { id: organisationId } });
   }
 
+  async removeMembre(organisationId: string, targetUserId: string, currentUser: AuthenticatedUser) {
+    const organisation = await this.prisma.organisation.findUniqueOrThrow({
+      where: { id: organisationId },
+      select: { proprietaireId: true },
+    });
+
+    if (targetUserId === organisation.proprietaireId) {
+      throw new BadRequestException("Le propriétaire de l'organisation ne peut pas être supprimé");
+    }
+    if (targetUserId === currentUser.userId) {
+      throw new BadRequestException('Vous ne pouvez pas vous supprimer vous-même');
+    }
+
+    const membre = await this.prisma.user.findFirst({
+      where: { id: targetUserId, organisationId },
+    });
+    if (!membre)
+      throw new NotFoundException("Ce collaborateur ne fait pas partie de l'organisation");
+
+    await this.prisma.user.delete({ where: { id: targetUserId } });
+  }
+
   private async assertOwner(organisationId: string, userId: string) {
     const organisation = await this.prisma.organisation.findUniqueOrThrow({
       where: { id: organisationId },

@@ -211,9 +211,9 @@ model Tache {
   createdAt DateTime @default(now()) @map("created_at")
 
   projet      Projet       @relation(fields: [projetId], references: [id], onDelete: Cascade)
-  assigneA    User?        @relation("TachesAssignees", fields: [assigneAId], references: [id])
-  assignePar  User?        @relation("TachesAttribuees", fields: [assigneParId], references: [id])
-  valideur    User?        @relation("TachesValidees", fields: [valideParId], references: [id])
+  assigneA    User?        @relation("TachesAssignees", fields: [assigneAId], references: [id], onDelete: SetNull)
+  assignePar  User?        @relation("TachesAttribuees", fields: [assigneParId], references: [id], onDelete: SetNull)
+  valideur    User?        @relation("TachesValidees", fields: [valideParId], references: [id], onDelete: SetNull)
   sousTaches  SousTache[]
   declarationTaches DeclarationTache[]
 

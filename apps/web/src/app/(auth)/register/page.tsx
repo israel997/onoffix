@@ -66,9 +66,14 @@ export default function RegisterPage() {
             type="password"
             required
             minLength={8}
+            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+"
+            title="At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <span className="mt-1 block text-xs font-normal text-muted-foreground">
+            At least 8 characters, with an uppercase, a lowercase, a number and a special character.
+          </span>
         </Label>
         <Label>
           Confirm password

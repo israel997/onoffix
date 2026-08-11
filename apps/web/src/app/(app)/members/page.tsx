@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import {
   addOrganisationMembre,
   listOrganisationMembres,
+  removeOrganisationMembre,
   updateOrganisationMembreRole,
   type OrganisationMembre,
 } from '@/lib/api';
@@ -25,6 +26,7 @@ export default function MembersPage() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function load() {
     setMembres(await listOrganisationMembres());
@@ -69,6 +71,20 @@ export default function MembersPage() {
     }
   }
 
+  async function handleRemove(membre: OrganisationMembre) {
+    if (!confirm(`Remove ${membre.nom} from the organisation? This cannot be undone.`)) return;
+    setRemovingId(membre.id);
+    setError(null);
+    try {
+      await removeOrganisationMembre(membre.id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }]} />
@@ -99,6 +115,8 @@ export default function MembersPage() {
                 type="text"
                 required
                 minLength={8}
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+"
+                title="At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -145,6 +163,16 @@ export default function MembersPage() {
                       }
                     >
                       {m.roleGlobal === 'ADMIN' ? 'Remove admin' : 'Make admin'}
+                    </Button>
+                  )}
+                  {isAdmin && m.id !== user?.organisation.proprietaireId && m.id !== user?.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={removingId === m.id}
+                      onClick={() => handleRemove(m)}
+                    >
+                      Remove
                     </Button>
                   )}
                 </div>

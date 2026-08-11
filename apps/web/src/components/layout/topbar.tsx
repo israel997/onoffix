@@ -15,7 +15,7 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -34,10 +34,21 @@ export function Topbar() {
       : 'No office yet';
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-6">
-      <div>
-        <p className="text-sm font-semibold text-foreground">{user.organisation.nom}</p>
-        <p className="text-xs text-muted-foreground">{bureauLabel}</p>
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-surface-muted md:hidden"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+        <div>
+          <p className="text-sm font-semibold text-foreground">{user.organisation.nom}</p>
+          <p className="text-xs text-muted-foreground">{bureauLabel}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

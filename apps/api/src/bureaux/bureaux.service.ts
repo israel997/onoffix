@@ -18,6 +18,8 @@ import { UpdateBureauDto } from './dto/update-bureau.dto';
 import { UpdateMembreDto } from './dto/update-membre.dto';
 import { UpdateParametresDto } from './dto/update-parametres.dto';
 
+const MAX_BUREAUX_PAR_ORGANISATION = 10;
+
 const MEMBRE_SELECT = {
   roleDansBureau: true,
   roleInterne: true,
@@ -35,6 +37,11 @@ export class BureauxService {
 
   async create(organisationId: string, dto: CreateBureauDto) {
     const ordre = await this.prisma.bureau.count({ where: { organisationId } });
+    if (ordre >= MAX_BUREAUX_PAR_ORGANISATION) {
+      throw new BadRequestException(
+        `Une organisation ne peut pas avoir plus de ${MAX_BUREAUX_PAR_ORGANISATION} bureaux`,
+      );
+    }
     const bureau = await this.prisma.bureau.create({
       data: { organisationId, nom: dto.nom, ordre },
     });

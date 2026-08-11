@@ -340,6 +340,10 @@ export function updateOrganisationMembreRole(userId: string, roleGlobal: 'ADMIN'
   });
 }
 
+export function removeOrganisationMembre(userId: string) {
+  return authFetch<void>(`/organisation/membres/${userId}`, { method: 'DELETE' });
+}
+
 export function listOrganisationMembres() {
   return authFetch<OrganisationMembre[]>('/organisation/membres');
 }
