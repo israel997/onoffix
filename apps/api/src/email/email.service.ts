@@ -1,43 +1,62 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { resolve4 } from 'dns/promises';
 import nodemailer, { type Transporter, type TransportOptions } from 'nodemailer';
+
+const GMAIL_SMTP_HOST = 'smtp.gmail.com';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly transporter: Transporter | null;
+  private readonly user?: string;
+  private readonly pass?: string;
   private readonly from: string;
   private readonly frontendUrl: string;
+  private transporterPromise: Promise<Transporter> | null = null;
 
   constructor(private readonly config: ConfigService) {
-    const user = this.config.get<string>('GMAIL_USER');
-    const pass = this.config.get<string>('GMAIL_APP_PASSWORD');
-    this.transporter =
-      user && pass
-        ? nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
-            family: 4,
-            auth: { user, pass },
-          } as TransportOptions)
-        : null;
-    this.from = this.config.get<string>('EMAIL_FROM', user ?? 'OnOffix');
+    this.user = this.config.get<string>('GMAIL_USER');
+    this.pass = this.config.get<string>('GMAIL_APP_PASSWORD');
+    this.from = this.config.get<string>('EMAIL_FROM', this.user ?? 'OnOffix');
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
-    if (!this.transporter) {
+    if (!this.user || !this.pass) {
       this.logger.warn(
         'GMAIL_USER/GMAIL_APP_PASSWORD non configurés — les emails seront seulement loggés, pas envoyés.',
       );
     }
   }
 
+  // Nodemailer resolves both A and AAAA records for smtp.gmail.com and picks one
+  // at random; Railway has no outbound IPv6 route, so a random AAAA hit fails
+  // with ENETUNREACH. Resolving the IPv4 address ourselves avoids that entirely.
+  private async getTransporter(): Promise<Transporter> {
+    if (!this.transporterPromise) {
+      this.transporterPromise = resolve4(GMAIL_SMTP_HOST).then(([ip]) =>
+        nodemailer.createTransport({
+          host: ip,
+          port: 465,
+          secure: true,
+          auth: { user: this.user, pass: this.pass },
+          tls: { servername: GMAIL_SMTP_HOST },
+        } as TransportOptions),
+      );
+    }
+    return this.transporterPromise;
+  }
+
   private async send(to: string, subject: string, html: string) {
-    if (!this.transporter) {
+    if (!this.user || !this.pass) {
       this.logger.log(`[dev] Email "${subject}" pour ${to} non envoyé (SMTP non configuré).`);
       return;
     }
-    await this.transporter.sendMail({ from: this.from, to, subject, html });
+    try {
+      const transporter = await this.getTransporter();
+      await transporter.sendMail({ from: this.from, to, subject, html });
+    } catch (err) {
+      this.transporterPromise = null;
+      throw err;
+    }
   }
 
   async sendVerificationEmail(to: string, nom: string, token: string) {
