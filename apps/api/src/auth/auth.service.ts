@@ -12,7 +12,6 @@ import { RoleGlobal } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
-import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
@@ -43,7 +42,6 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
     private readonly organizerService: OrganizerService,
-    private readonly organizerScheduler: OrganizerScheduler,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -72,9 +70,7 @@ export class AuthService {
       });
     });
 
-    const personalOrganizer = await this.organizerService.createPersonal(user.id);
-    await this.organizerScheduler.schedule(personalOrganizer.id);
-
+    await this.organizerService.createPersonal(user.id);
     await this.sendVerificationEmail(user.id).catch((error) =>
       this.logger.warn(`Échec d'envoi de l'email de vérification: ${error}`),
     );
@@ -223,9 +219,7 @@ export class AuthService {
       });
     });
 
-    const personalOrganizer = await this.organizerService.createPersonal(user.id);
-    await this.organizerScheduler.schedule(personalOrganizer.id);
-
+    await this.organizerService.createPersonal(user.id);
     return this.issueTokens(user.id, user.organisationId, user.roleGlobal, account.id);
   }
 
@@ -304,9 +298,7 @@ export class AuthService {
       }),
     ]);
 
-    const personalOrganizer = await this.organizerService.createPersonal(user.id);
-    await this.organizerScheduler.schedule(personalOrganizer.id);
-
+    await this.organizerService.createPersonal(user.id);
     return this.issueTokens(user.id, user.organisationId, user.roleGlobal, account.id);
   }
 

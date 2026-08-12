@@ -1,5 +1,5 @@
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
 import { ChatModule } from '../chat/chat.module';
 import {
@@ -13,7 +13,11 @@ import { OrganizerScheduler } from './organizer.scheduler';
 import { OrganizerService } from './organizer.service';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: ORGANIZER_QUEUE }), AiModule, ChatModule],
+  imports: [
+    BullModule.registerQueue({ name: ORGANIZER_QUEUE }),
+    AiModule,
+    forwardRef(() => ChatModule),
+  ],
   controllers: [BureauOrganizersController, OrganizerController, PersonalOrganizerController],
   providers: [OrganizerService, OrganizerScheduler, OrganizerProcessor],
   exports: [OrganizerService, OrganizerScheduler],

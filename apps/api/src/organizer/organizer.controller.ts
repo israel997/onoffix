@@ -24,6 +24,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { ChatService } from '../chat/chat.service';
 import { CreateTacheDto } from './dto/create-tache.dto';
 import { SubjectDto } from './dto/subject.dto';
+import { OrganizerScheduler } from './organizer.scheduler';
 import { OrganizerService } from './organizer.service';
 
 const ANY_MEMBER = [RoleBureau.MANAGER, RoleBureau.COLLABORATEUR];
@@ -58,6 +59,7 @@ export class OrganizerController {
     private readonly chatService: ChatService,
     private readonly chatGateway: ChatGateway,
     private readonly storage: StorageService,
+    private readonly organizerScheduler: OrganizerScheduler,
   ) {}
 
   @Get('subjects')
@@ -115,6 +117,7 @@ export class OrganizerController {
       type: file.mimetype,
       tailleOctets: file.size,
     });
+    await this.organizerScheduler.debounceSubject(subjectId);
     this.chatGateway.broadcastOrganizerMessage(subjectId, message);
     return message;
   }

@@ -8,7 +8,6 @@ import {
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { createHash, randomBytes } from 'crypto';
 import { EmailService } from '../email/email.service';
-import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddOrganisationMembreDto } from './dto/add-organisation-membre.dto';
@@ -38,7 +37,6 @@ export class OrganisationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly organizerService: OrganizerService,
-    private readonly organizerScheduler: OrganizerScheduler,
     private readonly emailService: EmailService,
   ) {}
 
@@ -84,8 +82,7 @@ export class OrganisationService {
         select: MEMBRE_SELECT,
       });
 
-      const personalOrganizer = await this.organizerService.createPersonal(user.id);
-      await this.organizerScheduler.schedule(personalOrganizer.id);
+      await this.organizerService.createPersonal(user.id);
 
       return { status: 'added' as const, membre: user };
     }

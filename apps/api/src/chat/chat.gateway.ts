@@ -1,4 +1,4 @@
-import { Logger, UnauthorizedException } from '@nestjs/common';
+import { forwardRef, Inject, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import type { RoleGlobal } from '@prisma/client';
 import type { Server, Socket } from 'socket.io';
+import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { ChatService } from './chat.service';
 
 interface SocketUser {
@@ -47,6 +48,8 @@ export class ChatGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
+    @Inject(forwardRef(() => OrganizerScheduler))
+    private readonly organizerScheduler: OrganizerScheduler,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -155,6 +158,7 @@ export class ChatGateway implements OnGatewayConnection {
       user.roleGlobal,
     );
     const message = await this.chatService.createMessage(data.subjectId, user.userId, contenu);
+    await this.organizerScheduler.debounceSubject(data.subjectId);
 
     this.server.to(organizerRoom(data.subjectId)).emit('organizer:message', message);
   }

@@ -47,8 +47,7 @@ export class BureauxService {
     });
     await this.rituelsScheduler.syncBureau(bureau);
 
-    const organizer = await this.organizerService.createDefaultForBureau(bureau.id);
-    await this.organizerScheduler.schedule(organizer.id);
+    await this.organizerService.createDefaultForBureau(bureau.id);
 
     return bureau;
   }

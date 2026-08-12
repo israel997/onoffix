@@ -67,10 +67,8 @@ export class OrganizerService {
     return this.chatService.listSubjects(projetId);
   }
 
-  async createSubject(projetId: string, nom: string) {
-    const subject = await this.chatService.createSubject(projetId, nom);
-    await this.scheduler.scheduleSubject(subject.id);
-    return subject;
+  createSubject(projetId: string, nom: string) {
+    return this.chatService.createSubject(projetId, nom);
   }
 
   async renameSubject(projetId: string, subjectId: string, nom: string) {
