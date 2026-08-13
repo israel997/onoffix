@@ -201,4 +201,52 @@ export class RituelService {
     const journee = await this.buildJournee(targetUserId, taches);
     return { user, ...journee };
   }
+
+  /** Synthèse quotidienne du bureau : remplace une partie du DSM. */
+  async getDailyBrief(bureauId: string) {
+    const [taches, blocagesActifs, membresJournee] = await Promise.all([
+      this.prisma.tache.findMany({
+        where: { projet: { bureauId } },
+        select: { id: true, titre: true, statut: true, sante: true },
+      }),
+      this.prisma.tacheBlocage.findMany({
+        where: { dateFin: null, tache: { projet: { bureauId } } },
+        include: {
+          tache: { select: { id: true, titre: true } },
+          responsable: { select: { id: true, nom: true } },
+        },
+        orderBy: { dateDebut: 'asc' },
+      }),
+      this.getBureauRituel(bureauId),
+    ]);
+
+    const termine = taches.filter((t) => t.statut === 'VALIDE').length;
+    const bloque = taches.filter((t) => t.sante === 'BLOQUEE').length;
+    const nonCommence = taches.filter((t) => t.statut === 'A_FAIRE').length;
+    const enCours = taches.length - termine - nonCommence;
+    const aRisque = taches.filter((t) => t.sante === 'A_RISQUE').map((t) => ({ id: t.id, titre: t.titre }));
+
+    const totalItems = membresJournee.reduce((sum, m) => sum + m.taches.length, 0);
+    const totalDone = membresJournee.reduce(
+      (sum, m) => sum + m.taches.filter((t) => t.cocheParMembre && t.cocheParAdmin).length,
+      0,
+    );
+
+    return {
+      date: todayDate().toISOString().slice(0, 10),
+      termine,
+      enCours,
+      bloque,
+      aRisque,
+      blocagesActifs: blocagesActifs.map((b) => ({
+        id: b.id,
+        type: b.type,
+        cause: b.cause,
+        tache: b.tache,
+        responsable: b.responsable,
+        depuis: b.dateDebut,
+      })),
+      pourcentageRituel: totalItems === 0 ? null : Math.round((totalDone / totalItems) * 100),
+    };
+  }
 }

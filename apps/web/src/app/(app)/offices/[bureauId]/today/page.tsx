@@ -7,7 +7,65 @@ import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription } from '@/components/ui/card';
-import { getBureau, getBureauRituel, validerRituelMembre, type BureauDetail, type BureauRituelMembre } from '@/lib/api';
+import {
+  getBureau,
+  getBureauRituel,
+  getDailyBrief,
+  validerRituelMembre,
+  type BureauDetail,
+  type BureauRituelMembre,
+  type DailyBrief,
+} from '@/lib/api';
+
+function DailyBriefCard({ brief }: { brief: DailyBrief }) {
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-foreground">Daily Team Brief — {brief.date}</h2>
+        {brief.pourcentageRituel !== null && (
+          <Badge tone={brief.pourcentageRituel === 100 ? 'validated' : 'brand'}>
+            {brief.pourcentageRituel}% of today&apos;s tasks done
+          </Badge>
+        )}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <span>
+          <span className="font-semibold text-foreground">{brief.termine}</span> done
+        </span>
+        <span>
+          <span className="font-semibold text-foreground">{brief.enCours}</span> in progress
+        </span>
+        <span>
+          <span className="font-semibold text-foreground">{brief.bloque}</span> blocked
+        </span>
+      </div>
+
+      {brief.blocagesActifs.length > 0 && (
+        <div className="mt-4 flex flex-col gap-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-status-review">Active blockers</p>
+          {brief.blocagesActifs.map((b) => (
+            <p key={b.id} className="text-sm text-foreground">
+              {b.tache.titre}
+              {b.responsable && <> — waiting on {b.responsable.nom}</>}
+              {b.cause && <span className="text-muted-foreground"> ({b.cause})</span>}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {brief.aRisque.length > 0 && (
+        <div className="mt-4 flex flex-col gap-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-status-declared">At risk</p>
+          {brief.aRisque.map((t) => (
+            <p key={t.id} className="text-sm text-foreground">
+              {t.titre}
+            </p>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 const STATUT_LABEL: Record<string, string> = {
   EN_ATTENTE: 'Waiting for validation',
@@ -100,11 +158,13 @@ export default function TodayRituelPage() {
 
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
   const [membres, setMembres] = useState<BureauRituelMembre[] | null>(null);
+  const [brief, setBrief] = useState<DailyBrief | null>(null);
 
   async function load() {
-    const [bur, rit] = await Promise.all([getBureau(bureauId), getBureauRituel(bureauId)]);
+    const [bur, rit, br] = await Promise.all([getBureau(bureauId), getBureauRituel(bureauId), getDailyBrief(bureauId)]);
     setBureau(bur);
     setMembres(rit);
+    setBrief(br);
   }
 
   useEffect(() => {
@@ -133,6 +193,8 @@ export default function TodayRituelPage() {
       </div>
 
       <OfficeNav bureauId={bureauId} showSettings />
+
+      {brief && <DailyBriefCard brief={brief} />}
 
       {membres === null ? (
         <p className="text-sm text-muted-foreground">Loading…</p>

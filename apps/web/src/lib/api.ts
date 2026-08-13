@@ -681,6 +681,27 @@ export function validerRituelMembre(bureauId: string, userId: string, tacheIds: 
   });
 }
 
+export interface DailyBrief {
+  date: string;
+  termine: number;
+  enCours: number;
+  bloque: number;
+  aRisque: { id: string; titre: string }[];
+  blocagesActifs: {
+    id: string;
+    type: TypeBlocage;
+    cause: string | null;
+    tache: { id: string; titre: string };
+    responsable: { id: string; nom: string } | null;
+    depuis: string;
+  }[];
+  pourcentageRituel: number | null;
+}
+
+export function getDailyBrief(bureauId: string) {
+  return authFetch<DailyBrief>(`/bureaux/${bureauId}/rituel/brief`);
+}
+
 export function listOrganizerMessages(projetId: string, subjectId: string) {
   return authFetch<ChatMessage[]>(`/organizers/${projetId}/subjects/${subjectId}/messages`);
 }

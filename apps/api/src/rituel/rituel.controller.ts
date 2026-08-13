@@ -32,6 +32,12 @@ export class BureauRituelController {
     return this.rituelService.getBureauRituel(bureauId);
   }
 
+  @BureauRole(RoleBureau.MANAGER, RoleBureau.COLLABORATEUR)
+  @Get('brief')
+  brief(@Param('bureauId') bureauId: string) {
+    return this.rituelService.getDailyBrief(bureauId);
+  }
+
   @BureauRole(RoleBureau.MANAGER)
   @Post('membres/:userId/valider')
   valider(
