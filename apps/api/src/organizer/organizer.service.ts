@@ -141,7 +141,8 @@ export class OrganizerService {
         const membership = await this.prisma.userBureau.findUnique({
           where: { userId_bureauId: { userId: tache.assigneAId, bureauId: organizer.bureauId } },
         });
-        if (!membership) throw new ForbiddenException('Ce collaborateur ne fait pas partie de ce bureau');
+        if (!membership)
+          throw new ForbiddenException('Ce collaborateur ne fait pas partie de ce bureau');
       }
     }
 
