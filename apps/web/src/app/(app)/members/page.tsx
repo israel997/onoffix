@@ -171,37 +171,33 @@ export default function MembersPage() {
 
       {notice && <p className="text-sm text-status-validated">{notice}</p>}
 
-      {invitations !== null && invitations.length > 0 && (
-        <Card>
-          <CardTitle>Pending invitations</CardTitle>
+      <Card>
+        <CardTitle>Members</CardTitle>
+        {membres === null || invitations === null ? (
+          <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+        ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
             {invitations.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between py-2">
+              <div key={inv.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">{inv.nom}</p>
                   <p className="text-xs text-muted-foreground">{inv.email}</p>
                 </div>
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={cancellingId === inv.id}
-                    onClick={() => handleCancelInvitation(inv)}
-                  >
-                    Cancel
-                  </Button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="declared">Pending</Badge>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={cancellingId === inv.id}
+                      onClick={() => handleCancelInvitation(inv)}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
-          </div>
-        </Card>
-      )}
-
-      <Card>
-        {membres === null ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : (
-          <div className="flex flex-col divide-y divide-border">
             {membres.map((m) => (
               <div key={m.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -246,7 +242,7 @@ export default function MembersPage() {
                 </div>
               </div>
             ))}
-            {membres.length === 0 && (
+            {membres.length === 0 && invitations.length === 0 && (
               <CardDescription>No member yet.</CardDescription>
             )}
           </div>
