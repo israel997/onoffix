@@ -1,6 +1,60 @@
-# Référence technique — OnOffix
+# Référence technique — OOffix
 
 Fichier vivant : design system, commandes, hébergement et workflow. À compléter au fur et à mesure qu'on ajoute des choses.
+
+---
+
+## 0. Fonctionnalités actuellement disponibles
+
+### Comptes & authentification
+- Inscription (créé un compte + une organisation)
+- Connexion / déconnexion, tokens JWT (access 15 min + refresh 7 jours)
+- Vérification d'email
+- Mot de passe oublié / réinitialisation (email via Brevo)
+- **Multi-organisation** : un même compte (email) peut appartenir à plusieurs organisations ; sélection de l'organisation au login si ambigu
+
+### Organisation & membres
+- Page organisation (nom, logo)
+- Créer une nouvelle organisation depuis un compte existant
+- Liste des membres de l'organisation, rôles (Admin / Membre)
+- Inviter un membre par email : rattachement immédiat si un compte existe déjà pour cet email, sinon envoi d'un email d'invitation (accept-invite → création de compte + rattachement)
+- Annuler une invitation en attente
+- Changer le rôle d'un membre, retirer un membre
+- Stats organisation : nombre de membres, nombre de tâches
+
+### Bureaux (offices)
+- Créer / modifier / supprimer un bureau (limite : 10 par organisation)
+- Réordonner les bureaux
+- Ajouter/retirer des membres à un bureau, rôle par bureau (Manager / Collaborateur)
+- Paramètres du bureau : heure de déclaration quotidienne, délai de relance, visibilité du classement de fiabilité, couleur, photo
+- Chat d'équipe par bureau (temps réel, WebSocket, pièces jointes)
+
+### Organizer (brain dump → tâches)
+- Un Organizer personnel (privé, par utilisateur) + un Organizer par bureau
+- **Subjects** : plusieurs fils de discussion nommés par Organizer, chacun avec son propre chat et sa propre génération de tâches
+- Génération de tâches par IA (Google Gemini) à partir des messages d'un Subject, **déclenchement réactif** ~30s après le dernier message (pas de poll fixe)
+- Ajout manuel d'une tâche dans un Organizer (sans passer par l'IA)
+
+### Tâches
+- Assignation d'une tâche à un membre
+- Cycle de vie : à faire → acceptée → en cours → déclarée → validée / à revoir
+- "Mes tâches" : toutes les tâches assignées à l'utilisateur, tous bureaux + Organizer personnel confondus
+
+### Rituel quotidien (déclaration de progression)
+- Vue "Aujourd'hui" : tâches du jour à déclarer (faites / pas faites)
+- Déclaration de la journée par le collaborateur
+- Validation par le manager (OK / litige) le lendemain
+- Score de fiabilité par membre (calculé à partir des déclarations validées)
+
+### Notifications
+- Liste des notifications, compteur non-lues, marquer comme lue(s)
+
+### Profil & paramètres
+- Modifier son profil (nom, poste, bio, photo)
+- Paramètres de l'organisation (Admin)
+
+### Landing page publique
+- Page marketing (`/`) avec démo visuelle du produit, comparatif, étapes, CTA
 
 ---
 
