@@ -13,6 +13,8 @@ import {
   sendOrganizerFile,
   type Subject,
 } from '@/lib/api';
+import { useConfirm } from '@/lib/confirm-context';
+import { useToast } from '@/lib/toast-context';
 
 export function SubjectsChat({
   projetId,
@@ -27,6 +29,8 @@ export function SubjectsChat({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const toast = useToast();
+  const confirmDialog = useConfirm();
 
   async function load(keepActive = true) {
     const list = await listOrganizerSubjects(projetId);
@@ -52,6 +56,7 @@ export function SubjectsChat({
       setNewName('');
       await load();
       setActiveId(subject.id);
+      toast(`Subject "${nom}" created`);
     } finally {
       setCreating(false);
     }
@@ -62,12 +67,20 @@ export function SubjectsChat({
     if (!nom || nom === subject.nom) return;
     await renameOrganizerSubject(projetId, subject.id, nom);
     await load();
+    toast('Subject renamed');
   }
 
   async function handleDelete(subject: Subject) {
-    if (!window.confirm(`Delete subject "${subject.nom}"? Its messages will be lost.`)) return;
+    const ok = await confirmDialog({
+      title: `Delete subject "${subject.nom}"?`,
+      description: 'Its messages will be lost.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     await deleteOrganizerSubject(projetId, subject.id);
     await load(false);
+    toast('Subject deleted');
   }
 
   const active = subjects?.find((s) => s.id === activeId) ?? null;

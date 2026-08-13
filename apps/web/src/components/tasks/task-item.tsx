@@ -16,6 +16,8 @@ import {
   validerTache,
   type Tache,
 } from '@/lib/api';
+import { useConfirm } from '@/lib/confirm-context';
+import { useToast } from '@/lib/toast-context';
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -120,23 +122,29 @@ export function TaskItem({
   const isAssigner = tache.assigneParId === currentUserId;
   const canValidate = tache.statut === 'DECLARE' && (isAssigner || isManager);
   const canDeleteTask = isAdmin;
+  const toast = useToast();
+  const confirmDialog = useConfirm();
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(action: () => Promise<unknown>, successMessage?: string) {
     setBusy(true);
     setError(null);
     try {
       await action();
       onChange();
+      if (successMessage) toast(successMessage);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      toast(message, 'error');
     } finally {
       setBusy(false);
     }
   }
 
   async function handleSaveEdit() {
-    await run(() =>
-      updateTache(tache.id, { titre, description: description || undefined, dateCible: dateCible || null }),
+    await run(
+      () => updateTache(tache.id, { titre, description: description || undefined, dateCible: dateCible || null }),
+      'Task updated',
     );
     setEditing(false);
   }
@@ -217,11 +225,15 @@ export function TaskItem({
               )}
               {canDeleteTask && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setMenuOpen(false);
-                    if (confirm(`Delete "${tache.titre}"? This cannot be undone.`)) {
-                      run(() => deleteTache(tache.id));
-                    }
+                    const ok = await confirmDialog({
+                      title: `Delete "${tache.titre}"?`,
+                      description: 'This cannot be undone.',
+                      confirmLabel: 'Delete',
+                      danger: true,
+                    });
+                    if (ok) run(() => deleteTache(tache.id), 'Task deleted');
                   }}
                   className="px-3 py-1.5 text-left text-status-review hover:bg-surface-muted"
                 >
@@ -262,7 +274,7 @@ export function TaskItem({
             disabled={busy}
             defaultValue=""
             onChange={(e) => {
-              if (e.target.value) run(() => assignerTache(tache.id, e.target.value));
+              if (e.target.value) run(() => assignerTache(tache.id, e.target.value), 'Task assigned');
             }}
             className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
           >
@@ -278,33 +290,33 @@ export function TaskItem({
         )}
 
         {isAssignee && tache.statut === 'A_FAIRE' && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => accepterTache(tache.id))}>
+          <Button size="sm" disabled={busy} onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}>
             Accept
           </Button>
         )}
 
         {isAssignee && (tache.statut === 'ACCEPTEE' || tache.statut === 'A_REVOIR') && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id))}>
+          <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
             Start
           </Button>
         )}
 
         {isAssignee && tache.statut === 'EN_COURS' && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => declarerTache(tache.id))}>
+          <Button size="sm" disabled={busy} onClick={() => run(() => declarerTache(tache.id), 'Marked as done')}>
             Mark as done
           </Button>
         )}
 
         {canValidate && (
           <>
-            <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'))}>
+            <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'), 'Task approved')}>
               Approve
             </Button>
             <Button
               size="sm"
               variant="secondary"
               disabled={busy}
-              onClick={() => run(() => validerTache(tache.id, 'litige'))}
+              onClick={() => run(() => validerTache(tache.id, 'litige'), 'Sent back for rework')}
             >
               Send back
             </Button>

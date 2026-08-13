@@ -18,9 +18,13 @@ import {
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useConfirm } from '@/lib/confirm-context';
+import { useToast } from '@/lib/toast-context';
 
 export default function MembersPage() {
   const { user } = useAuth();
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [membres, setMembres] = useState<OrganisationMembre[] | null>(null);
   const [invitations, setInvitations] = useState<Invitation[] | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -54,11 +58,12 @@ export default function MembersPage() {
     setCreating(true);
     try {
       const result = await addOrganisationMembre({ email, nom });
-      setNotice(
+      const message =
         result.status === 'added'
           ? `${nom} was added to the organisation.`
-          : `Invitation sent to ${email}.`,
-      );
+          : `Invitation sent to ${email}.`;
+      setNotice(message);
+      toast(message);
       setEmail('');
       setNom('');
       setShowForm(false);
@@ -79,22 +84,34 @@ export default function MembersPage() {
     try {
       await updateOrganisationMembreRole(membre.id, roleGlobal);
       await load();
+      toast(`${membre.nom} is now ${roleGlobal === 'ADMIN' ? 'an admin' : 'a member'}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      toast(message, 'error');
     } finally {
       setUpdatingRoleId(null);
     }
   }
 
   async function handleRemove(membre: OrganisationMembre) {
-    if (!confirm(`Remove ${membre.nom} from the organisation? This cannot be undone.`)) return;
+    const ok = await confirmDialog({
+      title: `Remove ${membre.nom}?`,
+      description: 'This cannot be undone.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
     setRemovingId(membre.id);
     setError(null);
     try {
       await removeOrganisationMembre(membre.id);
       await load();
+      toast(`${membre.nom} was removed`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      toast(message, 'error');
     } finally {
       setRemovingId(null);
     }
@@ -106,8 +123,11 @@ export default function MembersPage() {
     try {
       await cancelOrganisationInvitation(invitation.id);
       await load();
+      toast('Invitation cancelled');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      toast(message, 'error');
     } finally {
       setCancellingId(null);
     }
