@@ -1,8 +1,10 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { RoleBureau, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { AiService } from '../ai/ai.service';
 import { ChatService } from '../chat/chat.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConvertPlanDto } from './dto/convert-plan.dto';
 import { CreateTacheDto } from './dto/create-tache.dto';
 import { OrganizerScheduler } from './organizer.scheduler';
 
@@ -18,6 +20,7 @@ export class OrganizerService {
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
     private readonly scheduler: OrganizerScheduler,
+    private readonly aiService: AiService,
   ) {}
 
   /** Crée l'Organizer unique d'un bureau (chat en vrac + génération de tâches). */
@@ -108,6 +111,64 @@ export class OrganizerService {
     return this.prisma.tache.create({
       data: { projetId, titre: dto.titre, description: dto.description },
       include: TACHE_INCLUDE,
+    });
+  }
+
+  /** Génère un aperçu de plan (nom de projet + tâches priorisées) depuis les messages d'un Subject. Rien n'est persisté. */
+  async proposePlan(projetId: string, subjectId: string) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+
+    const messages = await this.prisma.message.findMany({
+      where: { conversationId: subjectId },
+      orderBy: { createdAt: 'asc' },
+      include: { auteur: { select: { nom: true } } },
+    });
+
+    const texte = messages.map((m) => `${m.auteur.nom}: ${m.contenu}`).join('\n');
+    return this.aiService.suggestPlan(texte);
+  }
+
+  /** Convertit un plan (revu/priorisé/assigné côté client) en un vrai Projet + tâches. */
+  async convertPlan(projetId: string, user: AuthenticatedUser, dto: ConvertPlanDto) {
+    const organizer = await this.prisma.projet.findUniqueOrThrow({ where: { id: projetId } });
+
+    if (organizer.bureauId) {
+      await this.assertManager(organizer.bureauId, user);
+    }
+
+    for (const tache of dto.taches) {
+      if (tache.assigneAId && organizer.bureauId) {
+        const membership = await this.prisma.userBureau.findUnique({
+          where: { userId_bureauId: { userId: tache.assigneAId, bureauId: organizer.bureauId } },
+        });
+        if (!membership) throw new ForbiddenException('Ce collaborateur ne fait pas partie de ce bureau');
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const projet = await tx.projet.create({
+        data: {
+          nom: dto.projetNom,
+          bureauId: organizer.bureauId,
+          proprietaireId: organizer.proprietaireId,
+        },
+      });
+
+      await tx.tache.createMany({
+        data: dto.taches.map((t) => ({
+          projetId: projet.id,
+          titre: t.titre,
+          description: t.description,
+          priorite: t.priorite,
+          assigneAId: organizer.proprietaireId ?? t.assigneAId,
+          assigneParId: organizer.proprietaireId ?? (t.assigneAId ? user.userId : undefined),
+        })),
+      });
+
+      return tx.projet.findUniqueOrThrow({
+        where: { id: projet.id },
+        include: { taches: { include: TACHE_INCLUDE } },
+      });
     });
   }
 

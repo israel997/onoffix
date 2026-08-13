@@ -1,10 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { PrioriteTache } from '@prisma/client';
 
 export interface SuggestedTask {
   titre: string;
   description?: string;
+}
+
+export interface SuggestedPlanTask extends SuggestedTask {
+  priorite: PrioriteTache;
+}
+
+export interface SuggestedPlan {
+  projetNom: string;
+  taches: SuggestedPlanTask[];
 }
 
 const SYSTEM_PROMPT = `Tu aides une équipe à transformer des notes en vrac (idées, messages de discussion,
@@ -18,6 +28,19 @@ Règles :
 [{"titre": "...", "description": "..."}]
 La description est optionnelle (uniquement si un détail utile existe), sinon omets-la.
 Si aucune tâche ne se dégage du texte, réponds avec un tableau vide [].`;
+
+const PLAN_PROMPT = `Tu transformes une conversation en vrac (idées, demandes, discussions) en un plan de
+projet structuré et actionnable.
+
+Règles :
+- Trouve un nom de projet court (moins de 8 mots) qui résume l'objectif global.
+- Découpe le travail en tâches concrètes, formulées à l'infinitif, courtes (moins de 12 mots).
+- Attribue à chaque tâche une priorité parmi BASSE, NORMALE, HAUTE, URGENTE selon l'urgence/l'impact
+  perçus dans le texte (par défaut NORMALE si rien ne l'indique).
+- Ignore le bavardage, les salutations, ce qui n'est pas une action à faire.
+- Réponds uniquement avec un objet JSON, sans texte autour, au format :
+{"projetNom": "...", "taches": [{"titre": "...", "description": "...", "priorite": "NORMALE"}]}
+La description est optionnelle. Si aucune tâche ne se dégage du texte, réponds avec un tableau "taches" vide.`;
 
 @Injectable()
 export class AiService {
@@ -67,6 +90,54 @@ export class AiService {
     } catch (error) {
       this.logger.warn(`Échec de la suggestion de tâches par IA: ${error}`);
       return [];
+    }
+  }
+
+  async suggestPlan(texte: string): Promise<SuggestedPlan> {
+    const empty: SuggestedPlan = { projetNom: '', taches: [] };
+    if (!this.client) return empty;
+    if (!texte.trim()) return empty;
+
+    const priorites = new Set(Object.values(PrioriteTache));
+
+    try {
+      const model = this.client.getGenerativeModel({
+        model: this.model,
+        generationConfig: { responseMimeType: 'application/json' },
+      });
+      const result = await model.generateContent(`${PLAN_PROMPT}\n\nTexte :\n${texte}`);
+      const raw = result.response.text();
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) return empty;
+
+      const projetNom =
+        typeof (parsed as Record<string, unknown>).projetNom === 'string'
+          ? ((parsed as Record<string, unknown>).projetNom as string).trim()
+          : '';
+      const rawTaches = (parsed as Record<string, unknown>).taches;
+      if (!projetNom || !Array.isArray(rawTaches)) return empty;
+
+      const taches = rawTaches
+        .filter(
+          (item): item is { titre: string; description?: unknown; priorite?: unknown } =>
+            typeof item === 'object' &&
+            item !== null &&
+            typeof (item as Record<string, unknown>).titre === 'string' &&
+            ((item as Record<string, unknown>).titre as string).trim().length > 0,
+        )
+        .map((item) => ({
+          titre: item.titre.trim(),
+          description:
+            typeof item.description === 'string' ? item.description.trim() || undefined : undefined,
+          priorite: priorites.has(item.priorite as PrioriteTache)
+            ? (item.priorite as PrioriteTache)
+            : PrioriteTache.NORMALE,
+        }));
+
+      return { projetNom, taches };
+    } catch (error) {
+      this.logger.warn(`Échec de la génération de plan par IA: ${error}`);
+      return empty;
     }
   }
 }

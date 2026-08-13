@@ -22,6 +22,7 @@ import { StorageService } from '../common/storage.service';
 import { assertImageWeight, messageFileMulterOptions } from '../chat/chat-file.config';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatService } from '../chat/chat.service';
+import { ConvertPlanDto } from './dto/convert-plan.dto';
 import { CreateTacheDto } from './dto/create-tache.dto';
 import { SubjectDto } from './dto/subject.dto';
 import { OrganizerScheduler } from './organizer.scheduler';
@@ -120,6 +121,20 @@ export class OrganizerController {
     await this.organizerScheduler.debounceSubject(subjectId);
     this.chatGateway.broadcastOrganizerMessage(subjectId, message);
     return message;
+  }
+
+  @Get('subjects/:subjectId/plan')
+  proposePlan(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
+    return this.organizerService.proposePlan(projetId, subjectId);
+  }
+
+  @Post('plan/convertir')
+  convertPlan(
+    @Param('projetId') projetId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ConvertPlanDto,
+  ) {
+    return this.organizerService.convertPlan(projetId, user, dto);
   }
 
   @Post('taches')
