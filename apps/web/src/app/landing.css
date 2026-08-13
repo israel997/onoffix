@@ -770,7 +770,8 @@ html {
 
 /* ---------- Compare table (différenciation) ---------- */
 .landing .ctable {
-  border: 1px solid var(--lp-line);
+  --ctable-line: rgba(11, 27, 63, 0.14);
+  border: 1px solid var(--ctable-line);
   border-radius: 20px;
   overflow: hidden;
   background: var(--lp-surface);
@@ -781,7 +782,7 @@ html {
   align-items: center;
 }
 .landing .ctable-row:not(:last-child) {
-  border-bottom: 1px solid var(--lp-line);
+  border-bottom: 1px solid var(--ctable-line);
 }
 .landing .ctable-head {
   background: #fbfcff;
@@ -807,7 +808,7 @@ html {
   padding: 18px 20px;
   font-size: 14.5px;
   color: var(--ink);
-  border-left: 1px solid var(--lp-line);
+  border-left: 1px solid var(--ctable-line);
 }
 .landing .ctable-cell.muted {
   color: var(--slate-soft);
@@ -826,7 +827,7 @@ html {
   }
   .landing .ctable-cell {
     border-left: none;
-    border-top: 1px solid var(--lp-line);
+    border-top: 1px solid var(--ctable-line);
     padding: 12px 24px;
   }
   .landing .ctable-head {

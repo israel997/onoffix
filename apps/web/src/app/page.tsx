@@ -33,7 +33,7 @@ export default function LandingPage() {
       <header className="nav">
         <div className="wrap nav-inner">
           <Link href="/" className="logo">
-            <Image src="/logo.png" alt="OnOffix" width={176} height={88} priority className="h-10 w-auto" />
+            <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-10 w-auto" />
           </Link>
           <nav className="nav-links">
             <a href="#how">How it works</a>
@@ -51,7 +51,7 @@ export default function LandingPage() {
                   Log in
                 </Link>
                 <Link href="/register" className="btn btn-primary btn-sm">
-                  Try OnOffix
+                  Try OOffix
                 </Link>
               </>
             )}
@@ -70,7 +70,7 @@ export default function LandingPage() {
             </p>
             <div className="hero-ctas">
               <Link href={authed ? '/dashboard' : '/register'} className="btn btn-primary">
-                {authed ? 'Go to dashboard' : 'Try OnOffix'}
+                {authed ? 'Go to dashboard' : 'Try OOffix'}
               </Link>
               <a href="#how" className="btn btn-ghost">
                 See how it works
@@ -84,7 +84,7 @@ export default function LandingPage() {
           <div className="hero-image">
             <Image
               src="/1.png"
-              alt="OnOffix office view — desks light up as collaborators declare their progress"
+              alt="OOffix office view — desks light up as collaborators declare their progress"
               width={1536}
               height={1024}
               priority
@@ -182,7 +182,7 @@ export default function LandingPage() {
             <div className="step">
               <div className="step-n">03</div>
               <h3>Describe the work</h3>
-              <p>Rough or detailed — OnOffix structures and pre-assigns the tasks.</p>
+              <p>Rough or detailed — OOffix structures and pre-assigns the tasks.</p>
             </div>
             <div className="step">
               <div className="step-n">04</div>
@@ -408,11 +408,11 @@ export default function LandingPage() {
           <div className="cta-final">
             <h2>Bring your team into the office.</h2>
             <p>
-              OnOffix is still being tested within our own team. If you&apos;d like to try it with
+              OOffix is still being tested within our own team. If you&apos;d like to try it with
               yours, let&apos;s talk.
             </p>
             <Link href={authed ? '/dashboard' : '/register'} className="btn btn-primary">
-              {authed ? 'Go to dashboard' : 'Try OnOffix'}
+              {authed ? 'Go to dashboard' : 'Try OOffix'}
             </Link>
             <div className="cta-honest">No pricing plan yet — currently in internal testing</div>
           </div>
@@ -423,14 +423,14 @@ export default function LandingPage() {
         <div className="wrap">
           <div className="footer-inner">
             <Link href="/" className="logo">
-              <Image src="/logo.png" alt="OnOffix" width={132} height={66} className="h-6 w-auto opacity-80" />
+              <Image src="/logo.png" alt="OOffix" width={132} height={66} className="h-6 w-auto opacity-80" />
             </Link>
             <div className="footer-links">
               <a href="#how">How it works</a>
               <a href="#ritual">The ritual</a>
               <a href="#features">Features</a>
             </div>
-            <div className="footer-copy">© 2026 OnOffix — digital office, still in testing</div>
+            <div className="footer-copy">© 2026 OOffix — digital office, still in testing</div>
           </div>
         </div>
       </footer>

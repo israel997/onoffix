@@ -56,6 +56,14 @@ export class OrganisationService {
     });
   }
 
+  async getStats(organisationId: string) {
+    const [membresCount, tachesCount] = await Promise.all([
+      this.prisma.user.count({ where: { organisationId } }),
+      this.prisma.tache.count({ where: { projet: { bureau: { organisationId } } } }),
+    ]);
+    return { membresCount, tachesCount };
+  }
+
   /**
    * Si un compte existe déjà pour cet email, il est rattaché immédiatement à l'organisation.
    * Sinon, une invitation est envoyée par email et l'adhésion n'est créée qu'à son acceptation.

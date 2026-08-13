@@ -142,7 +142,7 @@ export default function MembersPage() {
             </Button>
           </form>
           <p className="mt-2 text-xs text-muted-foreground">
-            If this email already has an OnOffix account, they&apos;ll be added right away. Otherwise
+            If this email already has an OOffix account, they&apos;ll be added right away. Otherwise
             they&apos;ll get an email invitation to set their own password.
           </p>
           {error && <p className="mt-2 text-sm text-status-review">{error}</p>}

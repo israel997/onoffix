@@ -14,7 +14,7 @@ export class EmailService {
   constructor(private readonly config: ConfigService) {
     this.apiKey = this.config.get<string>('BREVO_API_KEY');
     this.fromEmail = this.config.get<string>('EMAIL_FROM_ADDRESS', 'onboarding@onoffix.app');
-    this.fromName = this.config.get<string>('EMAIL_FROM_NAME', 'OnOffix');
+    this.fromName = this.config.get<string>('EMAIL_FROM_NAME', 'OOffix');
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
     if (!this.apiKey) {
@@ -56,28 +56,28 @@ export class EmailService {
 
   async sendVerificationEmail(to: string, nom: string, token: string) {
     const link = `${this.frontendUrl}/verify-email?token=${token}`;
-    await this.send(to, 'Confirm your OnOffix email address', verificationEmailTemplate(nom, link));
+    await this.send(to, 'Confirm your OOffix email address', verificationEmailTemplate(nom, link));
   }
 
   async sendInvitationEmail(to: string, nom: string, organisationNom: string, token: string) {
     const link = `${this.frontendUrl}/accept-invite?token=${token}`;
     await this.send(
       to,
-      `You've been invited to join ${organisationNom} on OnOffix`,
+      `You've been invited to join ${organisationNom} on OOffix`,
       invitationEmailTemplate(nom, organisationNom, link),
     );
   }
 
   async sendPasswordResetEmail(to: string, nom: string, token: string) {
     const link = `${this.frontendUrl}/reset-password?token=${token}`;
-    await this.send(to, 'Reset your OnOffix password', passwordResetEmailTemplate(nom, link));
+    await this.send(to, 'Reset your OOffix password', passwordResetEmailTemplate(nom, link));
   }
 }
 
 function verificationEmailTemplate(nom: string, link: string): string {
   return emailShell(
     nom,
-    `Please confirm your email address to finish setting up your OnOffix account.`,
+    `Please confirm your email address to finish setting up your OOffix account.`,
     link,
     'Confirm my email',
     'This link expires in 24 hours.',
@@ -87,7 +87,7 @@ function verificationEmailTemplate(nom: string, link: string): string {
 function invitationEmailTemplate(nom: string, organisationNom: string, link: string): string {
   return emailShell(
     nom,
-    `You've been invited to join <strong>${escapeHtml(organisationNom)}</strong> on OnOffix. Click below to set your password and get started.`,
+    `You've been invited to join <strong>${escapeHtml(organisationNom)}</strong> on OOffix. Click below to set your password and get started.`,
     link,
     'Accept invitation',
     'This link expires in 7 days.',
@@ -97,7 +97,7 @@ function invitationEmailTemplate(nom: string, organisationNom: string, link: str
 function passwordResetEmailTemplate(nom: string, link: string): string {
   return emailShell(
     nom,
-    `We received a request to reset your OnOffix password. Click below to choose a new one. If you didn't ask for this, you can ignore this email.`,
+    `We received a request to reset your OOffix password. Click below to choose a new one. If you didn't ask for this, you can ignore this email.`,
     link,
     'Reset my password',
     'This link expires in 1 hour.',

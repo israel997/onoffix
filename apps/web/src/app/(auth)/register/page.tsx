@@ -45,7 +45,7 @@ export default function RegisterPage() {
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle>Create your organisation</CardTitle>
-        <CardDescription>Set up OnOffix for your team in a minute.</CardDescription>
+        <CardDescription>Set up OOffix for your team in a minute.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Label>

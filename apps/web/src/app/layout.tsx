@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OnOffix",
+  title: "OOffix",
   description: "Know exactly how your team is progressing on their tasks.",
 };
 

@@ -76,7 +76,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
     <>
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 md:flex">
         <Link href="/" className="mb-8 flex items-center px-2">
-          <Image src="/logo.png" alt="OnOffix" width={176} height={88} priority className="h-14 w-auto" />
+          <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-14 w-auto" />
         </Link>
         <SidebarNav pathname={pathname} isAdmin={isAdmin} />
       </aside>
@@ -87,7 +87,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
           <aside className="relative flex h-full w-64 flex-col bg-surface px-4 py-6 shadow-xl">
             <div className="mb-8 flex items-center justify-between px-2">
               <Link href="/" className="flex items-center">
-                <Image src="/logo.png" alt="OnOffix" width={176} height={88} priority className="h-14 w-auto" />
+                <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-14 w-auto" />
               </Link>
               <button
                 onClick={onMobileClose}

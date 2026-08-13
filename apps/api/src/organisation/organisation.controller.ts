@@ -49,6 +49,11 @@ export class OrganisationController {
     return this.organisationService.listMembres(user.organisationId);
   }
 
+  @Get('stats')
+  getStats(@CurrentUser() user: AuthenticatedUser) {
+    return this.organisationService.getStats(user.organisationId);
+  }
+
   @Roles(RoleGlobal.ADMIN)
   @Post('membres')
   addMembre(@CurrentUser() user: AuthenticatedUser, @Body() dto: AddOrganisationMembreDto) {

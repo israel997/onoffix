@@ -393,6 +393,15 @@ export function listOrganisationMembres() {
   return authFetch<OrganisationMembre[]>('/organisation/membres');
 }
 
+export interface OrganisationStats {
+  membresCount: number;
+  tachesCount: number;
+}
+
+export function getOrganisationStats() {
+  return authFetch<OrganisationStats>('/organisation/stats');
+}
+
 export type AddMembreResult =
   | { status: 'added'; membre: OrganisationMembre }
   | { status: 'invited'; invitation: { id: string; email: string; nom: string } };
