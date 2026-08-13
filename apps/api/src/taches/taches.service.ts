@@ -268,7 +268,10 @@ export class TachesService {
     return this.prisma.tache.findMany({
       where: { projet: { bureauId } },
       orderBy: { createdAt: 'desc' },
-      include: { ...TACHE_INCLUDE, projet: { select: { id: true, nom: true, estOrganizer: true } } },
+      include: {
+        ...TACHE_INCLUDE,
+        projet: { select: { id: true, nom: true, estOrganizer: true } },
+      },
     });
   }
 

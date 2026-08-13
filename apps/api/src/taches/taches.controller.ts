@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
 import { BureauRole } from '../common/decorators/bureau-role.decorator';
