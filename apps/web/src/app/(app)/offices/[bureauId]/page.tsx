@@ -188,12 +188,12 @@ export default function OfficeDetailPage() {
 
         <div className="flex flex-col divide-y divide-border">
           {bureau.membres.map((m) => (
-            <div key={m.user.id} className="flex items-center justify-between py-3">
+            <div key={m.user.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">{m.user.nom}</p>
                 <p className="text-xs text-muted-foreground">{m.user.email}</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {m.roleInterne && <Badge tone="brand">{m.roleInterne}</Badge>}
                 {isManager ? (
                   <select

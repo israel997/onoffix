@@ -16,7 +16,7 @@ export function OfficeNav({ bureauId, showSettings }: { bureauId: string; showSe
   ];
 
   return (
-    <div className="flex gap-1 border-b border-border">
+    <div className="flex gap-1 overflow-x-auto border-b border-border">
       {items.map((item) => {
         const active = pathname === item.href;
         return (
@@ -24,7 +24,7 @@ export function OfficeNav({ bureauId, showSettings }: { bureauId: string; showSe
             key={item.href}
             href={item.href}
             className={cn(
-              'border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+              'shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
               active
                 ? 'border-brand-blue text-brand-blue'
                 : 'border-transparent text-muted-foreground hover:text-foreground',

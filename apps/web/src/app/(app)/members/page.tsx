@@ -203,12 +203,12 @@ export default function MembersPage() {
         ) : (
           <div className="flex flex-col divide-y divide-border">
             {membres.map((m) => (
-              <div key={m.id} className="flex items-center justify-between py-3">
+              <div key={m.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">{m.nom}</p>
                   <p className="text-xs text-muted-foreground">{m.email}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {m.bureaux.map((b) => (
                     <Badge key={b.bureau.id} tone="neutral">
                       {b.bureau.nom}
