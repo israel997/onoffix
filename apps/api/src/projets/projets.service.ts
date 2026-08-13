@@ -54,7 +54,8 @@ export class ProjetsService {
       data: {
         nom: dto.nom,
         description: dto.description,
-        dateDebut: dto.dateDebut === undefined ? undefined : dto.dateDebut ? new Date(dto.dateDebut) : null,
+        dateDebut:
+          dto.dateDebut === undefined ? undefined : dto.dateDebut ? new Date(dto.dateDebut) : null,
         dateFin: dto.dateFin === undefined ? undefined : dto.dateFin ? new Date(dto.dateFin) : null,
         statut: dto.statut,
       },
@@ -75,7 +76,8 @@ export class ProjetsService {
       const membership = await this.prisma.userBureau.findUnique({
         where: { userId_bureauId: { userId: dto.assigneAId, bureauId: projet.bureauId! } },
       });
-      if (!membership) throw new ForbiddenException('Ce collaborateur ne fait pas partie de ce bureau');
+      if (!membership)
+        throw new ForbiddenException('Ce collaborateur ne fait pas partie de ce bureau');
     }
 
     return this.prisma.tache.create({

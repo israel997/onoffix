@@ -269,7 +269,10 @@ export class TachesService {
     return this.prisma.tacheBlocage.findMany({
       where: { tacheId },
       orderBy: { dateDebut: 'desc' },
-      include: { responsable: { select: { id: true, nom: true } }, bloquantTache: { select: { id: true, titre: true } } },
+      include: {
+        responsable: { select: { id: true, nom: true } },
+        bloquantTache: { select: { id: true, titre: true } },
+      },
     });
   }
 
@@ -286,7 +289,10 @@ export class TachesService {
           bloquantTacheId: dto.bloquantTacheId,
           responsableId: dto.responsableId,
         },
-        include: { responsable: { select: { id: true, nom: true } }, bloquantTache: { select: { id: true, titre: true } } },
+        include: {
+          responsable: { select: { id: true, nom: true } },
+          bloquantTache: { select: { id: true, titre: true } },
+        },
       }),
       this.prisma.tache.update({ where: { id: tacheId }, data: { sante: SanteTache.BLOQUEE } }),
     ]);
@@ -305,7 +311,10 @@ export class TachesService {
 
     const restants = await this.prisma.tacheBlocage.count({ where: { tacheId, dateFin: null } });
     if (restants === 0) {
-      await this.prisma.tache.update({ where: { id: tacheId }, data: { sante: SanteTache.NORMAL } });
+      await this.prisma.tache.update({
+        where: { id: tacheId },
+        data: { sante: SanteTache.NORMAL },
+      });
     }
 
     return blocage;
@@ -320,7 +329,9 @@ export class TachesService {
       throw new ForbiddenException('Seule la personne assignée peut lancer le chronomètre');
     }
 
-    const active = await this.prisma.tacheSession.findFirst({ where: { tacheId, userId: user.userId, fin: null } });
+    const active = await this.prisma.tacheSession.findFirst({
+      where: { tacheId, userId: user.userId, fin: null },
+    });
     if (active) return active;
 
     return this.prisma.tacheSession.create({ data: { tacheId, userId: user.userId } });
@@ -330,14 +341,18 @@ export class TachesService {
     const tache = await this.loadWithBureau(tacheId, user);
     await this.assertBureauMember(tache.projet.bureauId, user);
 
-    const active = await this.prisma.tacheSession.findFirst({ where: { tacheId, userId: user.userId, fin: null } });
+    const active = await this.prisma.tacheSession.findFirst({
+      where: { tacheId, userId: user.userId, fin: null },
+    });
     if (!active) throw new BadRequestException('Aucune session de chronomètre en cours');
 
     return this.prisma.tacheSession.update({ where: { id: active.id }, data: { fin: new Date() } });
   }
 
   async tempsReelMinutes(tacheId: string): Promise<number> {
-    const sessions = await this.prisma.tacheSession.findMany({ where: { tacheId, fin: { not: null } } });
+    const sessions = await this.prisma.tacheSession.findMany({
+      where: { tacheId, fin: { not: null } },
+    });
     const ms = sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0);
     return Math.round(ms / 60000);
   }
