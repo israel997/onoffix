@@ -54,6 +54,7 @@ export default function MyTasksPage() {
                   tache={t}
                   currentUserId={user.id}
                   isManager={false}
+                  isAdmin={user.roleGlobal === 'ADMIN'}
                   assignableMembres={[]}
                   onChange={load}
                 />

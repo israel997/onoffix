@@ -1,10 +1,15 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
+import { BureauRole } from '../common/decorators/bureau-role.decorator';
+import { RoleBureau } from '@prisma/client';
 import { AssignTacheDto } from './dto/assign-tache.dto';
 import { CreateBlocageDto } from './dto/create-blocage.dto';
 import { UpdateTacheDto } from './dto/update-tache.dto';
 import { ValiderTacheDto } from './dto/valider-tache.dto';
 import { TachesService } from './taches.service';
+
+const ANY_MEMBER = [RoleBureau.MANAGER, RoleBureau.COLLABORATEUR];
 
 @Controller('taches')
 export class MesTachesController {
@@ -13,6 +18,18 @@ export class MesTachesController {
   @Get('mes-taches')
   mesTaches(@CurrentUser() user: AuthenticatedUser) {
     return this.tachesService.mesTaches(user);
+  }
+}
+
+@UseGuards(BureauRoleGuard)
+@Controller('bureaux/:bureauId/taches')
+export class BureauTachesController {
+  constructor(private readonly tachesService: TachesService) {}
+
+  @BureauRole(...ANY_MEMBER)
+  @Get()
+  listForBureau(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.listForBureau(bureauId, user);
   }
 }
 
@@ -94,5 +111,16 @@ export class TachesController {
   @Post('chrono/arreter')
   arreterChrono(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.tachesService.arreterChrono(tacheId, user);
+  }
+
+  @Get('chrono')
+  chronoStatut(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.chronoStatut(tacheId, user);
+  }
+
+  @Delete()
+  @HttpCode(204)
+  async supprimer(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.tachesService.supprimer(tacheId, user);
   }
 }

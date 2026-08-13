@@ -87,7 +87,11 @@ export default function OrganizerPage() {
       <OfficeNav bureauId={bureauId} showSettings={isManager} />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <SubjectsChat projetId={organizer.id} canManage={isManager} />
+        <SubjectsChat
+          projetId={organizer.id}
+          canManage={isManager}
+          tasksHref={`/offices/${bureauId}/tasks`}
+        />
 
         {isManager && (
           <Card>

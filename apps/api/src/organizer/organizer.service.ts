@@ -12,6 +12,7 @@ const TACHE_INCLUDE = {
   assigneA: { select: { id: true, nom: true } },
   assignePar: { select: { id: true, nom: true } },
   valideur: { select: { id: true, nom: true } },
+  conversation: { select: { id: true, nom: true } },
 };
 
 @Injectable()

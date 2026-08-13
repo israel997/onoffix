@@ -56,7 +56,7 @@ export default function MyOrganizerPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <SubjectsChat projetId={organizer.id} canManage />
+        <SubjectsChat projetId={organizer.id} canManage tasksHref="/my-tasks" />
 
         <Card>
           <CardTitle>Add a task manually</CardTitle>

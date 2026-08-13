@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import {
   accepterTache,
   assignerTache,
   declarerTache,
+  deleteTache,
   demarrerTache,
   updateTache,
   validerTache,
@@ -43,6 +45,44 @@ const STATUT_LABEL: Record<Tache['statut'], string> = {
   A_REVOIR: 'Needs rework',
 };
 
+const STATUT_PROGRESS: Record<Tache['statut'], number> = {
+  A_FAIRE: 0,
+  ACCEPTEE: 20,
+  EN_COURS: 50,
+  A_REVOIR: 60,
+  DECLARE: 80,
+  VALIDE: 100,
+};
+
+const SANTE_TONE: Record<Tache['sante'], 'neutral' | 'declared' | 'validated' | 'review' | 'brand'> = {
+  NORMAL: 'neutral',
+  A_SURVEILLER: 'declared',
+  A_RISQUE: 'review',
+  BLOQUEE: 'review',
+};
+
+const SANTE_LABEL: Record<Tache['sante'], string> = {
+  NORMAL: 'Normal',
+  A_SURVEILLER: 'Watch',
+  A_RISQUE: 'At risk',
+  BLOQUEE: 'Blocked',
+};
+
+const PRIORITE_TONE: Record<Tache['priorite'], 'neutral' | 'declared' | 'validated' | 'review' | 'brand'> = {
+  BASSE: 'neutral',
+  NORMALE: 'neutral',
+  HAUTE: 'declared',
+  URGENTE: 'review',
+};
+
+function ProgressBar({ percent }: { percent: number }) {
+  return (
+    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
+      <div className="h-full rounded-full bg-brand-blue transition-all" style={{ width: `${percent}%` }} />
+    </div>
+  );
+}
+
 function LiveTimer({ since }: { since: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -56,18 +96,22 @@ export function TaskItem({
   tache,
   currentUserId,
   isManager,
+  isAdmin = false,
   assignableMembres,
   onChange,
 }: {
   tache: Tache;
   currentUserId: string;
   isManager: boolean;
+  isAdmin?: boolean;
   assignableMembres: { user: { id: string; nom: string } }[];
   onChange: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [titre, setTitre] = useState(tache.titre);
   const [description, setDescription] = useState(tache.description ?? '');
   const [dateCible, setDateCible] = useState(tache.dateCible ?? '');
@@ -75,6 +119,7 @@ export function TaskItem({
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
   const canValidate = tache.statut === 'DECLARE' && (isAssigner || isManager);
+  const canDeleteTask = isAdmin;
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -139,16 +184,51 @@ export function TaskItem({
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">{tache.titre}</p>
-        <div className="flex shrink-0 items-center gap-2">
+        <button
+          className="text-left text-sm font-medium text-foreground hover:underline"
+          onClick={() => setShowDetail(true)}
+        >
+          {tache.titre}
+        </button>
+        <div className="relative flex shrink-0 items-center gap-2">
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
-          {isManager && (
+          {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
+          {(isManager || canDeleteTask) && (
             <button
-              onClick={() => setEditing(true)}
-              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="More actions"
+              className="rounded px-1 text-muted-foreground hover:text-foreground"
             >
-              Edit
+              ⋯
             </button>
+          )}
+          {menuOpen && (
+            <div className="absolute right-0 top-6 z-10 flex w-32 flex-col rounded-lg border border-border bg-surface py-1 text-xs shadow-md">
+              {isManager && (
+                <button
+                  onClick={() => {
+                    setEditing(true);
+                    setMenuOpen(false);
+                  }}
+                  className="px-3 py-1.5 text-left hover:bg-surface-muted"
+                >
+                  Edit
+                </button>
+              )}
+              {canDeleteTask && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (confirm(`Delete "${tache.titre}"? This cannot be undone.`)) {
+                      run(() => deleteTache(tache.id));
+                    }
+                  }}
+                  className="px-3 py-1.5 text-left text-status-review hover:bg-surface-muted"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -156,6 +236,10 @@ export function TaskItem({
 
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {tache.assigneA ? <span>Assigned to {tache.assigneA.nom}</span> : <span>Unassigned</span>}
+        {tache.priorite !== 'NORMALE' && (
+          <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
+        )}
+        {tache.conversation && <Badge tone="brand">{tache.conversation.nom}</Badge>}
         {tache.dateCible && <span>· due {tache.dateCible}</span>}
         {tache.statut === 'EN_COURS' && tache.dateDebut && (
           <span>
@@ -168,6 +252,7 @@ export function TaskItem({
           </span>
         )}
       </div>
+      <ProgressBar percent={STATUT_PROGRESS[tache.statut]} />
 
       {error && <p className="mt-2 text-xs text-status-review">{error}</p>}
 
@@ -226,6 +311,15 @@ export function TaskItem({
           </>
         )}
       </div>
+
+      {showDetail && (
+        <TaskDetailModal
+          tache={tache}
+          isManager={isManager}
+          onClose={() => setShowDetail(false)}
+          onChange={onChange}
+        />
+      )}
     </div>
   );
 }

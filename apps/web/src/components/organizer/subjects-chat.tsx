@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Chat } from '@/components/chat/chat';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,15 @@ import {
   type Subject,
 } from '@/lib/api';
 
-export function SubjectsChat({ projetId, canManage }: { projetId: string; canManage: boolean }) {
+export function SubjectsChat({
+  projetId,
+  canManage,
+  tasksHref,
+}: {
+  projetId: string;
+  canManage: boolean;
+  tasksHref?: string;
+}) {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
@@ -112,6 +121,14 @@ export function SubjectsChat({ projetId, canManage }: { projetId: string; canMan
               +
             </Button>
           </form>
+        )}
+        {tasksHref && active && (
+          <Link
+            href={`${tasksHref}#subject-${encodeURIComponent(active.nom)}`}
+            className="ml-auto text-xs text-brand-blue hover:underline"
+          >
+            View tasks →
+          </Link>
         )}
       </div>
 

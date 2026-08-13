@@ -465,12 +465,19 @@ export function markAllNotificationsAsRead() {
 }
 
 export type StatutTache = 'A_FAIRE' | 'ACCEPTEE' | 'EN_COURS' | 'DECLARE' | 'VALIDE' | 'A_REVOIR';
+export type SanteTache = 'NORMAL' | 'A_SURVEILLER' | 'A_RISQUE' | 'BLOQUEE';
+export type PrioriteTache = 'BASSE' | 'NORMALE' | 'HAUTE' | 'URGENTE';
+export type TypeBlocage = 'TACHE' | 'PERSONNE' | 'DECISION' | 'CLIENT' | 'RESSOURCE' | 'EXTERNE';
 
 export interface Tache {
   id: string;
   titre: string;
   description: string | null;
   statut: StatutTache;
+  sante: SanteTache;
+  priorite: PrioriteTache;
+  dateEcheance: string | null;
+  dureeEstimeeMinutes: number | null;
   assigneAId: string | null;
   assigneParId: string | null;
   dateDebut: string | null;
@@ -482,6 +489,7 @@ export interface Tache {
   assigneA: { id: string; nom: string } | null;
   assignePar: { id: string; nom: string } | null;
   valideur: { id: string; nom: string } | null;
+  conversation: { id: string; nom: string } | null;
 }
 
 export function assignerTache(tacheId: string, userId: string) {
@@ -490,9 +498,17 @@ export function assignerTache(tacheId: string, userId: string) {
 
 export function updateTache(
   tacheId: string,
-  data: { titre?: string; description?: string; dateCible?: string | null },
+  data: {
+    titre?: string;
+    description?: string;
+    dateCible?: string | null;
+  },
 ) {
   return authFetch<Tache>(`/taches/${tacheId}`, { method: 'PATCH', body: data });
+}
+
+export function deleteTache(tacheId: string) {
+  return authFetch<void>(`/taches/${tacheId}`, { method: 'DELETE' });
 }
 
 export function accepterTache(tacheId: string) {
@@ -509,6 +525,51 @@ export function declarerTache(tacheId: string) {
 
 export function validerTache(tacheId: string, decision: 'ok' | 'litige') {
   return authFetch<Tache>(`/taches/${tacheId}/valider`, { method: 'POST', body: { decision } });
+}
+
+export function listBureauTaches(bureauId: string) {
+  return authFetch<Tache[]>(`/bureaux/${bureauId}/taches`);
+}
+
+export interface TacheBlocage {
+  id: string;
+  type: TypeBlocage;
+  cause: string | null;
+  dateDebut: string;
+  dateFin: string | null;
+  responsable: { id: string; nom: string } | null;
+  bloquantTache: { id: string; titre: string } | null;
+}
+
+export function listBlocages(tacheId: string) {
+  return authFetch<TacheBlocage[]>(`/taches/${tacheId}/blocages`);
+}
+
+export function creerBlocage(tacheId: string, data: { type: TypeBlocage; cause?: string }) {
+  return authFetch<TacheBlocage>(`/taches/${tacheId}/blocages`, { method: 'POST', body: data });
+}
+
+export function resoudreBlocage(tacheId: string, blocageId: string) {
+  return authFetch<TacheBlocage>(`/taches/${tacheId}/blocages/${blocageId}/resoudre`, {
+    method: 'PATCH',
+  });
+}
+
+export interface ChronoStatut {
+  dureeReelleMinutes: number;
+  enCours: boolean;
+}
+
+export function getChronoStatut(tacheId: string) {
+  return authFetch<ChronoStatut>(`/taches/${tacheId}/chrono`);
+}
+
+export function demarrerChrono(tacheId: string) {
+  return authFetch<{ id: string }>(`/taches/${tacheId}/chrono/demarrer`, { method: 'POST' });
+}
+
+export function arreterChrono(tacheId: string) {
+  return authFetch<{ id: string }>(`/taches/${tacheId}/chrono/arreter`, { method: 'POST' });
 }
 
 export interface Subject {

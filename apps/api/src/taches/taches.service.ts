@@ -14,6 +14,7 @@ const TACHE_INCLUDE = {
   assigneA: { select: { id: true, nom: true } },
   assignePar: { select: { id: true, nom: true } },
   valideur: { select: { id: true, nom: true } },
+  conversation: { select: { id: true, nom: true } },
 };
 
 @Injectable()
@@ -261,6 +262,24 @@ export class TachesService {
     });
   }
 
+  /** Toutes les tâches du bureau (Organizer + vrais Projets), avec leur Subject d'origine. */
+  async listForBureau(bureauId: string, user: AuthenticatedUser) {
+    await this.assertBureauMember(bureauId, user);
+    return this.prisma.tache.findMany({
+      where: { projet: { bureauId } },
+      orderBy: { createdAt: 'desc' },
+      include: { ...TACHE_INCLUDE, projet: { select: { id: true, nom: true, estOrganizer: true } } },
+    });
+  }
+
+  async supprimer(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    if (tache.projet.bureauId && user.roleGlobal !== RoleGlobal.ADMIN) {
+      throw new ForbiddenException('Seul un admin peut supprimer une tâche de bureau');
+    }
+    await this.prisma.tache.delete({ where: { id: tacheId } });
+  }
+
   // ---------- Blocages ----------
 
   async listBlocages(tacheId: string, user: AuthenticatedUser) {
@@ -347,6 +366,15 @@ export class TachesService {
     if (!active) throw new BadRequestException('Aucune session de chronomètre en cours');
 
     return this.prisma.tacheSession.update({ where: { id: active.id }, data: { fin: new Date() } });
+  }
+
+  async chronoStatut(tacheId: string, user: AuthenticatedUser) {
+    await this.loadWithBureau(tacheId, user);
+    const [dureeReelleMinutes, active] = await Promise.all([
+      this.tempsReelMinutes(tacheId),
+      this.prisma.tacheSession.findFirst({ where: { tacheId, fin: null } }),
+    ]);
+    return { dureeReelleMinutes, enCours: !!active };
   }
 
   async tempsReelMinutes(tacheId: string): Promise<number> {

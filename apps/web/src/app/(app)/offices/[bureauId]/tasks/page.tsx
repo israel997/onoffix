@@ -6,20 +6,38 @@ import { OfficeNav } from '@/components/offices/office-nav';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardDescription } from '@/components/ui/card';
-import { getBureau, getBureauOrganizer, type BureauDetail, type OrganizerDetail } from '@/lib/api';
+import { getBureau, listBureauTaches, type BureauDetail, type Tache } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+
+function groupBySubject(taches: Tache[]) {
+  const groups = new Map<string, { nom: string; taches: Tache[] }>();
+  for (const t of taches) {
+    const key = t.conversation?.id ?? 'none';
+    const nom = t.conversation?.nom ?? 'No subject';
+    if (!groups.has(key)) groups.set(key, { nom, taches: [] });
+    groups.get(key)!.taches.push(t);
+  }
+  return Array.from(groups.values());
+}
+
+function breakdown(taches: Tache[]) {
+  const termine = taches.filter((t) => t.statut === 'VALIDE').length;
+  const nonCommence = taches.filter((t) => t.statut === 'A_FAIRE').length;
+  const enCours = taches.length - termine - nonCommence;
+  return { termine, enCours, nonCommence };
+}
 
 export default function TasksPage() {
   const params = useParams<{ bureauId: string }>();
   const bureauId = params.bureauId;
   const { user } = useAuth();
 
-  const [organizer, setOrganizer] = useState<OrganizerDetail | null>(null);
+  const [taches, setTaches] = useState<Tache[] | null>(null);
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
 
   async function load() {
-    const [org, bur] = await Promise.all([getBureauOrganizer(bureauId), getBureau(bureauId)]);
-    setOrganizer(org);
+    const [t, bur] = await Promise.all([listBureauTaches(bureauId), getBureau(bureauId)]);
+    setTaches(t);
     setBureau(bur);
   }
 
@@ -29,12 +47,13 @@ export default function TasksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bureauId]);
 
+  const isAdmin = user?.roleGlobal === 'ADMIN';
   const isManager =
-    user?.roleGlobal === 'ADMIN' ||
-    bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') ||
-    false;
+    isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
 
-  if (!organizer || !bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!taches || !bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+
+  const groups = groupBySubject(taches);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,30 +67,46 @@ export default function TasksPage() {
       />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{organizer.taches.length} task(s) in this office.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{taches.length} task(s) in this office.</p>
       </div>
 
       <OfficeNav bureauId={bureauId} showSettings={isManager} />
 
-      <Card>
-        <div className="flex flex-col gap-2">
-          {organizer.taches.length === 0 ? (
-            <CardDescription>Nothing yet.</CardDescription>
-          ) : (
-            user &&
-            organizer.taches.map((t) => (
-              <TaskItem
-                key={t.id}
-                tache={t}
-                currentUserId={user.id}
-                isManager={isManager}
-                assignableMembres={bureau.membres}
-                onChange={load}
-              />
-            ))
-          )}
-        </div>
-      </Card>
+      {taches.length === 0 ? (
+        <Card>
+          <CardDescription>Nothing yet.</CardDescription>
+        </Card>
+      ) : (
+        groups.map((g) => {
+          const { termine, enCours, nonCommence } = breakdown(g.taches);
+          return (
+            <Card key={g.nom} id={`subject-${g.nom}`}>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">
+                  {g.nom} ({g.taches.length} task{g.taches.length > 1 ? 's' : ''})
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {enCours} in progress · {termine} done · {nonCommence} not started
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {user &&
+                  g.taches.map((t) => (
+                    <TaskItem
+                      key={t.id}
+                      tache={t}
+                      currentUserId={user.id}
+                      isManager={isManager}
+                      isAdmin={isAdmin}
+                      assignableMembres={bureau.membres}
+                      onChange={load}
+                    />
+                  ))}
+              </div>
+            </Card>
+          );
+        })
+      )}
     </div>
   );
 }
