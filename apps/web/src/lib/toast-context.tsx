@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ${
+            className={`animate-fade-in-up pointer-events-auto rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ${
               t.tone === 'success' ? 'bg-status-validated' : 'bg-status-review'
             }`}
           >

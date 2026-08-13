@@ -211,7 +211,7 @@ export function TaskItem({
             </button>
           )}
           {menuOpen && (
-            <div className="absolute right-0 top-6 z-10 flex w-32 flex-col rounded-lg border border-border bg-surface py-1 text-xs shadow-md">
+            <div className="animate-fade-in-up absolute right-0 top-6 z-10 flex w-32 flex-col rounded-lg border border-border bg-surface py-1 text-xs shadow-md">
               {isManager && (
                 <button
                   onClick={() => {
