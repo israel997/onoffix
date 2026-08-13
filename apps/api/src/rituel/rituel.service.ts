@@ -224,7 +224,9 @@ export class RituelService {
     const bloque = taches.filter((t) => t.sante === 'BLOQUEE').length;
     const nonCommence = taches.filter((t) => t.statut === 'A_FAIRE').length;
     const enCours = taches.length - termine - nonCommence;
-    const aRisque = taches.filter((t) => t.sante === 'A_RISQUE').map((t) => ({ id: t.id, titre: t.titre }));
+    const aRisque = taches
+      .filter((t) => t.sante === 'A_RISQUE')
+      .map((t) => ({ id: t.id, titre: t.titre }));
 
     const totalItems = membresJournee.reduce((sum, m) => sum + m.taches.length, 0);
     const totalDone = membresJournee.reduce(
