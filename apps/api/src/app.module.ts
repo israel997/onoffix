@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { OrganisationModule } from './organisation/organisation.module';
 import { OrganizerModule } from './organizer/organizer.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProjetsModule } from './projets/projets.module';
 import { QueueModule } from './queue/queue.module';
 import { RituelModule } from './rituel/rituel.module';
 import { StorageModule } from './common/storage.module';
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module';
     NotificationsModule,
     TachesModule,
     RituelModule,
+    ProjetsModule,
   ],
   controllers: [AppController],
   providers: [

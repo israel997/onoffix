@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { AssignTacheDto } from './dto/assign-tache.dto';
+import { CreateBlocageDto } from './dto/create-blocage.dto';
 import { UpdateTacheDto } from './dto/update-tache.dto';
 import { ValiderTacheDto } from './dto/valider-tache.dto';
 import { TachesService } from './taches.service';
@@ -59,5 +60,39 @@ export class TachesController {
     @Body() dto: ValiderTacheDto,
   ) {
     return this.tachesService.valider(tacheId, user, dto.decision);
+  }
+
+  @Get('blocages')
+  listBlocages(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.listBlocages(tacheId, user);
+  }
+
+  @Post('blocages')
+  creerBlocage(
+    @Param('tacheId') tacheId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateBlocageDto,
+  ) {
+    return this.tachesService.creerBlocage(tacheId, user, dto);
+  }
+
+  @Patch('blocages/:blocageId/resoudre')
+  resoudreBlocage(
+    @Param('tacheId') tacheId: string,
+    @Param('blocageId') blocageId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.tachesService.resoudreBlocage(tacheId, blocageId, user);
+  }
+
+  @Post('chrono/demarrer')
+  @HttpCode(200)
+  demarrerChrono(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.demarrerChrono(tacheId, user);
+  }
+
+  @Post('chrono/arreter')
+  arreterChrono(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.arreterChrono(tacheId, user);
   }
 }

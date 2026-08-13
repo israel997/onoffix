@@ -32,6 +32,31 @@ enum StatutTache {
   A_REVOIR
 }
 
+// Santé : distincte du statut. Une tâche "En cours" peut dériver (À_RISQUE)
+// ou être bloquée sans que son statut change.
+enum SanteTache {
+  NORMAL
+  A_SURVEILLER
+  A_RISQUE
+  BLOQUEE
+}
+
+enum PrioriteTache {
+  BASSE
+  NORMALE
+  HAUTE
+  URGENTE
+}
+
+enum TypeBlocage {
+  TACHE
+  PERSONNE
+  DECISION
+  CLIENT
+  RESSOURCE
+  EXTERNE
+}
+
 enum StatutValidationDeclaration {
   EN_ATTENTE
   VALIDEE
@@ -169,6 +194,8 @@ model User {
   emailVerificationTokens  EmailVerificationToken[]
   messages                 Message[]
   projetsPersonnels        Projet[]
+  blocagesResponsable      TacheBlocage[]
+  tachesSessions           TacheSession[]
 
   @@unique([accountId, organisationId])
   @@index([organisationId])
@@ -236,6 +263,12 @@ model Tache {
   // Date cible du rituel quotidien (cf. 2.6) — définie par le manager, jamais par l'IA.
   dateCible       DateTime?   @map("date_cible") @db.Date
 
+  // Santé (distincte du statut), priorité, échéance réelle et estimation de charge.
+  sante               SanteTache    @default(NORMAL)
+  priorite            PrioriteTache @default(NORMALE)
+  dateEcheance        DateTime?     @map("date_echeance")
+  dureeEstimeeMinutes Int?          @map("duree_estimee_minutes")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   projet            Projet             @relation(fields: [projetId], references: [id], onDelete: Cascade)
@@ -245,11 +278,56 @@ model Tache {
   valideur          User?              @relation("TachesValidees", fields: [valideParId], references: [id], onDelete: SetNull)
   sousTaches        SousTache[]
   declarationTaches DeclarationTache[]
+  blocages          TacheBlocage[]     @relation("TacheBlocages")
+  bloqueTaches      TacheBlocage[]     @relation("TacheBloquantes")
+  sessions          TacheSession[]
 
   @@index([projetId])
   @@index([assigneAId])
   @@index([conversationId])
   @@map("taches")
+}
+
+/**
+ * Blocage actif ou résolu sur une tâche. dateFin nulle = toujours bloquant.
+ */
+model TacheBlocage {
+  id              String      @id @default(uuid())
+  tacheId         String      @map("tache_id")
+  type            TypeBlocage
+  cause           String?
+  bloquantTacheId String?     @map("bloquant_tache_id")
+  responsableId   String?     @map("responsable_id")
+  dateDebut       DateTime    @default(now()) @map("date_debut")
+  dateFin         DateTime?   @map("date_fin")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tache         Tache  @relation("TacheBlocages", fields: [tacheId], references: [id], onDelete: Cascade)
+  bloquantTache Tache? @relation("TacheBloquantes", fields: [bloquantTacheId], references: [id], onDelete: SetNull)
+  responsable   User?  @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+
+  @@index([tacheId])
+  @@index([bloquantTacheId])
+  @@map("taches_blocages")
+}
+
+/**
+ * Session de chronomètre (start/stop) sur une tâche ; fin nulle = en cours.
+ */
+model TacheSession {
+  id      String    @id @default(uuid())
+  tacheId String    @map("tache_id")
+  userId  String    @map("user_id")
+  debut   DateTime  @default(now())
+  fin     DateTime?
+
+  tache Tache @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tacheId])
+  @@index([userId])
+  @@map("taches_sessions")
 }
 
 model SousTache {

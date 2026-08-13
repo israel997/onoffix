@@ -4,10 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType, RoleBureau, RoleGlobal, StatutTache } from '@prisma/client';
+import { NotificationType, RoleBureau, RoleGlobal, SanteTache, StatutTache } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateBlocageDto } from './dto/create-blocage.dto';
 
 const TACHE_INCLUDE = {
   assigneA: { select: { id: true, nom: true } },
@@ -258,5 +259,86 @@ export class TachesService {
         },
       },
     });
+  }
+
+  // ---------- Blocages ----------
+
+  async listBlocages(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertBureauMember(tache.projet.bureauId, user);
+    return this.prisma.tacheBlocage.findMany({
+      where: { tacheId },
+      orderBy: { dateDebut: 'desc' },
+      include: { responsable: { select: { id: true, nom: true } }, bloquantTache: { select: { id: true, titre: true } } },
+    });
+  }
+
+  async creerBlocage(tacheId: string, user: AuthenticatedUser, dto: CreateBlocageDto) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertManager(tache.projet.bureauId, user);
+
+    const [blocage] = await this.prisma.$transaction([
+      this.prisma.tacheBlocage.create({
+        data: {
+          tacheId,
+          type: dto.type,
+          cause: dto.cause,
+          bloquantTacheId: dto.bloquantTacheId,
+          responsableId: dto.responsableId,
+        },
+        include: { responsable: { select: { id: true, nom: true } }, bloquantTache: { select: { id: true, titre: true } } },
+      }),
+      this.prisma.tache.update({ where: { id: tacheId }, data: { sante: SanteTache.BLOQUEE } }),
+    ]);
+
+    return blocage;
+  }
+
+  async resoudreBlocage(tacheId: string, blocageId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertManager(tache.projet.bureauId, user);
+
+    const blocage = await this.prisma.tacheBlocage.update({
+      where: { id: blocageId },
+      data: { dateFin: new Date() },
+    });
+
+    const restants = await this.prisma.tacheBlocage.count({ where: { tacheId, dateFin: null } });
+    if (restants === 0) {
+      await this.prisma.tache.update({ where: { id: tacheId }, data: { sante: SanteTache.NORMAL } });
+    }
+
+    return blocage;
+  }
+
+  // ---------- Chronomètre ----------
+
+  async demarrerChrono(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertBureauMember(tache.projet.bureauId, user);
+    if (tache.assigneAId !== user.userId) {
+      throw new ForbiddenException('Seule la personne assignée peut lancer le chronomètre');
+    }
+
+    const active = await this.prisma.tacheSession.findFirst({ where: { tacheId, userId: user.userId, fin: null } });
+    if (active) return active;
+
+    return this.prisma.tacheSession.create({ data: { tacheId, userId: user.userId } });
+  }
+
+  async arreterChrono(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertBureauMember(tache.projet.bureauId, user);
+
+    const active = await this.prisma.tacheSession.findFirst({ where: { tacheId, userId: user.userId, fin: null } });
+    if (!active) throw new BadRequestException('Aucune session de chronomètre en cours');
+
+    return this.prisma.tacheSession.update({ where: { id: active.id }, data: { fin: new Date() } });
+  }
+
+  async tempsReelMinutes(tacheId: string): Promise<number> {
+    const sessions = await this.prisma.tacheSession.findMany({ where: { tacheId, fin: { not: null } } });
+    const ms = sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0);
+    return Math.round(ms / 60000);
   }
 }
