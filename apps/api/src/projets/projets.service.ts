@@ -112,7 +112,9 @@ export class ProjetsService {
 
     const now = new Date();
     const termine = taches.filter((t) => t.statut === 'VALIDE').length;
-    const enRetard = taches.filter((t) => t.dateEcheance && t.dateEcheance < now && t.statut !== 'VALIDE').length;
+    const enRetard = taches.filter(
+      (t) => t.dateEcheance && t.dateEcheance < now && t.statut !== 'VALIDE',
+    ).length;
     const risques = taches.filter((t) => t.sante === 'A_RISQUE').length;
     const blocagesActifs = taches.reduce((sum, t) => sum + t.blocages.length, 0);
     const tempsPrevuMinutes = taches.reduce((sum, t) => sum + (t.dureeEstimeeMinutes ?? 0), 0);

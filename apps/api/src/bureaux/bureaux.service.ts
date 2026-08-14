@@ -179,7 +179,13 @@ export class BureauxService {
       this.prisma.userBureau.findMany({ where: { bureauId }, select: { userId: true } }),
       this.prisma.tache.findMany({
         where: { projet: { bureauId } },
-        select: { statut: true, sante: true, assigneAId: true, dateEcheance: true, dateValidation: true },
+        select: {
+          statut: true,
+          sante: true,
+          assigneAId: true,
+          dateEcheance: true,
+          dateValidation: true,
+        },
       }),
     ]);
 
@@ -206,7 +212,9 @@ export class BureauxService {
       tachesBloquees: bloque,
       charge: membres.length === 0 ? null : Math.round((membresActifs.size / membres.length) * 100),
       respectDeadlines:
-        avecEcheance.length === 0 ? null : Math.round((respecteesDeadline.length / avecEcheance.length) * 100),
+        avecEcheance.length === 0
+          ? null
+          : Math.round((respecteesDeadline.length / avecEcheance.length) * 100),
     };
   }
 

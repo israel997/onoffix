@@ -107,7 +107,8 @@ export class OrganisationService {
 
     const heuresTravaillees =
       Math.round(
-        (sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0) / 3600000) * 10,
+        (sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0) / 3600000) *
+          10,
       ) / 10;
 
     const joursDeclares = new Set(declarations.map((d) => d.date.toISOString().slice(0, 10)));
@@ -119,10 +120,14 @@ export class OrganisationService {
       tachesARevoir,
       heuresTravaillees,
       tauxDeclarationsATemps:
-        joursAvecTache.size === 0 ? null : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
+        joursAvecTache.size === 0
+          ? null
+          : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
       blocagesRencontres,
       respectDeadlines:
-        avecEcheance.length === 0 ? null : Math.round((respecteesDeadline.length / avecEcheance.length) * 100),
+        avecEcheance.length === 0
+          ? null
+          : Math.round((respecteesDeadline.length / avecEcheance.length) * 100),
     };
   }
 
