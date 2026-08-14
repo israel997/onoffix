@@ -1,6 +1,7 @@
-import { Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { SuperAdminGuard } from '../common/guards/super-admin.guard';
 import { AdminService } from './admin.service';
+import { AdminActionDto } from './dto/admin-action.dto';
 
 @Controller('admin')
 @UseGuards(SuperAdminGuard)
@@ -23,8 +24,8 @@ export class AdminController {
   }
 
   @Patch('accounts/:accountId/ban')
-  ban(@Param('accountId') accountId: string) {
-    return this.adminService.setBanned(accountId, true);
+  ban(@Param('accountId') accountId: string, @Body() dto: AdminActionDto) {
+    return this.adminService.setBanned(accountId, true, dto.password);
   }
 
   @Patch('accounts/:accountId/unban')
@@ -43,7 +44,7 @@ export class AdminController {
   }
 
   @Delete('organisations/:organisationId')
-  deleteOrganisation(@Param('organisationId') organisationId: string) {
-    return this.adminService.deleteOrganisation(organisationId);
+  deleteOrganisation(@Param('organisationId') organisationId: string, @Body() dto: AdminActionDto) {
+    return this.adminService.deleteOrganisation(organisationId, dto.password);
   }
 }

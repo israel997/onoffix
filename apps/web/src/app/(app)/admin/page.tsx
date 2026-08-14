@@ -1,22 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Modal } from '@/components/ui/modal';
 import {
+  adminBan,
   adminDeleteOrganisation,
   adminListMembers,
   adminListOrganisations,
   adminPromote,
-  adminSetBanned,
   adminSetRestricted,
+  adminUnban,
   type AdminMembre,
   type AdminOrganisation,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
 const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
@@ -25,13 +28,22 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+interface PasswordPrompt {
+  title: string;
+  description: string;
+  run: (password: string) => Promise<void>;
+}
+
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const toast = useToast();
-  const confirmDialog = useConfirm();
   const [organisations, setOrganisations] = useState<AdminOrganisation[] | null>(null);
   const [membres, setMembres] = useState<AdminMembre[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [passwordPrompt, setPasswordPrompt] = useState<PasswordPrompt | null>(null);
+  const [passwordValue, setPasswordValue] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
   const authorized = user?.email === SUPER_ADMIN_EMAIL;
 
@@ -61,23 +73,50 @@ export default function AdminPage() {
     }
   }
 
+  function askPassword(title: string, description: string, run: (password: string) => Promise<void>) {
+    setPasswordValue('');
+    setPasswordError(null);
+    setPasswordPrompt({ title, description, run });
+  }
+
+  async function submitPassword(event: FormEvent) {
+    event.preventDefault();
+    if (!passwordPrompt) return;
+    setPasswordSubmitting(true);
+    setPasswordError(null);
+    try {
+      await passwordPrompt.run(passwordValue);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  }
+
   async function handlePromote(m: AdminMembre) {
     await withBusy(m.userId, () => adminPromote(m.userId), `${m.nom} is now an admin`);
   }
 
-  async function handleBan(m: AdminMembre) {
-    const ok = await confirmDialog({
-      title: `Ban ${m.nom}?`,
-      description: 'This immediately blocks all login for this account, across every organisation.',
-      confirmLabel: 'Ban',
-      danger: true,
-    });
-    if (!ok) return;
-    await withBusy(m.accountId, () => adminSetBanned(m.accountId, true), `${m.nom} was banned`);
+  function handleBan(m: AdminMembre) {
+    askPassword(
+      `Ban ${m.nom}?`,
+      'This immediately blocks all login for this account, across every organisation. Enter the admin password to confirm.',
+      async (password) => {
+        setBusyId(m.accountId);
+        try {
+          await adminBan(m.accountId, password);
+          await load();
+          toast(`${m.nom} was banned`);
+          setPasswordPrompt(null);
+        } finally {
+          setBusyId(null);
+        }
+      },
+    );
   }
 
   async function handleUnban(m: AdminMembre) {
-    await withBusy(m.accountId, () => adminSetBanned(m.accountId, false), `${m.nom} was unbanned`);
+    await withBusy(m.accountId, () => adminUnban(m.accountId), `${m.nom} was unbanned`);
   }
 
   async function handleRestrict(m: AdminMembre) {
@@ -92,16 +131,22 @@ export default function AdminPage() {
     await withBusy(m.accountId, () => adminSetRestricted(m.accountId, false), `${m.nom} is no longer restricted`);
   }
 
-  async function handleDeleteOrganisation(org: AdminOrganisation) {
-    const ok = await confirmDialog({
-      title: `Delete ${org.nom}?`,
-      description:
-        'This permanently deletes the organisation and all its data (bureaux, projects, tasks, messages). Any member account left with no other organisation is deleted too. This cannot be undone.',
-      confirmLabel: 'Delete',
-      danger: true,
-    });
-    if (!ok) return;
-    await withBusy(org.id, () => adminDeleteOrganisation(org.id), `${org.nom} was deleted`);
+  function handleDeleteOrganisation(org: AdminOrganisation) {
+    askPassword(
+      `Delete ${org.nom}?`,
+      'This permanently deletes the organisation and all its data (bureaux, projects, tasks, messages). Any member account left with no other organisation is deleted too. This cannot be undone. Enter the admin password to confirm.',
+      async (password) => {
+        setBusyId(org.id);
+        try {
+          await adminDeleteOrganisation(org.id, password);
+          await load();
+          toast(`${org.nom} was deleted`);
+          setPasswordPrompt(null);
+        } finally {
+          setBusyId(null);
+        }
+      },
+    );
   }
 
   if (loading) {
@@ -146,7 +191,7 @@ export default function AdminPage() {
                   <Badge tone="neutral">{org.membresCount} member{org.membresCount === 1 ? '' : 's'}</Badge>
                   <Badge tone="neutral">Created {formatDate(org.dateCreation)}</Badge>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
                     disabled={busyId === org.id}
                     onClick={() => handleDeleteOrganisation(org)}
@@ -165,73 +210,138 @@ export default function AdminPage() {
         <CardTitle>Members</CardTitle>
         {membres === null ? (
           <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+        ) : membres.length === 0 ? (
+          <CardDescription className="mt-3">No member yet.</CardDescription>
         ) : (
-          <div className="mt-3 flex flex-col divide-y divide-border">
-            {membres.map((m) => (
-              <div
-                key={m.userId}
-                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {m.nom} <span className="font-normal text-muted-foreground">— {m.organisationNom}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {m.email} · Joined {formatDate(m.dateInscription)} · {m.pays ?? 'Unknown country'}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
-                    {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
-                  </Badge>
-                  {m.banned && <Badge tone="review">Banned</Badge>}
-                  {m.restricted && <Badge tone="declared">Restricted</Badge>}
-
-                  {m.roleGlobal !== 'ADMIN' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busyId === m.userId}
-                      onClick={() => handlePromote(m)}
-                    >
-                      Make admin
-                    </Button>
-                  )}
-                  {m.restricted ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busyId === m.accountId}
-                      onClick={() => handleUnrestrict(m)}
-                    >
-                      Unrestrict
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busyId === m.accountId}
-                      onClick={() => handleRestrict(m)}
-                    >
-                      Restrict
-                    </Button>
-                  )}
-                  {m.banned ? (
-                    <Button variant="ghost" size="sm" disabled={busyId === m.accountId} onClick={() => handleUnban(m)}>
-                      Unban
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="sm" disabled={busyId === m.accountId} onClick={() => handleBan(m)}>
-                      Ban
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {membres.length === 0 && <CardDescription>No member yet.</CardDescription>}
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="py-2 pr-4 font-medium">Name</th>
+                  <th className="py-2 pr-4 font-medium">Email</th>
+                  <th className="py-2 pr-4 font-medium">Organisation</th>
+                  <th className="py-2 pr-4 font-medium">Role</th>
+                  <th className="py-2 pr-4 font-medium">Registered</th>
+                  <th className="py-2 pr-4 font-medium">Country</th>
+                  <th className="py-2 pr-4 font-medium">Status</th>
+                  <th className="py-2 pr-4 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {membres.map((m) => (
+                  <tr key={m.userId}>
+                    <td className="py-3 pr-4 font-medium text-foreground">{m.nom}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{m.email}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{m.organisationNom}</td>
+                    <td className="py-3 pr-4">
+                      <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
+                        {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap text-muted-foreground">
+                      {formatDate(m.dateInscription)}
+                    </td>
+                    <td className="py-3 pr-4 text-muted-foreground">{m.pays ?? '—'}</td>
+                    <td className="py-3 pr-4">
+                      <div className="flex flex-wrap gap-1">
+                        {m.banned && <Badge tone="review">Banned</Badge>}
+                        {m.restricted && <Badge tone="declared">Restricted</Badge>}
+                        {!m.banned && !m.restricted && <Badge tone="validated">Active</Badge>}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {m.roleGlobal !== 'ADMIN' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={busyId === m.userId}
+                            onClick={() => handlePromote(m)}
+                          >
+                            Make admin
+                          </Button>
+                        )}
+                        {m.restricted ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={busyId === m.accountId}
+                            onClick={() => handleUnrestrict(m)}
+                          >
+                            Unrestrict
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="warning"
+                            size="sm"
+                            disabled={busyId === m.accountId}
+                            onClick={() => handleRestrict(m)}
+                          >
+                            Restrict
+                          </Button>
+                        )}
+                        {m.banned ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={busyId === m.accountId}
+                            onClick={() => handleUnban(m)}
+                          >
+                            Unban
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={busyId === m.accountId}
+                            onClick={() => handleBan(m)}
+                          >
+                            Ban
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </Card>
+
+      {passwordPrompt && (
+        <Modal onClose={() => !passwordSubmitting && setPasswordPrompt(null)}>
+          <h2 className="text-lg font-bold text-foreground">{passwordPrompt.title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{passwordPrompt.description}</p>
+          <form onSubmit={submitPassword} className="mt-4 flex flex-col gap-3">
+            <Label>
+              Admin password
+              <Input
+                type="password"
+                autoFocus
+                required
+                value={passwordValue}
+                onChange={(e) => setPasswordValue(e.target.value)}
+              />
+            </Label>
+            {passwordError && <p className="text-sm text-status-review">{passwordError}</p>}
+            <div className="mt-2 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={passwordSubmitting}
+                onClick={() => setPasswordPrompt(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="danger" size="sm" disabled={passwordSubmitting}>
+                {passwordSubmitting ? 'Confirming…' : 'Confirm'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

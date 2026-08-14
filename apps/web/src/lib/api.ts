@@ -809,10 +809,12 @@ export function adminPromote(userId: string) {
   return authFetch<void>(`/admin/users/${userId}/promote`, { method: 'PATCH' });
 }
 
-export function adminSetBanned(accountId: string, banned: boolean) {
-  return authFetch<void>(`/admin/accounts/${accountId}/${banned ? 'ban' : 'unban'}`, {
-    method: 'PATCH',
-  });
+export function adminBan(accountId: string, password: string) {
+  return authFetch<void>(`/admin/accounts/${accountId}/ban`, { method: 'PATCH', body: { password } });
+}
+
+export function adminUnban(accountId: string) {
+  return authFetch<void>(`/admin/accounts/${accountId}/unban`, { method: 'PATCH' });
 }
 
 export function adminSetRestricted(accountId: string, restricted: boolean) {
@@ -821,8 +823,8 @@ export function adminSetRestricted(accountId: string, restricted: boolean) {
   });
 }
 
-export function adminDeleteOrganisation(organisationId: string) {
-  return authFetch<void>(`/admin/organisations/${organisationId}`, { method: 'DELETE' });
+export function adminDeleteOrganisation(organisationId: string, password: string) {
+  return authFetch<void>(`/admin/organisations/${organisationId}`, { method: 'DELETE', body: { password } });
 }
 
 export { ApiError };

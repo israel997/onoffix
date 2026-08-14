@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { RoleGlobal } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+
+// Friction supplémentaire avant une action destructrice (ban, suppression d'organisation) —
+// le compte est déjà protégé par SuperAdminGuard, ce mot de passe n'est qu'une double confirmation.
+const ADMIN_ACTION_PASSWORD = 'DKQ775@';
 
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private assertActionPassword(password: string) {
+    if (password !== ADMIN_ACTION_PASSWORD) {
+      throw new ForbiddenException('Mot de passe incorrect');
+    }
+  }
 
   async listOrganisations() {
     const organisations = await this.prisma.organisation.findMany({
@@ -62,7 +72,9 @@ export class AdminService {
     });
   }
 
-  async setBanned(accountId: string, banned: boolean) {
+  async setBanned(accountId: string, banned: boolean, password?: string) {
+    if (banned) this.assertActionPassword(password ?? '');
+
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) throw new NotFoundException('Compte introuvable');
 
@@ -90,7 +102,9 @@ export class AdminService {
   }
 
   /** Supprime une organisation (cascade) puis les comptes devenus orphelins (aucune autre adhésion). */
-  async deleteOrganisation(organisationId: string) {
+  async deleteOrganisation(organisationId: string, password: string) {
+    this.assertActionPassword(password);
+
     const organisation = await this.prisma.organisation.findUnique({
       where: { id: organisationId },
       include: { users: { select: { accountId: true } } },
