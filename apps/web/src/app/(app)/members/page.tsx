@@ -205,6 +205,7 @@ export default function MembersPage() {
                   <p className="text-xs text-muted-foreground">{m.email}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="validated">Joined</Badge>
                   {m.bureaux.map((b) => (
                     <Badge key={b.bureau.id} tone="neutral">
                       {b.bureau.nom}

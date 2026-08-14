@@ -776,4 +776,49 @@ export async function logout() {
   clearTokens();
 }
 
+export interface AdminOrganisation {
+  id: string;
+  nom: string;
+  dateCreation: string;
+  membresCount: number;
+  proprietaire: { id: string; nom: string; email: string } | null;
+}
+
+export interface AdminMembre {
+  userId: string;
+  accountId: string;
+  nom: string;
+  email: string;
+  organisationNom: string;
+  roleGlobal: 'ADMIN' | 'MEMBRE';
+  dateInscription: string;
+  pays: string | null;
+  banned: boolean;
+  restricted: boolean;
+}
+
+export function adminListOrganisations() {
+  return authFetch<AdminOrganisation[]>('/admin/organisations');
+}
+
+export function adminListMembers() {
+  return authFetch<AdminMembre[]>('/admin/members');
+}
+
+export function adminPromote(userId: string) {
+  return authFetch<void>(`/admin/users/${userId}/promote`, { method: 'PATCH' });
+}
+
+export function adminSetBanned(accountId: string, banned: boolean) {
+  return authFetch<void>(`/admin/accounts/${accountId}/${banned ? 'ban' : 'unban'}`, {
+    method: 'PATCH',
+  });
+}
+
+export function adminSetRestricted(accountId: string, restricted: boolean) {
+  return authFetch<void>(`/admin/accounts/${accountId}/${restricted ? 'restrict' : 'unrestrict'}`, {
+    method: 'PATCH',
+  });
+}
+
 export { ApiError };

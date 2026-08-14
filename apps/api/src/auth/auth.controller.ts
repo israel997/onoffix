@@ -1,7 +1,22 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AuthGuard } from '@nestjs/passport';
+import type { Request, Response } from 'express';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
+import type { GoogleProfile } from './strategies/google.strategy';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -14,12 +29,15 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register(@Body() dto: RegisterDto, @Req() req: Request) {
+    return this.authService.register(dto, req.ip);
   }
 
   @Public()
@@ -81,8 +99,8 @@ export class AuthController {
   @Public()
   @Post('accept-invitation')
   @HttpCode(HttpStatus.OK)
-  acceptInvitation(@Body() dto: AcceptInvitationDto) {
-    return this.authService.acceptInvitation(dto);
+  acceptInvitation(@Body() dto: AcceptInvitationDto, @Req() req: Request) {
+    return this.authService.acceptInvitation(dto, req.ip);
   }
 
   @Public()
@@ -97,5 +115,27 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @Get('google')
+  googleAuth() {
+    // Redirige vers Google — géré entièrement par le guard Passport.
+  }
+
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @Get('google/callback')
+  async googleCallback(@Req() req: Request & { user: GoogleProfile }, @Res() res: Response) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    try {
+      const tokens = await this.authService.loginWithGoogle(req.user, req.ip);
+      res.redirect(
+        `${frontendUrl}/oauth-callback?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
+      );
+    } catch {
+      res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+    }
   }
 }

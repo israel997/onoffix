@@ -159,6 +159,12 @@ model Account {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String   @map("password_hash")
+  // Pays déduit de l'IP à l'inscription (best-effort, jamais bloquant).
+  pays         String?
+  // Modération plateforme (super admin) : banned bloque toute connexion,
+  // restricted limite aux requêtes en lecture (GET) uniquement.
+  banned       Boolean  @default(false)
+  restricted   Boolean  @default(false)
   createdAt    DateTime @default(now()) @map("created_at")
 
   users               User[]

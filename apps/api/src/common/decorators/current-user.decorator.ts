@@ -6,6 +6,7 @@ export interface AuthenticatedUser {
   accountId: string;
   organisationId: string;
   roleGlobal: 'ADMIN' | 'MEMBRE';
+  restricted: boolean;
 }
 
 export interface RequestWithUser extends Request {

@@ -12,6 +12,7 @@ interface NavItem {
   href: string;
   available: boolean;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -25,12 +26,23 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Performance', href: '/performance', available: false },
   { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true },
   { label: 'Profile', href: '/profile', available: true },
+  { label: 'Platform admin', href: '/admin', available: true, superAdminOnly: true },
 ];
 
-function SidebarNav({ pathname, isAdmin }: { pathname: string; isAdmin: boolean }) {
+const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
+
+function SidebarNav({
+  pathname,
+  isAdmin,
+  isSuperAdmin,
+}: {
+  pathname: string;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+}) {
   return (
     <nav className="flex flex-1 flex-col gap-1">
-      {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
+      {NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.superAdminOnly || isSuperAdmin)).map((item) => {
         const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
         if (!item.available) {
           return (
@@ -66,6 +78,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
   const pathname = usePathname();
   const { user } = useAuth();
   const isAdmin = user?.roleGlobal === 'ADMIN';
+  const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
 
   useEffect(() => {
     onMobileClose?.();
@@ -78,7 +91,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
         <Link href="/" className="mb-8 flex items-center px-2">
           <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-14 w-auto" />
         </Link>
-        <SidebarNav pathname={pathname} isAdmin={isAdmin} />
+        <SidebarNav pathname={pathname} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
       </aside>
 
       {mobileOpen && (
@@ -97,7 +110,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
                 ✕
               </button>
             </div>
-            <SidebarNav pathname={pathname} isAdmin={isAdmin} />
+            <SidebarNav pathname={pathname} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
           </aside>
         </div>
       )}

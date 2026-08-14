@@ -12,6 +12,7 @@ import { RoleGlobal } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
+import { resolveCountryFromIp } from '../common/geo-ip.util';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
@@ -44,7 +45,7 @@ export class AuthService {
     private readonly organizerService: OrganizerService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ip?: string) {
     const existingAccount = await this.prisma.account.findUnique({ where: { email: dto.email } });
     if (existingAccount) {
       throw new ConflictException('Un compte existe déjà avec cet email');
@@ -74,8 +75,19 @@ export class AuthService {
     await this.sendVerificationEmail(user.id).catch((error) =>
       this.logger.warn(`Échec d'envoi de l'email de vérification: ${error}`),
     );
+    this.captureCountry(user.accountId, ip);
 
     return this.issueTokens(user.id, user.organisationId, user.roleGlobal, user.accountId);
+  }
+
+  /** Résout le pays depuis l'IP et le stocke sur le compte. Best-effort, jamais bloquant. */
+  private captureCountry(accountId: string, ip?: string) {
+    resolveCountryFromIp(ip)
+      .then((pays) => {
+        if (!pays) return;
+        return this.prisma.account.update({ where: { id: accountId }, data: { pays } });
+      })
+      .catch((error) => this.logger.warn(`Échec de la géolocalisation IP: ${error}`));
   }
 
   async sendVerificationEmail(userId: string) {
@@ -254,7 +266,7 @@ export class AuthService {
     };
   }
 
-  async acceptInvitation(dto: AcceptInvitationDto) {
+  async acceptInvitation(dto: AcceptInvitationDto, ip?: string) {
     const invitation = await this.prisma.invitation.findFirst({
       where: { tokenHash: hashToken(dto.token), acceptedAt: null, expiresAt: { gt: new Date() } },
     });
@@ -263,7 +275,9 @@ export class AuthService {
     }
 
     let account = await this.prisma.account.findUnique({ where: { email: invitation.email } });
+    let isNewAccount = false;
     if (!account) {
+      isNewAccount = true;
       const passwordHash = await bcrypt.hash(dto.password, 10);
       account = await this.prisma.account.create({
         data: { email: invitation.email, passwordHash },
@@ -299,6 +313,7 @@ export class AuthService {
     ]);
 
     await this.organizerService.createPersonal(user.id);
+    if (isNewAccount) this.captureCountry(account.id, ip);
     return this.issueTokens(user.id, user.organisationId, user.roleGlobal, account.id);
   }
 
@@ -413,6 +428,55 @@ export class AuthService {
       }
     }
     return null;
+  }
+
+  /** Connexion/inscription via Google : crée un compte + une organisation à la première connexion. */
+  async loginWithGoogle(profile: { email: string; nom: string }, ip?: string) {
+    const account = await this.prisma.account.findUnique({ where: { email: profile.email } });
+
+    if (!account) {
+      const randomPasswordHash = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
+      const ownerId = randomUUID();
+
+      const user = await this.prisma.$transaction(async (tx) => {
+        const newAccount = await tx.account.create({
+          data: { email: profile.email, passwordHash: randomPasswordHash },
+        });
+        const organisation = await tx.organisation.create({
+          data: { nom: `${profile.nom}'s organisation`, proprietaireId: ownerId },
+        });
+        return tx.user.create({
+          data: {
+            id: ownerId,
+            accountId: newAccount.id,
+            organisationId: organisation.id,
+            nom: profile.nom,
+            email: profile.email,
+            roleGlobal: RoleGlobal.ADMIN,
+            emailVerifie: true,
+          },
+        });
+      });
+
+      await this.organizerService.createPersonal(user.id);
+      this.captureCountry(user.accountId, ip);
+      return this.issueTokens(user.id, user.organisationId, user.roleGlobal, user.accountId);
+    }
+
+    const membership = await this.prisma.user.findFirst({
+      where: { accountId: account.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!membership) {
+      throw new UnauthorizedException("Ce compte n'appartient à aucune organisation");
+    }
+
+    return this.issueTokens(
+      membership.id,
+      membership.organisationId,
+      membership.roleGlobal,
+      account.id,
+    );
   }
 
   private async issueTokens(

@@ -2,11 +2,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload } from '../jwt-payload.interface';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -14,17 +18,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload) {
     // Un token doit toujours porter une session complète (membership + org). Rejette
     // tout token structurellement incomplet plutôt que de laisser passer des champs undefined.
     if (!payload.sub || !payload.accountId || !payload.organisationId || !payload.roleGlobal) {
       throw new UnauthorizedException('Token invalide');
     }
+
+    // Vérifié à chaque requête (pas seulement au login) pour qu'un bannissement soit
+    // effectif immédiatement, même sur un token déjà émis.
+    const account = await this.prisma.account.findUnique({
+      where: { id: payload.accountId },
+      select: { banned: true, restricted: true },
+    });
+    if (!account || account.banned) {
+      throw new UnauthorizedException('Compte suspendu');
+    }
+
     return {
       userId: payload.sub,
       accountId: payload.accountId,
       organisationId: payload.organisationId,
       roleGlobal: payload.roleGlobal,
+      restricted: account.restricted,
     };
   }
 }
