@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import {
+  adminDeleteOrganisation,
   adminListMembers,
   adminListOrganisations,
   adminPromote,
@@ -91,6 +92,18 @@ export default function AdminPage() {
     await withBusy(m.accountId, () => adminSetRestricted(m.accountId, false), `${m.nom} is no longer restricted`);
   }
 
+  async function handleDeleteOrganisation(org: AdminOrganisation) {
+    const ok = await confirmDialog({
+      title: `Delete ${org.nom}?`,
+      description:
+        'This permanently deletes the organisation and all its data (bureaux, projects, tasks, messages). Any member account left with no other organisation is deleted too. This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    await withBusy(org.id, () => adminDeleteOrganisation(org.id), `${org.nom} was deleted`);
+  }
+
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
@@ -132,6 +145,14 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2">
                   <Badge tone="neutral">{org.membresCount} member{org.membresCount === 1 ? '' : 's'}</Badge>
                   <Badge tone="neutral">Created {formatDate(org.dateCreation)}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busyId === org.id}
+                    onClick={() => handleDeleteOrganisation(org)}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </div>
             ))}

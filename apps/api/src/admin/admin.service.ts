@@ -88,4 +88,26 @@ export class AdminService {
     await this.prisma.account.update({ where: { id: accountId }, data: { restricted } });
     return { accountId, restricted };
   }
+
+  /** Supprime une organisation (cascade) puis les comptes devenus orphelins (aucune autre adhésion). */
+  async deleteOrganisation(organisationId: string) {
+    const organisation = await this.prisma.organisation.findUnique({
+      where: { id: organisationId },
+      include: { users: { select: { accountId: true } } },
+    });
+    if (!organisation) throw new NotFoundException('Organisation introuvable');
+
+    const accountIds = [...new Set(organisation.users.map((u) => u.accountId))];
+
+    await this.prisma.organisation.delete({ where: { id: organisationId } });
+
+    for (const accountId of accountIds) {
+      const remaining = await this.prisma.user.count({ where: { accountId } });
+      if (remaining === 0) {
+        await this.prisma.account.delete({ where: { id: accountId } });
+      }
+    }
+
+    return { organisationId };
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { SuperAdminGuard } from '../common/guards/super-admin.guard';
 import { AdminService } from './admin.service';
 
@@ -40,5 +40,10 @@ export class AdminController {
   @Patch('accounts/:accountId/unrestrict')
   unrestrict(@Param('accountId') accountId: string) {
     return this.adminService.setRestricted(accountId, false);
+  }
+
+  @Delete('organisations/:organisationId')
+  deleteOrganisation(@Param('organisationId') organisationId: string) {
+    return this.adminService.deleteOrganisation(organisationId);
   }
 }

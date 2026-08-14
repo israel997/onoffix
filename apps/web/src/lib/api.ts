@@ -821,4 +821,8 @@ export function adminSetRestricted(accountId: string, restricted: boolean) {
   });
 }
 
+export function adminDeleteOrganisation(organisationId: string) {
+  return authFetch<void>(`/admin/organisations/${organisationId}`, { method: 'DELETE' });
+}
+
 export { ApiError };
