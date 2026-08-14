@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/ui/modal';
 import {
-  adminBan,
+  adminDeleteAccount,
   adminDeleteOrganisation,
   adminListMembers,
   adminListOrganisations,
@@ -26,6 +26,25 @@ const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14ZM10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <polygon
+        points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 interface PasswordPrompt {
@@ -97,16 +116,16 @@ export default function AdminPage() {
     await withBusy(m.userId, () => adminPromote(m.userId), `${m.nom} is now an admin`);
   }
 
-  function handleBan(m: AdminMembre) {
+  function handleDeleteAccount(m: AdminMembre) {
     askPassword(
-      `Ban ${m.nom}?`,
-      'This immediately blocks all login for this account, across every organisation. Enter the admin password to confirm.',
+      `Delete ${m.nom}'s account?`,
+      'This permanently deletes their account and every membership, across all organisations. This cannot be undone. Enter the admin password to confirm.',
       async (password) => {
         setBusyId(m.accountId);
         try {
-          await adminBan(m.accountId, password);
+          await adminDeleteAccount(m.accountId, password);
           await load();
-          toast(`${m.nom} was banned`);
+          toast(`${m.nom}'s account was deleted`);
           setPasswordPrompt(null);
         } finally {
           setBusyId(null);
@@ -193,10 +212,13 @@ export default function AdminPage() {
                   <Button
                     variant="danger"
                     size="sm"
+                    className="px-2"
+                    aria-label="Delete organisation"
+                    title="Delete organisation"
                     disabled={busyId === org.id}
                     onClick={() => handleDeleteOrganisation(org)}
                   >
-                    Delete
+                    <TrashIcon />
                   </Button>
                 </div>
               </div>
@@ -274,10 +296,13 @@ export default function AdminPage() {
                           <Button
                             variant="warning"
                             size="sm"
+                            className="px-2"
+                            aria-label="Restrict account"
+                            title="Restrict account"
                             disabled={busyId === m.accountId}
                             onClick={() => handleRestrict(m)}
                           >
-                            Restrict
+                            <StopIcon />
                           </Button>
                         )}
                         {m.banned ? (
@@ -293,10 +318,13 @@ export default function AdminPage() {
                           <Button
                             variant="danger"
                             size="sm"
+                            className="px-2"
+                            aria-label="Delete account"
+                            title="Delete account"
                             disabled={busyId === m.accountId}
-                            onClick={() => handleBan(m)}
+                            onClick={() => handleDeleteAccount(m)}
                           >
-                            Ban
+                            <TrashIcon />
                           </Button>
                         )}
                       </div>

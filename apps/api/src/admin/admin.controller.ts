@@ -47,4 +47,9 @@ export class AdminController {
   deleteOrganisation(@Param('organisationId') organisationId: string, @Body() dto: AdminActionDto) {
     return this.adminService.deleteOrganisation(organisationId, dto.password);
   }
+
+  @Delete('accounts/:accountId')
+  deleteAccount(@Param('accountId') accountId: string, @Body() dto: AdminActionDto) {
+    return this.adminService.deleteAccount(accountId, dto.password);
+  }
 }
