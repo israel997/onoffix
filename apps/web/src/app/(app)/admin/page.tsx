@@ -37,10 +37,8 @@ function TrashIcon() {
 function StopIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-      <polygon
-        points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86"
-        strokeLinejoin="round"
-      />
+      <circle cx="12" cy="12" r="9" />
+      <line x1="5.5" y1="5.5" x2="18.5" y2="18.5" strokeLinecap="round" />
     </svg>
   );
 }
