@@ -52,6 +52,29 @@ export class BureauxController {
     return this.bureauxService.findAllForUser(user);
   }
 
+  @Get('invitations/mine')
+  listMyInvitations(@CurrentUser() user: AuthenticatedUser) {
+    return this.bureauxService.listMyInvitations(user.userId);
+  }
+
+  @Post('invitations/:invitationId/accept')
+  @HttpCode(HttpStatus.OK)
+  acceptInvitation(
+    @Param('invitationId') invitationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.bureauxService.acceptInvitation(invitationId, user.userId);
+  }
+
+  @Post('invitations/:invitationId/decline')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  declineInvitation(
+    @Param('invitationId') invitationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.bureauxService.declineInvitation(invitationId, user.userId);
+  }
+
   @Roles(RoleGlobal.ADMIN)
   @Patch('reordonner')
   reorder(@CurrentUser() user: AuthenticatedUser, @Body() dto: ReorderBureauxDto) {
@@ -138,7 +161,23 @@ export class BureauxController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: AddMembreDto,
   ) {
-    return this.bureauxService.addMembre(bureauId, user.organisationId, dto);
+    return this.bureauxService.addMembre(bureauId, user.organisationId, dto, user);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Get(':bureauId/invitations')
+  listInvitations(@Param('bureauId') bureauId: string) {
+    return this.bureauxService.listInvitations(bureauId);
+  }
+
+  @BureauRole(RoleBureau.MANAGER)
+  @Delete(':bureauId/invitations/:invitationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  cancelInvitation(
+    @Param('bureauId') bureauId: string,
+    @Param('invitationId') invitationId: string,
+  ) {
+    return this.bureauxService.cancelInvitation(bureauId, invitationId);
   }
 
   @BureauRole(RoleBureau.MANAGER)

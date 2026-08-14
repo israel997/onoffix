@@ -104,8 +104,9 @@ model Bureau {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   membres      UserBureau[]
+  invitations  BureauInvitation[]
   projets      Projet[]
   conversation Conversation?
 
@@ -190,6 +191,7 @@ model User {
   account                  Account                  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   organisation             Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   bureaux                  UserBureau[]
+  bureauInvitations        BureauInvitation[]
   tachesAssignees          Tache[]                  @relation("TachesAssignees")
   tachesAttribuees         Tache[]                  @relation("TachesAttribuees")
   tachesValidees           Tache[]                  @relation("TachesValidees")
@@ -220,6 +222,23 @@ model UserBureau {
 
   @@id([userId, bureauId])
   @@map("users_bureaux")
+}
+
+// Une adhésion à un bureau exige le consentement explicite du membre visé — cette
+// invitation reste en attente jusqu'à acceptation, seul moment où le UserBureau existe.
+model BureauInvitation {
+  id             String     @id @default(uuid())
+  bureauId       String     @map("bureau_id")
+  userId         String     @map("user_id")
+  roleDansBureau RoleBureau @default(COLLABORATEUR) @map("role_dans_bureau")
+  roleInterne    String?    @map("role_interne")
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  bureau Bureau @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bureauId, userId])
+  @@map("bureau_invitations")
 }
 
 model Projet {
@@ -404,6 +423,7 @@ enum NotificationType {
   TACHE_A_REVOIR
   RESUME_QUOTIDIEN
   RAPPORT_HEBDOMADAIRE
+  INVITATION_BUREAU
 }
 
 model Notification {

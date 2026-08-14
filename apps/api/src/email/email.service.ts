@@ -53,12 +53,35 @@ export class EmailService {
     await this.send(to, 'Confirm your OOffix email address', verificationEmailTemplate(nom, link));
   }
 
-  async sendInvitationEmail(to: string, nom: string, organisationNom: string, token: string) {
-    const link = `${this.frontendUrl}/accept-invite?token=${token}`;
+  async sendInvitationEmail(
+    to: string,
+    nom: string,
+    organisationNom: string,
+    inviterNom: string,
+    role: 'ADMIN' | 'MEMBRE',
+    token: string,
+  ) {
+    const acceptLink = `${this.frontendUrl}/accept-invite?token=${token}`;
+    const declineLink = `${this.frontendUrl}/decline-invite?token=${token}`;
     await this.send(
       to,
       `You've been invited to join ${organisationNom} on OOffix`,
-      invitationEmailTemplate(nom, organisationNom, link),
+      invitationEmailTemplate(nom, organisationNom, inviterNom, role, acceptLink, declineLink),
+    );
+  }
+
+  async sendBureauInvitationEmail(
+    to: string,
+    nom: string,
+    bureauNom: string,
+    organisationNom: string,
+    inviterNom: string,
+  ) {
+    const link = `${this.frontendUrl}/offices`;
+    await this.send(
+      to,
+      `You've been invited to join ${bureauNom} on OOffix`,
+      bureauInvitationEmailTemplate(nom, bureauNom, organisationNom, inviterNom, link),
     );
   }
 
@@ -78,13 +101,52 @@ function verificationEmailTemplate(nom: string, link: string): string {
   );
 }
 
-function invitationEmailTemplate(nom: string, organisationNom: string, link: string): string {
+const ROLE_LABEL: Record<'ADMIN' | 'MEMBRE', string> = { ADMIN: 'Admin', MEMBRE: 'Member' };
+
+function invitationEmailTemplate(
+  nom: string,
+  organisationNom: string,
+  inviterNom: string,
+  role: 'ADMIN' | 'MEMBRE',
+  acceptLink: string,
+  declineLink: string,
+): string {
+  return `
+    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
+      <h1 style="color: #0a1440; font-size: 20px;">Hi ${escapeHtml(nom)},</h1>
+      <p style="color: #333; font-size: 14px; line-height: 1.5;">
+        You've been invited by <strong>${escapeHtml(inviterNom)}</strong> to join
+        <strong>${escapeHtml(organisationNom)}</strong> as <strong>${ROLE_LABEL[role]}</strong> on OOffix.
+        Click below to set your password and get started.
+      </p>
+      <p style="margin: 24px 0;">
+        <a href="${acceptLink}" style="background: #0b63f6; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin-right: 12px; display: inline-block;">
+          Accept invitation
+        </a>
+        <a href="${declineLink}" style="background: #dc2626; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">
+          Decline invitation
+        </a>
+      </p>
+      <p style="color: #888; font-size: 12px;">This link expires in 7 days.</p>
+    </div>
+  `;
+}
+
+function bureauInvitationEmailTemplate(
+  nom: string,
+  bureauNom: string,
+  organisationNom: string,
+  inviterNom: string,
+  link: string,
+): string {
   return emailShell(
     nom,
-    `You've been invited to join <strong>${escapeHtml(organisationNom)}</strong> on OOffix. Click below to set your password and get started.`,
+    `You've been invited by <strong>${escapeHtml(inviterNom)}</strong> to join the
+     <strong>${escapeHtml(bureauNom)}</strong> office in <strong>${escapeHtml(organisationNom)}</strong> on OOffix.
+     Log in to accept or decline.`,
     link,
-    'Accept invitation',
-    'This link expires in 7 days.',
+    'Review invitation',
+    "You won't be added until you accept.",
   );
 }
 

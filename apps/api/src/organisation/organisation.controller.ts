@@ -62,7 +62,7 @@ export class OrganisationController {
   @Roles(RoleGlobal.ADMIN)
   @Post('membres')
   addMembre(@CurrentUser() user: AuthenticatedUser, @Body() dto: AddOrganisationMembreDto) {
-    return this.organisationService.addMembre(user.organisationId, dto);
+    return this.organisationService.addMembre(user.organisationId, dto, user);
   }
 
   @Roles(RoleGlobal.ADMIN)

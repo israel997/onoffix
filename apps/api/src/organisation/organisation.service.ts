@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { createHash, randomBytes } from 'crypto';
 import { EmailService } from '../email/email.service';
@@ -135,8 +136,13 @@ export class OrganisationService {
    * Si un compte existe déjà pour cet email, il est rattaché immédiatement à l'organisation.
    * Sinon, une invitation est envoyée par email et l'adhésion n'est créée qu'à son acceptation.
    */
-  async addMembre(organisationId: string, dto: AddOrganisationMembreDto) {
+  async addMembre(
+    organisationId: string,
+    dto: AddOrganisationMembreDto,
+    currentUser: AuthenticatedUser,
+  ) {
     const account = await this.prisma.account.findUnique({ where: { email: dto.email } });
+    const roleGlobal = dto.roleGlobal ?? RoleGlobal.MEMBRE;
 
     if (account) {
       const existingMembership = await this.prisma.user.findUnique({
@@ -152,7 +158,7 @@ export class OrganisationService {
           organisationId,
           nom: dto.nom,
           email: dto.email,
-          roleGlobal: 'MEMBRE',
+          roleGlobal,
         },
         select: MEMBRE_SELECT,
       });
@@ -169,10 +175,16 @@ export class OrganisationService {
       throw new ConflictException('Une invitation est déjà en attente pour cet email');
     }
 
-    const organisation = await this.prisma.organisation.findUniqueOrThrow({
-      where: { id: organisationId },
-      select: { nom: true },
-    });
+    const [organisation, inviter] = await Promise.all([
+      this.prisma.organisation.findUniqueOrThrow({
+        where: { id: organisationId },
+        select: { nom: true },
+      }),
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: currentUser.userId },
+        select: { nom: true },
+      }),
+    ]);
 
     const rawToken = randomBytes(32).toString('hex');
     const expiresAt = new Date();
@@ -183,12 +195,20 @@ export class OrganisationService {
         email: dto.email,
         nom: dto.nom,
         organisationId,
+        roleGlobal,
         tokenHash: hashToken(rawToken),
         expiresAt,
       },
     });
 
-    await this.emailService.sendInvitationEmail(dto.email, dto.nom, organisation.nom, rawToken);
+    await this.emailService.sendInvitationEmail(
+      dto.email,
+      dto.nom,
+      organisation.nom,
+      inviter.nom,
+      roleGlobal,
+      rawToken,
+    );
 
     return {
       status: 'invited' as const,

@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RoleGlobal } from '@prisma/client';
+import { NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,6 +28,14 @@ const MEMBRE_SELECT = {
   user: { select: { id: true, nom: true, email: true, photoUrl: true } },
 };
 
+const INVITATION_SELECT = {
+  id: true,
+  roleDansBureau: true,
+  roleInterne: true,
+  createdAt: true,
+  user: { select: { id: true, nom: true, email: true, photoUrl: true } },
+};
+
 @Injectable()
 export class BureauxService {
   constructor(
@@ -33,6 +43,8 @@ export class BureauxService {
     private readonly rituelsScheduler: RituelsScheduler,
     private readonly organizerService: OrganizerService,
     private readonly organizerScheduler: OrganizerScheduler,
+    private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(organisationId: string, dto: CreateBureauDto) {
@@ -122,8 +134,18 @@ export class BureauxService {
     );
   }
 
-  async addMembre(bureauId: string, organisationId: string, dto: AddMembreDto) {
-    await this.assertInOrganisation(bureauId, organisationId);
+  /**
+   * L'ajout à un bureau exige le consentement du collaborateur visé : ceci crée une
+   * invitation en attente (email + notification), l'adhésion réelle n'est créée qu'à
+   * son acceptation via acceptInvitation().
+   */
+  async addMembre(
+    bureauId: string,
+    organisationId: string,
+    dto: AddMembreDto,
+    currentUser: AuthenticatedUser,
+  ) {
+    const bureau = await this.assertInOrganisation(bureauId, organisationId);
 
     const membre = await this.prisma.user.findFirst({
       where: { email: dto.email, organisationId },
@@ -141,19 +163,106 @@ export class BureauxService {
       throw new ConflictException('Ce collaborateur est déjà membre de ce bureau');
     }
 
-    await this.prisma.userBureau.create({
+    const pendingInvitation = await this.prisma.bureauInvitation.findUnique({
+      where: { bureauId_userId: { bureauId, userId: membre.id } },
+    });
+    if (pendingInvitation) {
+      throw new ConflictException('Une invitation est déjà en attente pour ce collaborateur');
+    }
+
+    const [organisation, inviter] = await Promise.all([
+      this.prisma.organisation.findUniqueOrThrow({
+        where: { id: organisationId },
+        select: { nom: true },
+      }),
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: currentUser.userId },
+        select: { nom: true },
+      }),
+    ]);
+
+    const invitation = await this.prisma.bureauInvitation.create({
       data: {
-        userId: membre.id,
         bureauId,
+        userId: membre.id,
         roleDansBureau: dto.roleDansBureau,
         roleInterne: dto.roleInterne,
       },
+      select: INVITATION_SELECT,
     });
 
-    return this.prisma.userBureau.findUniqueOrThrow({
-      where: { userId_bureauId: { userId: membre.id, bureauId } },
-      select: MEMBRE_SELECT,
+    await this.notificationsService.create(
+      membre.id,
+      NotificationType.INVITATION_BUREAU,
+      `You've been invited to join ${bureau.nom}`,
+      '/offices',
+    );
+    await this.emailService.sendBureauInvitationEmail(
+      membre.email,
+      membre.nom,
+      bureau.nom,
+      organisation.nom,
+      inviter.nom,
+    );
+
+    return invitation;
+  }
+
+  listInvitations(bureauId: string) {
+    return this.prisma.bureauInvitation.findMany({
+      where: { bureauId },
+      select: INVITATION_SELECT,
+      orderBy: { createdAt: 'desc' },
     });
+  }
+
+  listMyInvitations(userId: string) {
+    return this.prisma.bureauInvitation.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        roleDansBureau: true,
+        roleInterne: true,
+        createdAt: true,
+        bureau: { select: { id: true, nom: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async acceptInvitation(invitationId: string, userId: string) {
+    const invitation = await this.prisma.bureauInvitation.findFirst({
+      where: { id: invitationId, userId },
+    });
+    if (!invitation) throw new NotFoundException('Invitation introuvable');
+
+    await this.prisma.$transaction([
+      this.prisma.userBureau.create({
+        data: {
+          userId: invitation.userId,
+          bureauId: invitation.bureauId,
+          roleDansBureau: invitation.roleDansBureau,
+          roleInterne: invitation.roleInterne,
+        },
+      }),
+      this.prisma.bureauInvitation.delete({ where: { id: invitationId } }),
+    ]);
+  }
+
+  async declineInvitation(invitationId: string, userId: string) {
+    const invitation = await this.prisma.bureauInvitation.findFirst({
+      where: { id: invitationId, userId },
+    });
+    if (!invitation) throw new NotFoundException('Invitation introuvable');
+    await this.prisma.bureauInvitation.delete({ where: { id: invitationId } });
+  }
+
+  async cancelInvitation(bureauId: string, invitationId: string) {
+    const invitation = await this.prisma.bureauInvitation.findFirst({
+      where: { id: invitationId, bureauId },
+    });
+    if (!invitation) throw new NotFoundException('Invitation introuvable');
+    await this.prisma.bureauInvitation.delete({ where: { id: invitationId } });
   }
 
   async updateMembre(bureauId: string, userId: string, dto: UpdateMembreDto) {

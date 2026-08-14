@@ -95,6 +95,7 @@ export interface InvitationPreview {
   email: string;
   nom: string;
   organisationNom: string;
+  roleGlobal: 'ADMIN' | 'MEMBRE';
 }
 
 export function getInvitationPreview(token: string) {
@@ -103,6 +104,10 @@ export function getInvitationPreview(token: string) {
 
 export function acceptInvitation(token: string, password: string) {
   return publicRequest<AuthTokens>('/auth/accept-invitation', { token, password });
+}
+
+export function declineInvitation(token: string) {
+  return publicRequest<void>('/auth/decline-invitation', { token });
 }
 
 export function forgotPassword(email: string) {
@@ -288,11 +293,47 @@ export function removeBureauPhoto(bureauId: string) {
   return authFetch<Bureau>(`/bureaux/${bureauId}/photo`, { method: 'DELETE' });
 }
 
+export interface BureauInvitation {
+  id: string;
+  roleDansBureau: 'MANAGER' | 'COLLABORATEUR';
+  roleInterne: string | null;
+  createdAt: string;
+  user: { id: string; nom: string; email: string; photoUrl: string | null };
+}
+
+export interface MyBureauInvitation {
+  id: string;
+  roleDansBureau: 'MANAGER' | 'COLLABORATEUR';
+  roleInterne: string | null;
+  createdAt: string;
+  bureau: { id: string; nom: string };
+}
+
 export function addMembre(
   bureauId: string,
   data: { email: string; roleDansBureau: 'MANAGER' | 'COLLABORATEUR'; roleInterne?: string },
 ) {
-  return authFetch<Membre>(`/bureaux/${bureauId}/membres`, { method: 'POST', body: data });
+  return authFetch<BureauInvitation>(`/bureaux/${bureauId}/membres`, { method: 'POST', body: data });
+}
+
+export function listBureauInvitations(bureauId: string) {
+  return authFetch<BureauInvitation[]>(`/bureaux/${bureauId}/invitations`);
+}
+
+export function cancelBureauInvitation(bureauId: string, invitationId: string) {
+  return authFetch<void>(`/bureaux/${bureauId}/invitations/${invitationId}`, { method: 'DELETE' });
+}
+
+export function listMyBureauInvitations() {
+  return authFetch<MyBureauInvitation[]>('/bureaux/invitations/mine');
+}
+
+export function acceptBureauInvitation(invitationId: string) {
+  return authFetch<void>(`/bureaux/invitations/${invitationId}/accept`, { method: 'POST' });
+}
+
+export function declineBureauInvitation(invitationId: string) {
+  return authFetch<void>(`/bureaux/invitations/${invitationId}/decline`, { method: 'POST' });
 }
 
 export function updateMembre(
@@ -433,7 +474,7 @@ export type AddMembreResult =
   | { status: 'added'; membre: OrganisationMembre }
   | { status: 'invited'; invitation: { id: string; email: string; nom: string } };
 
-export function addOrganisationMembre(data: { email: string; nom: string }) {
+export function addOrganisationMembre(data: { email: string; nom: string; roleGlobal?: 'ADMIN' | 'MEMBRE' }) {
   return authFetch<AddMembreResult>('/organisation/membres', { method: 'POST', body: data });
 }
 

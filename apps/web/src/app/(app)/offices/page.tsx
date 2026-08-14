@@ -2,26 +2,69 @@
 
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createBureau, listBureaux, reorderBureaux, resolveAssetUrl, type Bureau } from '@/lib/api';
+import {
+  acceptBureauInvitation,
+  createBureau,
+  declineBureauInvitation,
+  listBureaux,
+  listMyBureauInvitations,
+  reorderBureaux,
+  resolveAssetUrl,
+  type Bureau,
+  type MyBureauInvitation,
+} from '@/lib/api';
 import { BUREAU_COLORS } from '@/lib/bureau-colors';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/lib/toast-context';
 
 export default function OfficesPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [bureaux, setBureaux] = useState<Bureau[] | null>(null);
+  const [invitations, setInvitations] = useState<MyBureauInvitation[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [nom, setNom] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   async function load() {
-    setBureaux(await listBureaux());
+    const [bureauxData, invitationsData] = await Promise.all([listBureaux(), listMyBureauInvitations()]);
+    setBureaux(bureauxData);
+    setInvitations(invitationsData);
+  }
+
+  async function handleAcceptInvitation(invitation: MyBureauInvitation) {
+    setRespondingId(invitation.id);
+    try {
+      await acceptBureauInvitation(invitation.id);
+      toast(`You joined ${invitation.bureau.nom}`);
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    } finally {
+      setRespondingId(null);
+    }
+  }
+
+  async function handleDeclineInvitation(invitation: MyBureauInvitation) {
+    setRespondingId(invitation.id);
+    try {
+      await declineBureauInvitation(invitation.id);
+      toast(`Invitation to ${invitation.bureau.nom} declined`);
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    } finally {
+      setRespondingId(null);
+    }
   }
 
   useEffect(() => {
@@ -75,6 +118,42 @@ export default function OfficesPage() {
           <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'New office'}</Button>
         )}
       </div>
+
+      {invitations && invitations.length > 0 && (
+        <Card>
+          <CardTitle>Pending office invitations</CardTitle>
+          <div className="mt-3 flex flex-col divide-y divide-border">
+            {invitations.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground">{inv.bureau.nom}</p>
+                  <Badge tone="neutral">{inv.roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}</Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={respondingId === inv.id}
+                    onClick={() => handleAcceptInvitation(inv)}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    disabled={respondingId === inv.id}
+                    onClick={() => handleDeclineInvitation(inv)}
+                  >
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {showForm && (
         <Card>

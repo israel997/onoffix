@@ -19,6 +19,7 @@ import { AuthService } from './auth.service';
 import type { GoogleProfile } from './strategies/google.strategy';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
+import { DeclineInvitationDto } from './dto/decline-invitation.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -101,6 +102,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   acceptInvitation(@Body() dto: AcceptInvitationDto, @Req() req: Request) {
     return this.authService.acceptInvitation(dto, req.ip);
+  }
+
+  @Public()
+  @Post('decline-invitation')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  declineInvitation(@Body() dto: DeclineInvitationDto) {
+    return this.authService.declineInvitation(dto.token);
   }
 
   @Public()

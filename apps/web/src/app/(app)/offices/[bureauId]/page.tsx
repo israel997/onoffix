@@ -13,24 +13,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   addMembre,
+  cancelBureauInvitation,
   getBureau,
   getBureauStats,
+  listBureauInvitations,
   listOrganisationMembres,
   removeMembre,
   updateMembre,
   type BureauDetail,
+  type BureauInvitation,
   type BureauStats,
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/lib/toast-context';
 
 export default function OfficeDetailPage() {
   const params = useParams<{ bureauId: string }>();
   const bureauId = params.bureauId;
   const { user } = useAuth();
+  const toast = useToast();
 
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
   const [orgMembres, setOrgMembres] = useState<OrganisationMembre[] | null>(null);
+  const [invitations, setInvitations] = useState<BureauInvitation[]>([]);
   const [stats, setStats] = useState<BureauStats | null>(null);
   const [statsMember, setStatsMember] = useState<{ id: string; nom: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -39,6 +45,10 @@ export default function OfficeDetailPage() {
   const [roleDansBureau, setRoleDansBureau] = useState<'COLLABORATEUR' | 'MANAGER'>('COLLABORATEUR');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const isManagerOf = (b: BureauDetail | null) =>
+    user?.roleGlobal === 'ADMIN' || b?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER');
 
   async function load() {
     const [bureauData, membresData, statsData] = await Promise.all([
@@ -49,6 +59,11 @@ export default function OfficeDetailPage() {
     setBureau(bureauData);
     setOrgMembres(membresData);
     setStats(statsData);
+    if (isManagerOf(bureauData)) {
+      setInvitations(await listBureauInvitations(bureauId));
+    } else {
+      setInvitations([]);
+    }
   }
 
   useEffect(() => {
@@ -57,15 +72,29 @@ export default function OfficeDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bureauId]);
 
-  const isManager =
-    user?.roleGlobal === 'ADMIN' ||
-    bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER');
+  const isManager = isManagerOf(bureau);
 
   const availableMembres = useMemo(() => {
     if (!bureau || !orgMembres) return [];
-    const alreadyIn = new Set(bureau.membres.map((m) => m.user.id));
+    const alreadyIn = new Set([
+      ...bureau.membres.map((m) => m.user.id),
+      ...invitations.map((inv) => inv.user.id),
+    ]);
     return orgMembres.filter((m) => !alreadyIn.has(m.id));
-  }, [bureau, orgMembres]);
+  }, [bureau, orgMembres, invitations]);
+
+  async function handleCancelInvitation(invitationId: string) {
+    setCancellingId(invitationId);
+    try {
+      await cancelBureauInvitation(bureauId, invitationId);
+      toast('Invitation cancelled');
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    } finally {
+      setCancellingId(null);
+    }
+  }
 
   async function handleAdd(event: FormEvent) {
     event.preventDefault();
@@ -81,6 +110,7 @@ export default function OfficeDetailPage() {
         roleDansBureau,
         roleInterne: roleInterne || undefined,
       });
+      toast('Invitation sent — they need to accept before joining.');
       setSelectedEmail('');
       setRoleInterne('');
       setShowForm(false);
@@ -257,7 +287,31 @@ export default function OfficeDetailPage() {
               </div>
             </div>
           ))}
-          {bureau.membres.length === 0 && (
+          {isManager &&
+            invitations.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground">{inv.user.nom}</p>
+                  <p className="text-xs text-muted-foreground">{inv.user.email}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="declared">Pending</Badge>
+                  <Badge tone="neutral">{inv.roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={cancellingId === inv.id}
+                    onClick={() => handleCancelInvitation(inv.id)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ))}
+          {bureau.membres.length === 0 && invitations.length === 0 && (
             <p className="py-3 text-sm text-muted-foreground">No member yet.</p>
           )}
         </div>

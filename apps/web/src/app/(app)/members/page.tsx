@@ -30,6 +30,7 @@ export default function MembersPage() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [nom, setNom] = useState('');
+  const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBRE'>('MEMBRE');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -57,7 +58,7 @@ export default function MembersPage() {
     setNotice(null);
     setCreating(true);
     try {
-      const result = await addOrganisationMembre({ email, nom });
+      const result = await addOrganisationMembre({ email, nom, roleGlobal: inviteRole });
       const message =
         result.status === 'added'
           ? `${nom} was added to the organisation.`
@@ -66,6 +67,7 @@ export default function MembersPage() {
       toast(message);
       setEmail('');
       setNom('');
+      setInviteRole('MEMBRE');
       setShowForm(false);
       await load();
     } catch (err) {
@@ -148,7 +150,7 @@ export default function MembersPage() {
 
       {showForm && (
         <Card>
-          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-3 sm:items-end">
+          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-4 sm:items-end">
             <Label>
               Full name
               <Input required value={nom} onChange={(e) => setNom(e.target.value)} />
@@ -156,6 +158,17 @@ export default function MembersPage() {
             <Label>
               Email
               <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            </Label>
+            <Label>
+              Role
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBRE')}
+                className="h-10 rounded-lg border border-border bg-surface px-3 text-sm"
+              >
+                <option value="MEMBRE">Member</option>
+                <option value="ADMIN">Admin</option>
+              </select>
             </Label>
             <Button type="submit" disabled={creating} className="w-fit">
               {creating ? 'Sending…' : 'Send invitation'}

@@ -263,7 +263,18 @@ export class AuthService {
       email: invitation.email,
       nom: invitation.nom,
       organisationNom: invitation.organisation.nom,
+      roleGlobal: invitation.roleGlobal,
     };
+  }
+
+  async declineInvitation(token: string) {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { tokenHash: hashToken(token), acceptedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!invitation) {
+      throw new BadRequestException('Invitation invalide ou expirée');
+    }
+    await this.prisma.invitation.delete({ where: { id: invitation.id } });
   }
 
   async acceptInvitation(dto: AcceptInvitationDto, ip?: string) {
