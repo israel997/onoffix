@@ -64,6 +64,12 @@ export class BureauxController {
     return this.bureauxService.findOne(bureauId, user);
   }
 
+  @BureauRole(...ANY_MEMBER)
+  @Get(':bureauId/stats')
+  getStats(@Param('bureauId') bureauId: string) {
+    return this.bureauxService.getStats(bureauId);
+  }
+
   @BureauRole(RoleBureau.MANAGER)
   @Patch(':bureauId')
   update(

@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BureauChat } from '@/components/chat/bureau-chat';
+import { MembreStatsModal } from '@/components/offices/membre-stats-modal';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -13,10 +14,12 @@ import { Label } from '@/components/ui/label';
 import {
   addMembre,
   getBureau,
+  getBureauStats,
   listOrganisationMembres,
   removeMembre,
   updateMembre,
   type BureauDetail,
+  type BureauStats,
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -28,6 +31,8 @@ export default function OfficeDetailPage() {
 
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
   const [orgMembres, setOrgMembres] = useState<OrganisationMembre[] | null>(null);
+  const [stats, setStats] = useState<BureauStats | null>(null);
+  const [statsMember, setStatsMember] = useState<{ id: string; nom: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState('');
   const [roleInterne, setRoleInterne] = useState('');
@@ -36,12 +41,14 @@ export default function OfficeDetailPage() {
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
-    const [bureauData, membresData] = await Promise.all([
+    const [bureauData, membresData, statsData] = await Promise.all([
       getBureau(bureauId),
       listOrganisationMembres(),
+      getBureauStats(bureauId),
     ]);
     setBureau(bureauData);
     setOrgMembres(membresData);
+    setStats(statsData);
   }
 
   useEffect(() => {
@@ -116,6 +123,38 @@ export default function OfficeDetailPage() {
 
       <OfficeNav bureauId={bureauId} showSettings={!!isManager} />
 
+      {stats && (
+        <Card>
+          <CardTitle>Team stats</CardTitle>
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-5">
+            <div>
+              <p className="text-lg font-bold text-foreground">
+                {stats.progression === null ? '—' : `${stats.progression}%`}
+              </p>
+              <p className="text-xs text-muted-foreground">Progress</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">{stats.tachesEnCours}</p>
+              <p className="text-xs text-muted-foreground">In progress</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">{stats.tachesTerminees}</p>
+              <p className="text-xs text-muted-foreground">Done</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">{stats.tachesBloquees}</p>
+              <p className="text-xs text-muted-foreground">Blocked</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-foreground">
+                {stats.respectDeadlines === null ? '—' : `${stats.respectDeadlines}%`}
+              </p>
+              <p className="text-xs text-muted-foreground">Deadlines met</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -189,10 +228,13 @@ export default function OfficeDetailPage() {
         <div className="flex flex-col divide-y divide-border">
           {bureau.membres.map((m) => (
             <div key={m.user.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">{m.user.nom}</p>
+              <button
+                className="text-left"
+                onClick={() => setStatsMember({ id: m.user.id, nom: m.user.nom })}
+              >
+                <p className="text-sm font-medium text-foreground hover:underline">{m.user.nom}</p>
                 <p className="text-xs text-muted-foreground">{m.user.email}</p>
-              </div>
+              </button>
               <div className="flex flex-wrap items-center gap-3">
                 {m.roleInterne && <Badge tone="brand">{m.roleInterne}</Badge>}
                 {isManager ? (
@@ -222,6 +264,14 @@ export default function OfficeDetailPage() {
       </Card>
 
       <BureauChat bureauId={bureauId} />
+
+      {statsMember && (
+        <MembreStatsModal
+          userId={statsMember.id}
+          nom={statsMember.nom}
+          onClose={() => setStatsMember(null)}
+        />
+      )}
     </div>
   );
 }

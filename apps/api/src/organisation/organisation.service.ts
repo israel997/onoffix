@@ -64,6 +64,68 @@ export class OrganisationService {
     return { membresCount, tachesCount };
   }
 
+  /** Statistiques individuelles d'un membre : contribution, temps, fiabilité. */
+  async getMembreStats(organisationId: string, userId: string) {
+    const membre = await this.prisma.user.findFirst({ where: { id: userId, organisationId } });
+    if (!membre) throw new NotFoundException('Membre introuvable');
+
+    const taches = await this.prisma.tache.findMany({
+      where: { assigneAId: userId, projet: { bureau: { organisationId } } },
+      select: {
+        id: true,
+        statut: true,
+        dateEcheance: true,
+        dateValidation: true,
+        dateCible: true,
+        blocages: { select: { id: true } },
+      },
+    });
+
+    const tachesValidees = taches.filter((t) => t.statut === 'VALIDE').length;
+    const tachesARevoir = taches.filter((t) => t.statut === 'A_REVOIR').length;
+    const blocagesRencontres = taches.reduce((sum, t) => sum + t.blocages.length, 0);
+
+    const avecEcheance = taches.filter((t) => t.dateEcheance);
+    const respecteesDeadline = avecEcheance.filter(
+      (t) => t.dateValidation && t.dateEcheance && t.dateValidation <= t.dateEcheance,
+    );
+
+    const joursAvecTache = new Set(
+      taches.filter((t) => t.dateCible).map((t) => t.dateCible!.toISOString().slice(0, 10)),
+    );
+
+    const [sessions, declarations] = await Promise.all([
+      this.prisma.tacheSession.findMany({
+        where: { userId, fin: { not: null } },
+        select: { debut: true, fin: true },
+      }),
+      this.prisma.declarationJournaliere.findMany({
+        where: { userId },
+        select: { date: true },
+      }),
+    ]);
+
+    const heuresTravaillees =
+      Math.round(
+        (sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0) / 3600000) * 10,
+      ) / 10;
+
+    const joursDeclares = new Set(declarations.map((d) => d.date.toISOString().slice(0, 10)));
+    const joursDeclaresATemps = [...joursAvecTache].filter((d) => joursDeclares.has(d)).length;
+
+    return {
+      tachesAssignees: taches.length,
+      tachesValidees,
+      tachesARevoir,
+      heuresTravaillees,
+      tauxDeclarationsATemps:
+        joursAvecTache.size === 0 ? null : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
+      blocagesRencontres,
+      respectDeadlines:
+        avecEcheance.length === 0 ? null : Math.round((respecteesDeadline.length / avecEcheance.length) * 100),
+    };
+  }
+
   /**
    * Si un compte existe déjà pour cet email, il est rattaché immédiatement à l'organisation.
    * Sinon, une invitation est envoyée par email et l'adhésion n'est créée qu'à son acceptation.

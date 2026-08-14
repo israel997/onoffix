@@ -96,6 +96,49 @@ export class ProjetsService {
     });
   }
 
+  /** Statistiques projet : progression, prévu vs réel, retards, blocages, risques. */
+  async getStats(projetId: string) {
+    const taches = await this.prisma.tache.findMany({
+      where: { projetId },
+      select: {
+        id: true,
+        statut: true,
+        sante: true,
+        dateEcheance: true,
+        dureeEstimeeMinutes: true,
+        blocages: { where: { dateFin: null }, select: { id: true } },
+      },
+    });
+
+    const now = new Date();
+    const termine = taches.filter((t) => t.statut === 'VALIDE').length;
+    const enRetard = taches.filter((t) => t.dateEcheance && t.dateEcheance < now && t.statut !== 'VALIDE').length;
+    const risques = taches.filter((t) => t.sante === 'A_RISQUE').length;
+    const blocagesActifs = taches.reduce((sum, t) => sum + t.blocages.length, 0);
+    const tempsPrevuMinutes = taches.reduce((sum, t) => sum + (t.dureeEstimeeMinutes ?? 0), 0);
+
+    const tacheIds = taches.map((t) => t.id);
+    const sessions =
+      tacheIds.length === 0
+        ? []
+        : await this.prisma.tacheSession.findMany({
+            where: { tacheId: { in: tacheIds }, fin: { not: null } },
+            select: { debut: true, fin: true },
+          });
+    const tempsReelMinutes = Math.round(
+      sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0) / 60000,
+    );
+
+    return {
+      progression: taches.length === 0 ? null : Math.round((termine / taches.length) * 100),
+      tempsPrevuMinutes,
+      tempsReelMinutes,
+      tachesEnRetard: enRetard,
+      blocages: blocagesActifs,
+      risques,
+    };
+  }
+
   private async assertManager(bureauId: string, user: AuthenticatedUser) {
     if (user.roleGlobal === RoleGlobal.ADMIN) return;
     const membership = await this.prisma.userBureau.findUnique({

@@ -402,6 +402,33 @@ export function getOrganisationStats() {
   return authFetch<OrganisationStats>('/organisation/stats');
 }
 
+export interface MembreStats {
+  tachesAssignees: number;
+  tachesValidees: number;
+  tachesARevoir: number;
+  heuresTravaillees: number;
+  tauxDeclarationsATemps: number | null;
+  blocagesRencontres: number;
+  respectDeadlines: number | null;
+}
+
+export function getMembreStats(userId: string) {
+  return authFetch<MembreStats>(`/organisation/membres/${userId}/stats`);
+}
+
+export interface BureauStats {
+  progression: number | null;
+  tachesTerminees: number;
+  tachesEnCours: number;
+  tachesBloquees: number;
+  charge: number | null;
+  respectDeadlines: number | null;
+}
+
+export function getBureauStats(bureauId: string) {
+  return authFetch<BureauStats>(`/bureaux/${bureauId}/stats`);
+}
+
 export type AddMembreResult =
   | { status: 'added'; membre: OrganisationMembre }
   | { status: 'invited'; invitation: { id: string; email: string; nom: string } };

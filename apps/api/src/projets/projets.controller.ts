@@ -43,6 +43,11 @@ export class ProjetsController {
     return this.projetsService.findOne(projetId);
   }
 
+  @Get('stats')
+  getStats(@Param('projetId') projetId: string) {
+    return this.projetsService.getStats(projetId);
+  }
+
   @Patch()
   update(
     @Param('projetId') projetId: string,

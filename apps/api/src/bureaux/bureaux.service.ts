@@ -173,6 +173,43 @@ export class BureauxService {
     await this.prisma.userBureau.delete({ where: { userId_bureauId: { userId, bureauId } } });
   }
 
+  /** Statistiques d'équipe : progression, charge, respect des délais. */
+  async getStats(bureauId: string) {
+    const [membres, taches] = await Promise.all([
+      this.prisma.userBureau.findMany({ where: { bureauId }, select: { userId: true } }),
+      this.prisma.tache.findMany({
+        where: { projet: { bureauId } },
+        select: { statut: true, sante: true, assigneAId: true, dateEcheance: true, dateValidation: true },
+      }),
+    ]);
+
+    const termine = taches.filter((t) => t.statut === 'VALIDE').length;
+    const bloque = taches.filter((t) => t.sante === 'BLOQUEE').length;
+    const nonCommence = taches.filter((t) => t.statut === 'A_FAIRE').length;
+    const enCours = taches.length - termine - bloque - nonCommence;
+
+    const avecEcheance = taches.filter((t) => t.dateEcheance);
+    const respecteesDeadline = avecEcheance.filter(
+      (t) => t.dateValidation && t.dateEcheance && t.dateValidation <= t.dateEcheance,
+    );
+
+    const membresActifs = new Set(
+      taches
+        .filter((t) => t.assigneAId && (t.statut === 'EN_COURS' || t.statut === 'ACCEPTEE'))
+        .map((t) => t.assigneAId),
+    );
+
+    return {
+      progression: taches.length === 0 ? null : Math.round((termine / taches.length) * 100),
+      tachesTerminees: termine,
+      tachesEnCours: enCours,
+      tachesBloquees: bloque,
+      charge: membres.length === 0 ? null : Math.round((membresActifs.size / membres.length) * 100),
+      respectDeadlines:
+        avecEcheance.length === 0 ? null : Math.round((respecteesDeadline.length / avecEcheance.length) * 100),
+    };
+  }
+
   private async assertInOrganisation(bureauId: string, organisationId: string) {
     const bureau = await this.prisma.bureau.findFirst({
       where: { id: bureauId, organisationId },
