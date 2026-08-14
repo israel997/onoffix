@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import { registerOrganisation, storeTokens } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -62,8 +63,7 @@ export default function RegisterPage() {
         </Label>
         <Label>
           Password
-          <Input
-            type="password"
+          <PasswordInput
             required
             minLength={8}
             pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+"
@@ -77,8 +77,7 @@ export default function RegisterPage() {
         </Label>
         <Label>
           Confirm password
-          <Input
-            type="password"
+          <PasswordInput
             required
             minLength={8}
             value={confirmPassword}
