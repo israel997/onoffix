@@ -102,9 +102,7 @@ export class AdminService {
   }
 
   /** Supprime définitivement un compte (cascade : toutes ses adhésions, tokens, etc.). */
-  async deleteAccount(accountId: string, password: string) {
-    this.assertActionPassword(password);
-
+  async deleteAccount(accountId: string) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) throw new NotFoundException('Compte introuvable');
 
@@ -113,9 +111,7 @@ export class AdminService {
   }
 
   /** Supprime une organisation (cascade) puis les comptes devenus orphelins (aucune autre adhésion). */
-  async deleteOrganisation(organisationId: string, password: string) {
-    this.assertActionPassword(password);
-
+  async deleteOrganisation(organisationId: string) {
     const organisation = await this.prisma.organisation.findUnique({
       where: { id: organisationId },
       include: { users: { select: { accountId: true } } },

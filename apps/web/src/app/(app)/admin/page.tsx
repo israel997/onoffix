@@ -1,13 +1,10 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Modal } from '@/components/ui/modal';
 import {
   adminDeleteAccount,
   adminDeleteOrganisation,
@@ -20,6 +17,7 @@ import {
   type AdminOrganisation,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
 const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
@@ -47,22 +45,13 @@ function StopIcon() {
   );
 }
 
-interface PasswordPrompt {
-  title: string;
-  description: string;
-  run: (password: string) => Promise<void>;
-}
-
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const [organisations, setOrganisations] = useState<AdminOrganisation[] | null>(null);
   const [membres, setMembres] = useState<AdminMembre[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [passwordPrompt, setPasswordPrompt] = useState<PasswordPrompt | null>(null);
-  const [passwordValue, setPasswordValue] = useState('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
   const authorized = user?.email === SUPER_ADMIN_EMAIL;
 
@@ -92,46 +81,19 @@ export default function AdminPage() {
     }
   }
 
-  function askPassword(title: string, description: string, run: (password: string) => Promise<void>) {
-    setPasswordValue('');
-    setPasswordError(null);
-    setPasswordPrompt({ title, description, run });
-  }
-
-  async function submitPassword(event: FormEvent) {
-    event.preventDefault();
-    if (!passwordPrompt) return;
-    setPasswordSubmitting(true);
-    setPasswordError(null);
-    try {
-      await passwordPrompt.run(passwordValue);
-    } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setPasswordSubmitting(false);
-    }
-  }
-
   async function handlePromote(m: AdminMembre) {
     await withBusy(m.userId, () => adminPromote(m.userId), `${m.nom} is now an admin`);
   }
 
-  function handleDeleteAccount(m: AdminMembre) {
-    askPassword(
-      `Delete ${m.nom}'s account?`,
-      'This permanently deletes their account and every membership, across all organisations. This cannot be undone. Enter the admin password to confirm.',
-      async (password) => {
-        setBusyId(m.accountId);
-        try {
-          await adminDeleteAccount(m.accountId, password);
-          await load();
-          toast(`${m.nom}'s account was deleted`);
-          setPasswordPrompt(null);
-        } finally {
-          setBusyId(null);
-        }
-      },
-    );
+  async function handleDeleteAccount(m: AdminMembre) {
+    const ok = await confirmDialog({
+      title: `Delete ${m.nom}'s account?`,
+      description: 'This permanently deletes their account and every membership, across all organisations.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    await withBusy(m.accountId, () => adminDeleteAccount(m.accountId), `${m.nom}'s account was deleted`);
   }
 
   async function handleUnban(m: AdminMembre) {
@@ -150,22 +112,16 @@ export default function AdminPage() {
     await withBusy(m.accountId, () => adminSetRestricted(m.accountId, false), `${m.nom} is no longer restricted`);
   }
 
-  function handleDeleteOrganisation(org: AdminOrganisation) {
-    askPassword(
-      `Delete ${org.nom}?`,
-      'This permanently deletes the organisation and all its data (bureaux, projects, tasks, messages). Any member account left with no other organisation is deleted too. This cannot be undone. Enter the admin password to confirm.',
-      async (password) => {
-        setBusyId(org.id);
-        try {
-          await adminDeleteOrganisation(org.id, password);
-          await load();
-          toast(`${org.nom} was deleted`);
-          setPasswordPrompt(null);
-        } finally {
-          setBusyId(null);
-        }
-      },
-    );
+  async function handleDeleteOrganisation(org: AdminOrganisation) {
+    const ok = await confirmDialog({
+      title: `Delete ${org.nom}?`,
+      description:
+        'This permanently deletes the organisation and all its data (bureaux, projects, tasks, messages). Any member account left with no other organisation is deleted too.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    await withBusy(org.id, () => adminDeleteOrganisation(org.id), `${org.nom} was deleted`);
   }
 
   if (loading) {
@@ -210,9 +166,9 @@ export default function AdminPage() {
                   <Badge tone="neutral">{org.membresCount} member{org.membresCount === 1 ? '' : 's'}</Badge>
                   <Badge tone="neutral">Created {formatDate(org.dateCreation)}</Badge>
                   <Button
-                    variant="danger"
+                    variant="ghost"
                     size="sm"
-                    className="px-2"
+                    className="px-2 text-status-review hover:bg-status-review/10"
                     aria-label="Delete organisation"
                     title="Delete organisation"
                     disabled={busyId === org.id}
@@ -294,9 +250,9 @@ export default function AdminPage() {
                           </Button>
                         ) : (
                           <Button
-                            variant="warning"
+                            variant="ghost"
                             size="sm"
-                            className="px-2"
+                            className="px-2 text-status-declared hover:bg-status-declared/10"
                             aria-label="Restrict account"
                             title="Restrict account"
                             disabled={busyId === m.accountId}
@@ -316,9 +272,9 @@ export default function AdminPage() {
                           </Button>
                         ) : (
                           <Button
-                            variant="danger"
+                            variant="ghost"
                             size="sm"
-                            className="px-2"
+                            className="px-2 text-status-review hover:bg-status-review/10"
                             aria-label="Delete account"
                             title="Delete account"
                             disabled={busyId === m.accountId}
@@ -336,40 +292,6 @@ export default function AdminPage() {
           </div>
         )}
       </Card>
-
-      {passwordPrompt && (
-        <Modal onClose={() => !passwordSubmitting && setPasswordPrompt(null)}>
-          <h2 className="text-lg font-bold text-foreground">{passwordPrompt.title}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{passwordPrompt.description}</p>
-          <form onSubmit={submitPassword} className="mt-4 flex flex-col gap-3">
-            <Label>
-              Admin password
-              <Input
-                type="password"
-                autoFocus
-                required
-                value={passwordValue}
-                onChange={(e) => setPasswordValue(e.target.value)}
-              />
-            </Label>
-            {passwordError && <p className="text-sm text-status-review">{passwordError}</p>}
-            <div className="mt-2 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={passwordSubmitting}
-                onClick={() => setPasswordPrompt(null)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" variant="danger" size="sm" disabled={passwordSubmitting}>
-                {passwordSubmitting ? 'Confirming…' : 'Confirm'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
   );
 }

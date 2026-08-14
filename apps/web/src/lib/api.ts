@@ -864,12 +864,12 @@ export function adminSetRestricted(accountId: string, restricted: boolean) {
   });
 }
 
-export function adminDeleteOrganisation(organisationId: string, password: string) {
-  return authFetch<void>(`/admin/organisations/${organisationId}`, { method: 'DELETE', body: { password } });
+export function adminDeleteOrganisation(organisationId: string) {
+  return authFetch<void>(`/admin/organisations/${organisationId}`, { method: 'DELETE' });
 }
 
-export function adminDeleteAccount(accountId: string, password: string) {
-  return authFetch<void>(`/admin/accounts/${accountId}`, { method: 'DELETE', body: { password } });
+export function adminDeleteAccount(accountId: string) {
+  return authFetch<void>(`/admin/accounts/${accountId}`, { method: 'DELETE' });
 }
 
 export { ApiError };
