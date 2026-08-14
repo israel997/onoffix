@@ -1,25 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const RESEND_API_URL = 'https://api.resend.com/emails';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private readonly apiKey?: string;
-  private readonly fromEmail: string;
-  private readonly fromName: string;
+  private readonly from: string;
   private readonly frontendUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    this.apiKey = this.config.get<string>('BREVO_API_KEY');
-    this.fromEmail = this.config.get<string>('EMAIL_FROM_ADDRESS', 'onboarding@onoffix.app');
-    this.fromName = this.config.get<string>('EMAIL_FROM_NAME', 'OOffix');
+    this.apiKey = this.config.get<string>('RESEND_API_KEY');
+    const fromEmail = this.config.get<string>('EMAIL_FROM_ADDRESS', 'onboarding@resend.dev');
+    const fromName = this.config.get<string>('EMAIL_FROM_NAME', 'OOffix');
+    this.from = `${fromName} <${fromEmail}>`;
     this.frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
 
     if (!this.apiKey) {
       this.logger.warn(
-        'BREVO_API_KEY non configurée — les emails seront seulement loggés, pas envoyés.',
+        'RESEND_API_KEY non configurée — les emails seront seulement loggés, pas envoyés.',
       );
     }
   }
@@ -27,29 +27,23 @@ export class EmailService {
   private async send(to: string, subject: string, html: string) {
     if (!this.apiKey) {
       this.logger.log(
-        `[dev] Email "${subject}" pour ${to} non envoyé (BREVO_API_KEY non configurée).`,
+        `[dev] Email "${subject}" pour ${to} non envoyé (RESEND_API_KEY non configurée).`,
       );
       return;
     }
 
-    const response = await fetch(BREVO_API_URL, {
+    const response = await fetch(RESEND_API_URL, {
       method: 'POST',
       headers: {
-        'api-key': this.apiKey,
+        Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
-        accept: 'application/json',
       },
-      body: JSON.stringify({
-        sender: { name: this.fromName, email: this.fromEmail },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-      }),
+      body: JSON.stringify({ from: this.from, to: [to], subject, html }),
     });
 
     if (!response.ok) {
       const body = await response.text();
-      this.logger.error(`Brevo email send failed (${response.status}): ${body}`);
+      this.logger.error(`Resend email send failed (${response.status}): ${body}`);
       throw new Error(`Failed to send email: ${response.status}`);
     }
   }
