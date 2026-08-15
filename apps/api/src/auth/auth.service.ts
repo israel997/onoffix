@@ -359,6 +359,7 @@ export class AuthService {
           organisationId: invitation.organisationId,
           nom: invitation.nom,
           email: invitation.email,
+          poste: invitation.poste,
           roleGlobal: invitation.roleGlobal,
           // L'invitation a été envoyée à cette adresse — cliquer le lien la vérifie déjà.
           emailVerifie: true,

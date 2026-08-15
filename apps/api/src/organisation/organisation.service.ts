@@ -12,6 +12,7 @@ import { EmailService } from '../email/email.service';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddOrganisationMembreDto } from './dto/add-organisation-membre.dto';
+import { UpdateMembrePosteDto } from './dto/update-membre-poste.dto';
 import { UpdateMembreRoleDto } from './dto/update-membre-role.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 
@@ -142,7 +143,6 @@ export class OrganisationService {
     currentUser: AuthenticatedUser,
   ) {
     const account = await this.prisma.account.findUnique({ where: { email: dto.email } });
-    const roleGlobal = dto.roleGlobal ?? RoleGlobal.MEMBRE;
 
     if (account) {
       const existingMembership = await this.prisma.user.findUnique({
@@ -158,7 +158,8 @@ export class OrganisationService {
           organisationId,
           nom: dto.nom,
           email: dto.email,
-          roleGlobal,
+          poste: dto.poste,
+          roleGlobal: RoleGlobal.MEMBRE,
         },
         select: MEMBRE_SELECT,
       });
@@ -194,8 +195,8 @@ export class OrganisationService {
       data: {
         email: dto.email,
         nom: dto.nom,
+        poste: dto.poste,
         organisationId,
-        roleGlobal,
         tokenHash: hashToken(rawToken),
         expiresAt,
       },
@@ -206,7 +207,7 @@ export class OrganisationService {
       dto.nom,
       organisation.nom,
       inviter.nom,
-      roleGlobal,
+      RoleGlobal.MEMBRE,
       rawToken,
     );
 
@@ -219,7 +220,7 @@ export class OrganisationService {
   listInvitations(organisationId: string) {
     return this.prisma.invitation.findMany({
       where: { organisationId, acceptedAt: null, expiresAt: { gt: new Date() } },
-      select: { id: true, email: true, nom: true, createdAt: true },
+      select: { id: true, email: true, nom: true, poste: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -271,6 +272,21 @@ export class OrganisationService {
     return this.prisma.user.update({
       where: { id: targetUserId },
       data: { roleGlobal: dto.roleGlobal },
+      select: MEMBRE_SELECT,
+    });
+  }
+
+  /** Poste/titre affiché (ex. "Chief Technical Officer") — modifiable par un admin, y compris après coup. */
+  async updateMembrePoste(organisationId: string, targetUserId: string, dto: UpdateMembrePosteDto) {
+    const membre = await this.prisma.user.findFirst({
+      where: { id: targetUserId, organisationId },
+    });
+    if (!membre)
+      throw new NotFoundException("Ce collaborateur ne fait pas partie de l'organisation");
+
+    return this.prisma.user.update({
+      where: { id: targetUserId },
+      data: { poste: dto.poste },
       select: MEMBRE_SELECT,
     });
   }

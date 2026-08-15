@@ -445,6 +445,7 @@ model Invitation {
   id             String     @id @default(uuid())
   email          String
   nom            String
+  poste          String?
   organisationId String     @map("organisation_id")
   roleGlobal     RoleGlobal @default(MEMBRE) @map("role_global")
   tokenHash      String     @map("token_hash")

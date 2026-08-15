@@ -566,14 +566,22 @@ export type AddMembreResult =
   | { status: 'added'; membre: OrganisationMembre }
   | { status: 'invited'; invitation: { id: string; email: string; nom: string } };
 
-export function addOrganisationMembre(data: { email: string; nom: string; roleGlobal?: 'ADMIN' | 'MEMBRE' }) {
+export function addOrganisationMembre(data: { email: string; nom: string; poste?: string }) {
   return authFetch<AddMembreResult>('/organisation/membres', { method: 'POST', body: data });
+}
+
+export function updateMembrePoste(userId: string, poste: string | null) {
+  return authFetch<OrganisationMembre>(`/organisation/membres/${userId}/poste`, {
+    method: 'PATCH',
+    body: { poste },
+  });
 }
 
 export interface Invitation {
   id: string;
   email: string;
   nom: string;
+  poste: string | null;
   createdAt: string;
 }
 

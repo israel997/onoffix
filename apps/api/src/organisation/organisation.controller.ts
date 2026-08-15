@@ -19,6 +19,7 @@ import { CurrentUser, type AuthenticatedUser } from '../common/decorators/curren
 import { Roles } from '../common/decorators/roles.decorator';
 import { StorageService } from '../common/storage.service';
 import { AddOrganisationMembreDto } from './dto/add-organisation-membre.dto';
+import { UpdateMembrePosteDto } from './dto/update-membre-poste.dto';
 import { UpdateMembreRoleDto } from './dto/update-membre-role.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { OrganisationService } from './organisation.service';
@@ -73,6 +74,16 @@ export class OrganisationController {
     @Body() dto: UpdateMembreRoleDto,
   ) {
     return this.organisationService.updateMembreRole(user.organisationId, userId, user, dto);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Patch('membres/:userId/poste')
+  updateMembrePoste(
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateMembrePosteDto,
+  ) {
+    return this.organisationService.updateMembrePoste(user.organisationId, userId, dto);
   }
 
   @Roles(RoleGlobal.ADMIN)

@@ -1,5 +1,4 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
-import { RoleGlobal } from '@prisma/client';
+import { IsOptional, IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class AddOrganisationMembreDto {
   @IsEmail()
@@ -10,6 +9,7 @@ export class AddOrganisationMembreDto {
   nom: string;
 
   @IsOptional()
-  @IsEnum(RoleGlobal)
-  roleGlobal?: RoleGlobal;
+  @IsString()
+  @MaxLength(100)
+  poste?: string;
 }

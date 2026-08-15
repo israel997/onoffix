@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Toggle } from '@/components/ui/toggle';
 import {
   addOrganisationMembre,
   cancelOrganisationInvitation,
   listOrganisationInvitations,
   listOrganisationMembres,
   removeOrganisationMembre,
+  updateMembrePoste,
   updateOrganisationMembreRole,
   type Invitation,
   type OrganisationMembre,
@@ -30,13 +32,16 @@ export default function MembersPage() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [nom, setNom] = useState('');
-  const [inviteRole, setInviteRole] = useState<'ADMIN' | 'MEMBRE'>('MEMBRE');
+  const [poste, setPoste] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [editingPosteId, setEditingPosteId] = useState<string | null>(null);
+  const [posteDraft, setPosteDraft] = useState('');
+  const [savingPoste, setSavingPoste] = useState(false);
 
   async function load() {
     const [membresData, invitationsData] = await Promise.all([
@@ -58,7 +63,7 @@ export default function MembersPage() {
     setNotice(null);
     setCreating(true);
     try {
-      const result = await addOrganisationMembre({ email, nom, roleGlobal: inviteRole });
+      const result = await addOrganisationMembre({ email, nom, poste: poste || undefined });
       const message =
         result.status === 'added'
           ? `${nom} was added to the organisation.`
@@ -67,7 +72,7 @@ export default function MembersPage() {
       toast(message);
       setEmail('');
       setNom('');
-      setInviteRole('MEMBRE');
+      setPoste('');
       setShowForm(false);
       await load();
     } catch (err) {
@@ -135,6 +140,24 @@ export default function MembersPage() {
     }
   }
 
+  function startEditPoste(membre: OrganisationMembre) {
+    setEditingPosteId(membre.id);
+    setPosteDraft(membre.poste ?? '');
+  }
+
+  async function handleSavePoste(membre: OrganisationMembre) {
+    setSavingPoste(true);
+    try {
+      await updateMembrePoste(membre.id, posteDraft || null);
+      await load();
+      setEditingPosteId(null);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    } finally {
+      setSavingPoste(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Members' }]} />
@@ -160,15 +183,13 @@ export default function MembersPage() {
               <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </Label>
             <Label>
-              Role
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MEMBRE')}
-                className="h-10 rounded-lg border border-border bg-surface px-3 text-sm"
-              >
-                <option value="MEMBRE">Member</option>
-                <option value="ADMIN">Admin</option>
-              </select>
+              Job title (optional)
+              <Input
+                value={poste}
+                onChange={(e) => setPoste(e.target.value)}
+                maxLength={100}
+                placeholder="Chief Technical Officer"
+              />
             </Label>
             <Button type="submit" disabled={creating} className="w-fit">
               {creating ? 'Sending…' : 'Send invitation'}
@@ -194,7 +215,10 @@ export default function MembersPage() {
               <div key={inv.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">{inv.nom}</p>
-                  <p className="text-xs text-muted-foreground">{inv.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {inv.email}
+                    {inv.poste && ` · ${inv.poste}`}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="declared">Pending</Badge>
@@ -216,8 +240,41 @@ export default function MembersPage() {
                 <div>
                   <p className="text-sm font-medium text-foreground">{m.nom}</p>
                   <p className="text-xs text-muted-foreground">{m.email}</p>
+                  {editingPosteId === m.id ? (
+                    <div className="mt-1 flex items-center gap-2">
+                      <Input
+                        autoFocus
+                        value={posteDraft}
+                        onChange={(e) => setPosteDraft(e.target.value)}
+                        maxLength={100}
+                        placeholder="Job title"
+                        className="h-7 w-48 text-xs"
+                      />
+                      <Button size="sm" disabled={savingPoste} onClick={() => handleSavePoste(m)}>
+                        Save
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={savingPoste}
+                        onClick={() => setEditingPosteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    isAdmin && (
+                      <button
+                        onClick={() => startEditPoste(m)}
+                        className="mt-0.5 text-xs text-brand-blue hover:underline"
+                      >
+                        {m.poste ?? 'Add job title'}
+                      </button>
+                    )
+                  )}
+                  {!isAdmin && m.poste && <p className="mt-0.5 text-xs text-muted-foreground">{m.poste}</p>}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3">
                   <Badge tone="validated">Joined</Badge>
                   {m.bureaux.map((b) => (
                     <Badge key={b.bureau.id} tone="neutral">
@@ -226,22 +283,20 @@ export default function MembersPage() {
                   ))}
                   {m.id === user?.organisation.proprietaireId ? (
                     <Badge tone="brand">Owner</Badge>
+                  ) : isOwner ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Admin</span>
+                      <Toggle
+                        checked={m.roleGlobal === 'ADMIN'}
+                        disabled={updatingRoleId === m.id}
+                        label={`Toggle admin for ${m.nom}`}
+                        onChange={() => handleRoleChange(m, m.roleGlobal === 'ADMIN' ? 'MEMBRE' : 'ADMIN')}
+                      />
+                    </div>
                   ) : (
                     <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
                       {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
                     </Badge>
-                  )}
-                  {isOwner && m.id !== user?.organisation.proprietaireId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={updatingRoleId === m.id}
-                      onClick={() =>
-                        handleRoleChange(m, m.roleGlobal === 'ADMIN' ? 'MEMBRE' : 'ADMIN')
-                      }
-                    >
-                      {m.roleGlobal === 'ADMIN' ? 'Remove admin' : 'Make admin'}
-                    </Button>
                   )}
                   {isAdmin && m.id !== user?.organisation.proprietaireId && m.id !== user?.id && (
                     <Button
