@@ -17,6 +17,14 @@ import {
   type Tache,
 } from '@/lib/api';
 import { useConfirm } from '@/lib/confirm-context';
+import {
+  PRIORITE_TONE,
+  SANTE_LABEL,
+  SANTE_TONE,
+  STATUT_LABEL,
+  STATUT_PROGRESS,
+  STATUT_TONE,
+} from '@/lib/tache-labels';
 import { useToast } from '@/lib/toast-context';
 
 function formatDuration(ms: number) {
@@ -28,54 +36,6 @@ function formatDuration(ms: number) {
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
-
-const STATUT_TONE: Record<Tache['statut'], 'neutral' | 'declared' | 'validated' | 'review' | 'brand'> = {
-  A_FAIRE: 'neutral',
-  ACCEPTEE: 'brand',
-  EN_COURS: 'brand',
-  DECLARE: 'declared',
-  VALIDE: 'validated',
-  A_REVOIR: 'review',
-};
-
-const STATUT_LABEL: Record<Tache['statut'], string> = {
-  A_FAIRE: 'To do',
-  ACCEPTEE: 'Accepted',
-  EN_COURS: 'In progress',
-  DECLARE: 'Waiting for validation',
-  VALIDE: 'Validated',
-  A_REVOIR: 'Needs rework',
-};
-
-const STATUT_PROGRESS: Record<Tache['statut'], number> = {
-  A_FAIRE: 0,
-  ACCEPTEE: 20,
-  EN_COURS: 50,
-  A_REVOIR: 60,
-  DECLARE: 80,
-  VALIDE: 100,
-};
-
-const SANTE_TONE: Record<Tache['sante'], 'neutral' | 'declared' | 'validated' | 'review' | 'brand'> = {
-  NORMAL: 'neutral',
-  A_SURVEILLER: 'declared',
-  A_RISQUE: 'review',
-  BLOQUEE: 'review',
-};
-
-const SANTE_LABEL: Record<Tache['sante'], string> = {
-  NORMAL: 'Normal',
-  A_SURVEILLER: 'Watch',
-  A_RISQUE: 'At risk',
-  BLOQUEE: 'Blocked',
-};
-
-const PRIORITE_TONE: Record<Tache['priorite'], 'neutral' | 'declared' | 'validated' | 'review' | 'brand'> = {
-  BASSE: 'neutral',
-  NORMALE: 'neutral',
-  HAUTE: 'declared',
-  URGENTE: 'review',
-};
 
 function ProgressBar({ percent }: { percent: number }) {
   return (

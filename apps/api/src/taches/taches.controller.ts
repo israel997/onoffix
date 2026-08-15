@@ -29,6 +29,11 @@ export class MesTachesController {
   mesTaches(@CurrentUser() user: AuthenticatedUser) {
     return this.tachesService.mesTaches(user);
   }
+
+  @Get('alertes')
+  alertes(@CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.alertes(user);
+  }
 }
 
 @UseGuards(BureauRoleGuard)

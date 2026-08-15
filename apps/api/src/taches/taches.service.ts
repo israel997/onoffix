@@ -262,6 +262,97 @@ export class TachesService {
     });
   }
 
+  /**
+   * Tâches "à risque" pour l'utilisateur : les siennes + celles des bureaux qu'il manage
+   * (tout le bureau pour un admin). Une tâche est signalée si santé À_RISQUE/BLOQUÉE, un
+   * blocage est actif, ou l'échéance est dépassée / proche (≤ 3 jours).
+   */
+  async alertes(user: AuthenticatedUser) {
+    const managedBureauIds = new Set(
+      user.roleGlobal === RoleGlobal.ADMIN
+        ? (
+            await this.prisma.bureau.findMany({
+              where: { organisationId: user.organisationId },
+              select: { id: true },
+            })
+          ).map((b) => b.id)
+        : (
+            await this.prisma.userBureau.findMany({
+              where: { userId: user.userId, roleDansBureau: RoleBureau.MANAGER },
+              select: { bureauId: true },
+            })
+          ).map((m) => m.bureauId),
+    );
+
+    const taches = await this.prisma.tache.findMany({
+      where: {
+        statut: { not: StatutTache.VALIDE },
+        OR: [
+          { assigneAId: user.userId, projet: { bureau: { organisationId: user.organisationId } } },
+          { projet: { proprietaireId: user.userId } },
+          ...(managedBureauIds.size
+            ? [{ projet: { bureauId: { in: [...managedBureauIds] } } }]
+            : []),
+        ],
+      },
+      include: {
+        assigneA: { select: { id: true, nom: true, email: true } },
+        projet: {
+          select: {
+            id: true,
+            nom: true,
+            bureauId: true,
+            bureau: { select: { id: true, nom: true } },
+          },
+        },
+        blocages: { where: { dateFin: null }, select: { id: true, type: true, cause: true } },
+      },
+      orderBy: { dateEcheance: 'asc' },
+    });
+
+    const now = new Date();
+    const seuilProche = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+    const enrichies = taches.map((t) => {
+      const raisons: ('A_RISQUE' | 'BLOQUEE' | 'ECHEANCE_PROCHE' | 'ECHEANCE_DEPASSEE')[] = [];
+      if (t.sante === SanteTache.BLOQUEE || t.blocages.length > 0) {
+        raisons.push('BLOQUEE');
+      } else if (t.sante === SanteTache.A_RISQUE) {
+        raisons.push('A_RISQUE');
+      }
+      if (t.dateEcheance) {
+        if (t.dateEcheance < now) raisons.push('ECHEANCE_DEPASSEE');
+        else if (t.dateEcheance <= seuilProche) raisons.push('ECHEANCE_PROCHE');
+      }
+
+      const bureauId = t.projet.bureauId;
+      return {
+        id: t.id,
+        titre: t.titre,
+        statut: t.statut,
+        sante: t.sante,
+        priorite: t.priorite,
+        dateEcheance: t.dateEcheance,
+        assigneA: t.assigneA,
+        blocages: t.blocages,
+        projet: { id: t.projet.id, nom: t.projet.nom, bureau: t.projet.bureau },
+        raisons,
+        lien: this.lienTache(bureauId),
+        peutReassigner:
+          bureauId !== null &&
+          (user.roleGlobal === RoleGlobal.ADMIN || managedBureauIds.has(bureauId)),
+      };
+    });
+
+    const attention = enrichies.filter((t) => t.raisons.length > 0);
+
+    return {
+      attention,
+      okCount: enrichies.length - attention.length,
+      totalCount: enrichies.length,
+    };
+  }
+
   /** Toutes les tâches du bureau (Organizer + vrais Projets), avec leur Subject d'origine. */
   async listForBureau(bureauId: string, user: AuthenticatedUser) {
     await this.assertBureauMember(bureauId, user);

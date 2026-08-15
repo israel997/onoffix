@@ -713,6 +713,34 @@ export function getMyTasks() {
   return authFetch<MyTache[]>('/taches/mes-taches');
 }
 
+export type RaisonAlerte = 'A_RISQUE' | 'BLOQUEE' | 'ECHEANCE_PROCHE' | 'ECHEANCE_DEPASSEE';
+
+export interface AlerteTache {
+  id: string;
+  titre: string;
+  statut: StatutTache;
+  sante: SanteTache;
+  priorite: PrioriteTache;
+  dateEcheance: string | null;
+  assigneA: { id: string; nom: string; email: string } | null;
+  blocages: { id: string; type: TypeBlocage; cause: string | null }[];
+  projet: { id: string; nom: string; bureau: { id: string; nom: string } | null };
+  raisons: RaisonAlerte[];
+  lien: string;
+  peutReassigner: boolean;
+}
+
+export interface Alertes {
+  attention: AlerteTache[];
+  okCount: number;
+  totalCount: number;
+}
+
+/** Tâches à risque pour l'utilisateur : les siennes + celles des bureaux qu'il manage. */
+export function getAlertes() {
+  return authFetch<Alertes>('/taches/alertes');
+}
+
 export type StatutValidationDeclaration = 'EN_ATTENTE' | 'VALIDEE' | 'LITIGE';
 
 export interface RituelTache {

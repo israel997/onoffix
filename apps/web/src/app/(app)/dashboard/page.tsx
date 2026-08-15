@@ -1,20 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertTaskRow } from '@/components/dashboard/alert-task-row';
 import { TodayChecklist } from '@/components/rituel/today-checklist';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getOrganisationStats, type OrganisationStats } from '@/lib/api';
+import { getAlertes, getOrganisationStats, type Alertes, type OrganisationStats } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<OrganisationStats | null>(null);
+  const [alertes, setAlertes] = useState<Alertes | null>(null);
+
+  const loadAlertes = useCallback(() => {
+    getAlertes().then(setAlertes);
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     getOrganisationStats().then(setStats);
-  }, []);
+    loadAlertes();
+  }, [loadAlertes]);
 
   if (!user) return null;
 
@@ -37,6 +43,32 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">Tasks</p>
         </Card>
       </div>
+
+      <Card>
+        <div className="flex items-center justify-between">
+          <CardTitle>Needs your attention</CardTitle>
+          {alertes && (
+            <span className="text-xs text-muted-foreground">
+              {alertes.okCount} task{alertes.okCount === 1 ? '' : 's'} on track
+            </span>
+          )}
+        </div>
+        {alertes === null ? (
+          <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+        ) : alertes.attention.length === 0 ? (
+          <p className="mt-3 text-sm text-status-validated">
+            {alertes.totalCount === 0
+              ? 'No open tasks to watch — nothing to show yet.'
+              : "Everything's on track. Nothing needs your attention."}
+          </p>
+        ) : (
+          <div className="mt-1 flex flex-col divide-y divide-border">
+            {alertes.attention.map((tache) => (
+              <AlertTaskRow key={tache.id} tache={tache} currentUserId={user.id} onReassigned={loadAlertes} />
+            ))}
+          </div>
+        )}
+      </Card>
 
       <TodayChecklist />
 
