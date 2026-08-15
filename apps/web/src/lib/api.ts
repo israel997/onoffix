@@ -481,6 +481,87 @@ export function getBureauStats(bureauId: string) {
   return authFetch<BureauStats>(`/bureaux/${bureauId}/stats`);
 }
 
+export type StatutProjet = 'EN_COURS' | 'TERMINE' | 'ARCHIVE';
+
+export interface Projet {
+  id: string;
+  nom: string;
+  description: string | null;
+  statut: StatutProjet;
+  dateDebut: string | null;
+  dateFin: string | null;
+  bureauId: string | null;
+  estOrganizer: boolean;
+  createdAt: string;
+}
+
+export function listProjets(bureauId: string) {
+  return authFetch<Projet[]>(`/bureaux/${bureauId}/projets`);
+}
+
+export interface EvenementRapport {
+  type: 'TACHE_CREEE' | 'TACHE_DEMARREE' | 'TACHE_DECLAREE' | 'TACHE_VALIDEE' | 'BLOCAGE_OUVERT' | 'BLOCAGE_RESOLU';
+  tacheId: string;
+  titre: string;
+  detail: string | null;
+}
+
+export interface RapportProjet {
+  projet: {
+    id: string;
+    nom: string;
+    description: string | null;
+    statut: StatutProjet;
+    dateDebut: string | null;
+    dateFin: string | null;
+    createdAt: string;
+    bureau: { id: string; nom: string };
+  };
+  syntheseExecutive: {
+    tachesTotal: number;
+    tachesTerminees: number;
+    tachesEnRetard: number;
+    progression: number | null;
+    tempsPrevuMinutes: number;
+    tempsReelMinutes: number;
+    ecartTempsMinutes: number;
+  };
+  comparatifPrevuReel: {
+    dateDebutPrevue: string | null;
+    dateFinPrevue: string | null;
+    dateDebutReelle: string;
+    dateFinReelle: string | null;
+    dureePrevueJours: number | null;
+    dureeReelleJours: number | null;
+    ecartJours: number | null;
+  };
+  timeline: { date: string; evenements: EvenementRapport[] }[];
+  evolutionEquipe: { date: string; tachesValidees: number; tachesDemarrees: number; blocagesActifs: number }[];
+  contributionMembres: {
+    user: { id: string; nom: string };
+    tachesAssignees: number;
+    tachesTerminees: number;
+    tempsReelMinutes: number;
+    blocagesRencontres: number;
+  }[];
+  blocages: {
+    id: string;
+    type: TypeBlocage;
+    cause: string | null;
+    tache: { id: string; titre: string };
+    responsable: { id: string; nom: string } | null;
+    dateDebut: string;
+    dateFin: string | null;
+    dureeJours: number;
+  }[];
+  analyseNarrative: string | null;
+  bilan: { pointsPositifs: string[]; pointsAmelioration: string[]; recommandations: string[] } | null;
+}
+
+export function getProjetRapport(projetId: string) {
+  return authFetch<RapportProjet>(`/projets/${projetId}/rapport`);
+}
+
 export type AddMembreResult =
   | { status: 'added'; membre: OrganisationMembre }
   | { status: 'invited'; invitation: { id: string; email: string; nom: string } };

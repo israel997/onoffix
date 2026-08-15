@@ -7,10 +7,12 @@ import { cn } from '@/lib/cn';
 export function OfficeNav({ bureauId, showSettings }: { bureauId: string; showSettings: boolean }) {
   const pathname = usePathname();
 
+  const overviewHref = `/offices/${bureauId}`;
   const items = [
-    { label: 'Overview', href: `/offices/${bureauId}` },
+    { label: 'Overview', href: overviewHref },
     { label: 'Organizer', href: `/offices/${bureauId}/organizer` },
     { label: 'Tasks', href: `/offices/${bureauId}/tasks` },
+    { label: 'Projects', href: `/offices/${bureauId}/projects` },
     ...(showSettings ? [{ label: 'Today', href: `/offices/${bureauId}/today` }] : []),
     ...(showSettings ? [{ label: 'Settings', href: `/offices/${bureauId}/settings` }] : []),
   ];
@@ -18,7 +20,8 @@ export function OfficeNav({ bureauId, showSettings }: { bureauId: string; showSe
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-border">
       {items.map((item) => {
-        const active = pathname === item.href;
+        const active =
+          item.href === overviewHref ? pathname === item.href : pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}

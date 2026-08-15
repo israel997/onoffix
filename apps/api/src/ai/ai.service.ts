@@ -42,6 +42,40 @@ Règles :
 {"projetNom": "...", "taches": [{"titre": "...", "description": "...", "priorite": "NORMALE"}]}
 La description est optionnelle. Si aucune tâche ne se dégage du texte, réponds avec un tableau "taches" vide.`;
 
+export interface RapportAnalyseInput {
+  projetNom: string;
+  tachesTotal: number;
+  tachesTerminees: number;
+  tachesEnRetard: number;
+  progression: number | null;
+  dureePrevueJours: number | null;
+  dureeReelleJours: number | null;
+  ecartJours: number | null;
+  blocagesCount: number;
+  blocagesActifs: number;
+  contributionMembres: { nom: string; tachesTerminees: number; tachesAssignees: number }[];
+}
+
+export interface RapportAnalyse {
+  narrative: string;
+  pointsPositifs: string[];
+  pointsAmelioration: string[];
+  recommandations: string[];
+}
+
+const RAPPORT_PROMPT = `Tu es un chef de projet qui rédige la synthèse d'un rapport de projet à partir de
+données chiffrées.
+
+Règles :
+- Reste factuel, basé uniquement sur les chiffres fournis, sans invention.
+- "narrative" : 3 à 5 phrases résumant le déroulement du projet (rythme, écart de temps, blocages,
+  contribution de l'équipe).
+- "pointsPositifs" : jusqu'à 3 points positifs concrets.
+- "pointsAmelioration" : jusqu'à 3 points à améliorer.
+- "recommandations" : jusqu'à 3 recommandations actionnables pour de prochains projets similaires.
+- Réponds uniquement avec un objet JSON, sans texte autour, au format :
+{"narrative": "...", "pointsPositifs": ["..."], "pointsAmelioration": ["..."], "recommandations": ["..."]}`;
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -138,6 +172,44 @@ export class AiService {
     } catch (error) {
       this.logger.warn(`Échec de la génération de plan par IA: ${error}`);
       return empty;
+    }
+  }
+
+  async genererAnalyseRapport(data: RapportAnalyseInput): Promise<RapportAnalyse | null> {
+    if (!this.client) return null;
+
+    try {
+      const model = this.client.getGenerativeModel({
+        model: this.model,
+        generationConfig: { responseMimeType: 'application/json' },
+      });
+      const result = await model.generateContent(
+        `${RAPPORT_PROMPT}\n\nDonnées :\n${JSON.stringify(data)}`,
+      );
+      const raw = result.response.text();
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+
+      const obj = parsed as Record<string, unknown>;
+      const narrative = typeof obj.narrative === 'string' ? obj.narrative.trim() : '';
+      if (!narrative) return null;
+
+      const toStringArray = (value: unknown): string[] =>
+        Array.isArray(value)
+          ? value.filter(
+              (item): item is string => typeof item === 'string' && item.trim().length > 0,
+            )
+          : [];
+
+      return {
+        narrative,
+        pointsPositifs: toStringArray(obj.pointsPositifs),
+        pointsAmelioration: toStringArray(obj.pointsAmelioration),
+        recommandations: toStringArray(obj.recommandations),
+      };
+    } catch (error) {
+      this.logger.warn(`Échec de la génération d'analyse de rapport par IA: ${error}`);
+      return null;
     }
   }
 }
