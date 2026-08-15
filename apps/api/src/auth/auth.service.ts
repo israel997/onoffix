@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { RoleGlobal } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes, randomUUID } from 'crypto';
+import { createHash, randomBytes, randomInt, randomUUID } from 'crypto';
 import { EmailService } from '../email/email.service';
 import { resolveCountryFromIp } from '../common/geo-ip.util';
 import { OrganizerService } from '../organizer/organizer.service';
@@ -25,9 +25,14 @@ import { JwtPayload } from './jwt-payload.interface';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 
 const REFRESH_TOKEN_SALT_ROUNDS = 10;
-const EMAIL_VERIFICATION_TTL_HOURS = 24;
+const OTP_TTL_MINUTES = 10;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const PASSWORD_RESET_TTL_HOURS = 1;
 const MAX_ORGANISATIONS_OWNED = 2;
+
+function generateOtp(): string {
+  return randomInt(0, 1_000_000).toString().padStart(6, '0');
+}
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -72,12 +77,10 @@ export class AuthService {
     });
 
     await this.organizerService.createPersonal(user.id);
-    await this.sendVerificationEmail(user.id).catch((error) =>
-      this.logger.warn(`Échec d'envoi de l'email de vérification: ${error}`),
-    );
+    await this.sendOtp(user.id);
     this.captureCountry(user.accountId, ip);
 
-    return this.issueTokens(user.id, user.organisationId, user.roleGlobal, user.accountId);
+    return { email: user.email };
   }
 
   /** Résout le pays depuis l'IP et le stocke sur le compte. Best-effort, jamais bloquant. */
@@ -90,27 +93,33 @@ export class AuthService {
       .catch((error) => this.logger.warn(`Échec de la géolocalisation IP: ${error}`));
   }
 
-  async sendVerificationEmail(userId: string) {
+  private async sendOtp(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
-    const rawToken = randomBytes(32).toString('hex');
+    const code = generateOtp();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + EMAIL_VERIFICATION_TTL_HOURS);
+    expiresAt.setMinutes(expiresAt.getMinutes() + OTP_TTL_MINUTES);
 
     await this.prisma.emailVerificationToken.create({
-      data: { userId: user.id, tokenHash: hashToken(rawToken), expiresAt },
+      data: { userId: user.id, tokenHash: hashToken(code), expiresAt },
     });
 
-    await this.emailService.sendVerificationEmail(user.email, user.nom, rawToken);
+    await this.emailService.sendOtpEmail(user.email, user.nom, code);
   }
 
-  async verifyEmail(token: string) {
-    const tokenHash = hashToken(token);
+  /** Vérifie le code OTP reçu à l'inscription puis ouvre la session (premier accès réel). */
+  async verifyOtp(email: string, code: string, ip?: string) {
     const record = await this.prisma.emailVerificationToken.findFirst({
-      where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
+      where: {
+        tokenHash: hashToken(code),
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+        user: { email },
+      },
+      include: { user: true },
     });
     if (!record) {
-      throw new BadRequestException('Lien de vérification invalide ou expiré');
+      throw new BadRequestException('Code invalide ou expiré');
     }
 
     await this.prisma.$transaction([
@@ -120,6 +129,36 @@ export class AuthService {
         data: { usedAt: new Date() },
       }),
     ]);
+
+    this.captureCountry(record.user.accountId, ip);
+    return this.issueTokens(
+      record.user.id,
+      record.user.organisationId,
+      record.user.roleGlobal,
+      record.user.accountId,
+    );
+  }
+
+  /** Toujours silencieux côté réponse pour ne pas révéler si un email est enregistré. */
+  async resendOtp(email: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { email },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!user || user.emailVerifie) return;
+
+    const lastToken = await this.prisma.emailVerificationToken.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (
+      lastToken &&
+      Date.now() - lastToken.createdAt.getTime() < OTP_RESEND_COOLDOWN_SECONDS * 1000
+    ) {
+      throw new BadRequestException('Merci de patienter avant de redemander un code');
+    }
+
+    await this.sendOtp(user.id);
   }
 
   async login(dto: LoginDto) {
@@ -143,6 +182,9 @@ export class AuthService {
       if (!membership) {
         throw new UnauthorizedException('Vous ne faites pas partie de cette organisation');
       }
+      if (!membership.emailVerifie) {
+        return { needsVerification: true as const, email: account.email };
+      }
       return this.issueTokens(
         membership.id,
         membership.organisationId,
@@ -163,6 +205,9 @@ export class AuthService {
     }
 
     const [membership] = memberships;
+    if (!membership.emailVerifie) {
+      return { needsVerification: true as const, email: account.email };
+    }
     return this.issueTokens(
       membership.id,
       membership.organisationId,
@@ -315,6 +360,8 @@ export class AuthService {
           nom: invitation.nom,
           email: invitation.email,
           roleGlobal: invitation.roleGlobal,
+          // L'invitation a été envoyée à cette adresse — cliquer le lien la vérifie déjà.
+          emailVerifie: true,
         },
       }),
       this.prisma.invitation.update({

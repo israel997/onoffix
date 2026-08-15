@@ -67,7 +67,7 @@ export function registerOrganisation(data: {
   email: string;
   password: string;
 }) {
-  return publicRequest<AuthTokens>('/auth/register', data);
+  return publicRequest<{ email: string }>('/auth/register', data);
 }
 
 export interface OrganisationOption {
@@ -81,14 +81,33 @@ export interface NeedsOrganisationSelection {
   organisations: OrganisationOption[];
 }
 
+export interface NeedsVerification {
+  needsVerification: true;
+  email: string;
+}
+
 export function isNeedsOrganisationSelection(
-  result: AuthTokens | NeedsOrganisationSelection,
+  result: AuthTokens | NeedsOrganisationSelection | NeedsVerification,
 ): result is NeedsOrganisationSelection {
   return 'needsOrganisationSelection' in result;
 }
 
+export function isNeedsVerification(
+  result: AuthTokens | NeedsOrganisationSelection | NeedsVerification,
+): result is NeedsVerification {
+  return 'needsVerification' in result;
+}
+
 export function login(data: { email: string; password: string; organisationId?: string }) {
-  return publicRequest<AuthTokens | NeedsOrganisationSelection>('/auth/login', data);
+  return publicRequest<AuthTokens | NeedsOrganisationSelection | NeedsVerification>('/auth/login', data);
+}
+
+export function verifyOtp(email: string, code: string) {
+  return publicRequest<AuthTokens>('/auth/verify-otp', { email, code });
+}
+
+export function resendOtp(email: string) {
+  return publicRequest<void>('/auth/resend-otp', { email });
 }
 
 export interface InvitationPreview {
@@ -211,14 +230,6 @@ async function authFetchForm<T>(path: string, formData: FormData): Promise<T> {
 
 export function getMe() {
   return authFetch<Me>('/users/me');
-}
-
-export function verifyEmail(token: string) {
-  return publicRequest<void>('/auth/verify-email', { token });
-}
-
-export function resendVerification() {
-  return authFetch<void>('/auth/resend-verification', { method: 'POST' });
 }
 
 export type CouleurBureau = 'BLUE' | 'PURPLE' | 'GREEN' | 'AMBER' | 'PINK' | 'SLATE';

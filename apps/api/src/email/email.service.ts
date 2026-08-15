@@ -48,9 +48,8 @@ export class EmailService {
     }
   }
 
-  async sendVerificationEmail(to: string, nom: string, token: string) {
-    const link = `${this.frontendUrl}/verify-email?token=${token}`;
-    await this.send(to, 'Confirm your OOffix email address', verificationEmailTemplate(nom, link));
+  async sendOtpEmail(to: string, nom: string, code: string) {
+    await this.send(to, `${code} is your OOffix verification code`, otpEmailTemplate(nom, code));
   }
 
   async sendInvitationEmail(
@@ -91,14 +90,19 @@ export class EmailService {
   }
 }
 
-function verificationEmailTemplate(nom: string, link: string): string {
-  return emailShell(
-    nom,
-    `Please confirm your email address to finish setting up your OOffix account.`,
-    link,
-    'Confirm my email',
-    'This link expires in 24 hours.',
-  );
+function otpEmailTemplate(nom: string, code: string): string {
+  return `
+    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
+      <h1 style="color: #0a1440; font-size: 20px;">Hi ${escapeHtml(nom)},</h1>
+      <p style="color: #333; font-size: 14px; line-height: 1.5;">
+        Enter this code to confirm your email address and finish setting up your OOffix account.
+      </p>
+      <p style="margin: 24px 0; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0a1440;">
+        ${escapeHtml(code)}
+      </p>
+      <p style="color: #888; font-size: 12px;">This code expires in 10 minutes.</p>
+    </div>
+  `;
 }
 
 const ROLE_LABEL: Record<'ADMIN' | 'MEMBRE', string> = { ADMIN: 'Admin', MEMBRE: 'Member' };

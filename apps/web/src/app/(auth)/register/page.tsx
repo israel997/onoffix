@@ -9,12 +9,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
-import { registerOrganisation, storeTokens } from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
+import { registerOrganisation } from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { refresh } = useAuth();
   const [organisationNom, setOrganisationNom] = useState('');
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
@@ -32,10 +30,8 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const tokens = await registerOrganisation({ organisationNom, nom, email, password });
-      storeTokens(tokens);
-      await refresh();
-      router.push('/dashboard');
+      await registerOrganisation({ organisationNom, nom, email, password });
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

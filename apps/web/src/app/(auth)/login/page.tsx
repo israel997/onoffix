@@ -9,7 +9,13 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
-import { isNeedsOrganisationSelection, login, storeTokens, type OrganisationOption } from '@/lib/api';
+import {
+  isNeedsOrganisationSelection,
+  isNeedsVerification,
+  login,
+  storeTokens,
+  type OrganisationOption,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
 export default function LoginPage() {
@@ -27,6 +33,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await login({ email, password });
+      if (isNeedsVerification(result)) {
+        router.push(`/verify-otp?email=${encodeURIComponent(result.email)}&resend=1`);
+        return;
+      }
       if (isNeedsOrganisationSelection(result)) {
         setOrganisations(result.organisations);
         return;
@@ -46,6 +56,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await login({ email, password, organisationId });
+      if (isNeedsVerification(result)) {
+        router.push(`/verify-otp?email=${encodeURIComponent(result.email)}&resend=1`);
+        return;
+      }
       if (isNeedsOrganisationSelection(result)) return;
       storeTokens(result);
       await refresh();

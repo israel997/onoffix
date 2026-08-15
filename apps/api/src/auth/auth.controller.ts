@@ -24,9 +24,10 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SwitchOrganisationDto } from './dto/switch-organisation.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -63,16 +64,17 @@ export class AuthController {
   }
 
   @Public()
-  @Post('verify-email')
+  @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.authService.verifyEmail(dto.token);
+  verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
+    return this.authService.verifyOtp(dto.email, dto.code, req.ip);
   }
 
-  @Post('resend-verification')
+  @Public()
+  @Post('resend-otp')
   @HttpCode(HttpStatus.NO_CONTENT)
-  resendVerification(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.sendVerificationEmail(user.userId);
+  resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto.email);
   }
 
   @Get('organisations')
