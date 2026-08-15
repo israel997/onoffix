@@ -7,54 +7,103 @@ Fichier vivant : design system, commandes, hébergement et workflow. À complét
 ## 0. Fonctionnalités actuellement disponibles
 
 ### Comptes & authentification
-- Inscription (créé un compte + une organisation)
-- Connexion / déconnexion, tokens JWT (access 15 min + refresh 7 jours)
-- Vérification d'email
-- Mot de passe oublié / réinitialisation (email via Brevo)
-- **Multi-organisation** : un même compte (email) peut appartenir à plusieurs organisations ; sélection de l'organisation au login si ambigu
+- **Inscription avec vérification obligatoire par code (OTP)** : le formulaire d'inscription crée le compte + l'organisation mais **ne connecte pas** l'utilisateur — un code à 6 chiffres est envoyé par email (`EmailVerificationToken`, expire en 10 min), et `/verify-otp` doit être validé avant qu'une session ne soit ouverte. Objectif : empêcher la création de comptes avec des adresses email invalides/non possédées. Bouton "Resend code" avec cooldown de 60s.
+- **Connexion** (`/login`) : si le compte n'est pas encore vérifié, `login()` refuse et redirige automatiquement vers `/verify-otp` (avec renvoi auto d'un code). JWT access 15 min + refresh 7 jours.
+- **Sign in with Google** (OAuth) : flux redirect-based (`/auth/google` → Google → `/auth/google/callback`). Premier login = création auto de compte + organisation + Organizer personnel ; email considéré vérifié d'office (pas d'OTP, Google a déjà prouvé la possession de l'adresse).
+- **Comptes invités** (via lien d'invitation) : idem, pas d'OTP requis — cliquer le lien envoyé à l'adresse invitée constitue déjà une preuve de possession.
+- Mot de passe oublié / réinitialisation par email (réponse toujours silencieuse pour ne pas révéler si un email est enregistré).
+- Champ mot de passe avec bouton afficher/masquer sur tous les formulaires auth.
+- **Multi-organisation** : un même compte (email) peut appartenir à plusieurs organisations ; sélection de l'organisation au login si ambigu, bascule (`switch-organisation`) et création d'une organisation supplémentaire (limite 2 possédées) depuis un compte existant.
+- **Modération de compte** (voir Panneau admin) : `banned` bloque toute connexion immédiatement (vérifié à chaque requête, même sur un token déjà émis) ; `restricted` limite le compte aux requêtes de lecture (GET) uniquement.
 
 ### Organisation & membres
-- Page organisation (nom, logo)
-- Créer une nouvelle organisation depuis un compte existant
-- Liste des membres de l'organisation, rôles (Admin / Membre)
-- Inviter un membre par email : rattachement immédiat si un compte existe déjà pour cet email, sinon envoi d'un email d'invitation (accept-invite → création de compte + rattachement)
-- Annuler une invitation en attente
-- Changer le rôle d'un membre, retirer un membre
-- Stats organisation : nombre de membres, nombre de tâches
+- Page organisation (nom, logo).
+- Créer une nouvelle organisation depuis un compte existant.
+- **Liste des membres** avec rôles (Admin / Membre).
+- **Inviter un membre avec un rôle choisi à l'invitation** (Admin ou Membre) : rattachement immédiat si un compte existe déjà pour cet email (avec le rôle choisi), sinon email d'invitation avec deux boutons — **Accept** (bleu, mène à `/accept-invite` : définir un mot de passe puis rejoindre) et **Decline** (rouge, mène à `/decline-invite` : supprime l'invitation). Expire après 7 jours.
+- Annuler une invitation en attente (action côté organisation, différente du Decline côté invité).
+- Changer le rôle d'un membre à tout moment (réservé au propriétaire de l'organisation), retirer un membre.
+- Stats organisation : nombre de membres, nombre de tâches.
 
 ### Bureaux (offices)
-- Créer / modifier / supprimer un bureau (limite : 10 par organisation)
-- Réordonner les bureaux
-- Ajouter/retirer des membres à un bureau, rôle par bureau (Manager / Collaborateur)
-- Paramètres du bureau : heure de déclaration quotidienne, délai de relance, visibilité du classement de fiabilité, couleur, photo
-- Chat d'équipe par bureau (temps réel, WebSocket, pièces jointes)
+- Créer / modifier / supprimer un bureau (limite : 10 par organisation), réordonner.
+- **Ajout de membre à un bureau soumis à consentement** : un manager qui ajoute un collaborateur crée une `BureauInvitation` en attente (pas d'accès immédiat) — la personne reçoit un email + une notification in-app, et voit l'invitation sur `/offices` avec **Accept**/**Decline**. L'adhésion réelle (`UserBureau`) n'est créée qu'à l'acceptation. Le manager voit les invitations en attente dans la liste des membres du bureau (badge orange "Pending") et peut les annuler.
+- Rôle par bureau (Manager / Collaborateur), changeable à tout moment par un manager.
+- Paramètres du bureau : heure de déclaration quotidienne, délai de relance, visibilité du classement de fiabilité, couleur, photo.
+- Chat d'équipe par bureau (temps réel, WebSocket, pièces jointes).
 
 ### Organizer (brain dump → tâches)
-- Un Organizer personnel (privé, par utilisateur) + un Organizer par bureau
-- **Subjects** : plusieurs fils de discussion nommés par Organizer, chacun avec son propre chat et sa propre génération de tâches
-- Génération de tâches par IA (Google Gemini) à partir des messages d'un Subject, **déclenchement réactif** ~30s après le dernier message (pas de poll fixe)
-- Ajout manuel d'une tâche dans un Organizer (sans passer par l'IA)
+- Un Organizer personnel (privé, par utilisateur) + un Organizer par bureau.
+- **Subjects** : plusieurs fils de discussion nommés par Organizer, chacun avec son propre chat et sa propre génération de tâches.
+- Génération de tâches par IA (Google Gemini) à partir des messages d'un Subject, **déclenchement réactif** ~30s après le dernier message (debounce BullMQ, pas de poll fixe).
+- Ajout manuel d'une tâche dans un Organizer (sans passer par l'IA).
+- **Plan structuré via IA** : à partir d'un Subject, l'IA suggère `{projetNom, tâches priorisées}` — aperçu affiché côté client, rien n'est persisté tant que l'utilisateur n'a pas explicitement validé la conversion (`/plan/convertir`), qui crée un **vrai Projet** + ses tâches.
 
 ### Tâches
-- Assignation d'une tâche à un membre
-- Cycle de vie : à faire → acceptée → en cours → déclarée → validée / à revoir
-- "Mes tâches" : toutes les tâches assignées à l'utilisateur, tous bureaux + Organizer personnel confondus
+- Cycle de vie : à faire → acceptée → en cours → déclarée → validée / à revoir.
+- **Santé** (`sante`) : Normal / À surveiller / À risque / Bloquée — distincte du statut, reflète le risque.
+- **Priorité** : Basse / Normale / Haute / Urgente.
+- **Blocages** : type (tâche/personne/décision/client/ressource/externe) + cause + responsable ; ouvrir un blocage passe automatiquement la santé à Bloquée, le résoudre repasse la santé à Normal quand plus aucun blocage n'est actif.
+- **Chronomètre** par tâche et par utilisateur (start/stop), alimente le temps réellement passé.
+- Assignation / **réassignation** d'une tâche à un autre membre du bureau (manager).
+- Modale de détail (santé, priorité, blocages, chrono, tag Subject d'origine), suppression (admin pour les tâches de bureau).
+- "Mes tâches" : toutes les tâches assignées à l'utilisateur, tous bureaux + Organizer personnel confondus.
+
+### Projets (réels) & Rapport de projet
+- Un **vrai Projet** naît de la conversion d'un plan Organizer (pas de création manuelle dans l'UI actuellement). Liste consultable depuis l'onglet **Projects** d'un bureau.
+- Stats projet : progression, temps prévu vs réel, tâches en retard, blocages, risques.
+- **Rapport de projet complet** (`/offices/:id/projects/:projetId`) :
+  - **Synthèse exécutive** : progression, tâches terminées/en retard, écart de temps (réel − estimé).
+  - **Comparatif prévu vs réel** : dates de début/fin planifiées vs constatées, durée, écart en jours.
+  - **Timeline rejouable, jour par jour** : reconstituée en rejouant chronologiquement les événements de tâches (créée/démarrée/déclarée/validée) et de blocages (ouvert/résolu) ; contrôle Play/Pause/Prev/Next + curseur, chaque événement est cliquable.
+  - **Évolution quotidienne de l'équipe** : dérivée du même replay (tâches validées/démarrées cumulées, blocages actifs, jour par jour).
+  - **Contribution par membre** : tâches assignées/terminées, temps loggé, blocages rencontrés.
+  - **Blocages & dépendances** : historique complet (actifs et résolus) avec durée.
+  - **Analyse narrative générée par IA** + **bilan** (points positifs / points à améliorer / recommandations) — best-effort, jamais bloquant si l'IA est indisponible.
+
+### Alertes & dashboard
+- **Détection automatique des tâches à risque** : santé À risque/Bloquée, blocage actif, échéance dépassée ou dans les 3 prochains jours. Portée : mes tâches + celles des bureaux que je manage (tout l'org pour un admin).
+- Le **dashboard** sépare "Needs your attention" (liste avec badges de raison) de "tout va bien" (compteur "X tasks on track"), avec actions rapides par tâche : **View** (aller à la tâche), **Contact** (mailto vers l'assigné), **Reassign** (managers, sélecteur inline).
 
 ### Rituel quotidien (déclaration de progression)
-- Vue "Aujourd'hui" : tâches du jour à déclarer (faites / pas faites)
-- Déclaration de la journée par le collaborateur
-- Validation par le manager (OK / litige) le lendemain
-- Score de fiabilité par membre (calculé à partir des déclarations validées)
+- Vue "Aujourd'hui" : tâches du jour à déclarer (faites / pas faites).
+- Déclaration de la journée par le collaborateur, notification aux managers/admins.
+- Validation par le manager (OK / litige) le lendemain.
+- Score de fiabilité par membre (calculé à partir des déclarations validées).
+- **Daily Team Brief** par bureau : synthèse quotidienne (terminé/en cours/bloqué/à risque, blocages actifs, % de rituel complété) — remplace une partie du DSM traditionnel.
+
+### Statistiques (3 niveaux)
+- **Individuel** : tâches assignées/validées/à revoir, heures travaillées, taux de déclaration à temps, blocages rencontrés, respect des délais.
+- **Équipe (bureau)** : progression, charge (membres actifs), tâches bloquées, respect des délais.
+- **Organisation** : nombre de membres, nombre de tâches.
+- Tout calculé en direct depuis Prisma (pas de table de snapshot/cache).
 
 ### Notifications
-- Liste des notifications, compteur non-lues, marquer comme lue(s)
+- Liste des notifications, compteur non-lues, marquer comme lue(s)/toutes lues.
+- Types : assignation, acceptation, rappel de déclaration, relance de retard, validation à faire, tâche validée/à revoir, résumé quotidien, rapport hebdomadaire, invitation à un bureau.
+
+### Panneau admin (super admin)
+- Réservé au(x) email(s) listé(s) dans `SUPER_ADMIN_EMAILS` (défaut : `israellawani.pro@gmail.com`), protégé côté serveur (`SuperAdminGuard`) — pas seulement caché côté UI.
+- **Organisations** : liste (propriétaire, nb membres, date de création), suppression (cascade + nettoyage des comptes devenus orphelins).
+- **Membres** (tableau, toutes organisations confondues) : nom, email, organisation, rôle, date d'inscription, **pays auto-détecté via géolocalisation IP** à l'inscription (best-effort, jamais bloquant), statut (Active/Banned/Restricted).
+- Actions : **promouvoir admin**, **restreindre** (lecture seule) / lever la restriction, **supprimer le compte** définitivement (cascade sur toutes ses adhésions). Actions destructrices confirmées par une modale simple (pas de mot de passe pour l'instant — retiré temporairement, à réintroduire plus tard).
+
+### Chat
+- Chat d'équipe par bureau, temps réel (WebSocket), envoi de fichiers.
 
 ### Profil & paramètres
-- Modifier son profil (nom, poste, bio, photo)
-- Paramètres de l'organisation (Admin)
+- Modifier son profil (nom, poste, bio, photo).
+- Paramètres de l'organisation (Admin).
+
+### Polish / UX
+- Toasts et modales de confirmation (remplacent `window.confirm`).
+- Pages d'erreur stylées (404, 500).
+- Animations d'entrée sobres (modales, toasts, menus), respectent `prefers-reduced-motion`.
+- Images compressées (palette PNG) pour un chargement plus rapide.
+- CORS multi-origine (`ALLOWED_ORIGINS`) pour supporter plusieurs domaines pendant une transition.
 
 ### Landing page publique
-- Page marketing (`/`) avec démo visuelle du produit, comparatif, étapes, CTA
+- Page marketing (`/`) avec démo visuelle du produit, comparatif, étapes, CTA.
 
 ---
 
@@ -164,7 +213,7 @@ pnpm --filter @onoffix/api prisma:seed
 ### 2.4 Git / commit
 
 - Hook **husky pre-commit** : lance lint + typecheck sur tout le monorepo (~2-4 min). Toujours committer avec un timeout long / en arrière-plan.
-- Format de message de commit type : `feat: ...` / `fix: ...` / `style: ...`, footer `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` quand le code est généré avec Claude.
+- Format de message de commit type : `feat: ...` / `fix: ...` / `style: ...`. **Pas de trailer `Co-Authored-By`** (retiré à la demande). Commits groupés par liste de tâches, push une seule fois à la fin plutôt qu'après chaque sous-tâche.
 - Le hook applique aussi `prettier --fix` automatiquement → il arrive qu'un second commit `style: prettier formatting` soit nécessaire juste après si le hook a reformaté des fichiers post-staging.
 
 ---
@@ -174,13 +223,15 @@ pnpm --filter @onoffix/api prisma:seed
 | Service | Rôle | Notes |
 |---|---|---|
 | **Railway** | Héberge l'API NestJS + PostgreSQL + Redis (prod) | Déploiement auto sur push vers `main`. Start command lance `prisma migrate deploy` avant `node dist/main`. |
-| **Vercel** | Héberge le frontend Next.js (prod) | Déploiement auto sur push vers `main`. Root directory : `apps/web`. Env `NEXT_PUBLIC_API_URL` pointant vers l'API Railway. |
+| **Vercel** | Héberge le frontend Next.js (prod), domaine `ooffix.site` | Déploiement auto sur push vers `main`. Root directory : `apps/web`. Env `NEXT_PUBLIC_API_URL` pointant vers l'API Railway. |
 | **Cloudflare R2** | Stockage des fichiers (pièces jointes chat, logos) | S3-compatible, via `@aws-sdk/client-s3`. Variables encore nommées `SPACES_*` dans le code (héritage du nom "DigitalOcean Spaces" d'origine) mais pointent vers R2 en prod. |
-| **Brevo** | Envoi des emails transactionnels (invitations, reset password, vérification email) | API HTTPS (`BREVO_API_KEY`), pas de SMTP — Railway bloque les ports SMTP sortants, d'où ce choix. Sender vérifié par email (pas de domaine custom requis). |
-| **Google AI (Gemini)** | Classification des messages Organizer en tâches | Modèle configurable via `GOOGLE_AI_MODEL` (actuellement `gemini-flash-latest`). |
+| **Resend** | Envoi des emails transactionnels (OTP, invitations, reset password) | API HTTPS (`RESEND_API_KEY`) via `fetch` brut (pas de SDK), pas de SMTP — Railway bloque les ports SMTP sortants. Domaine `ooffix.site` vérifié. Remplace Brevo (lui-même un remplacement d'un essai SMTP Gmail initial). |
+| **Google AI (Gemini)** | Classification des messages Organizer en tâches, plan structuré, analyse narrative des rapports de projet | Modèle configurable via `GOOGLE_AI_MODEL` (actuellement `gemini-flash-latest`). Toutes les méthodes sont best-effort : ne lèvent jamais, retournent un résultat vide/`null` si la clé est absente ou l'appel échoue. |
+| **Google Cloud (OAuth)** | Sign in with Google | `passport-google-oauth20`, flux redirect. |
+| **ip-api.com** | Géolocalisation IP → pays, à l'inscription (panneau admin) | Appel best-effort, jamais bloquant. |
 
 URL prod actuelles :
-- Web : `https://onoffix-web.vercel.app`
+- Web : `https://ooffix.site`
 - API : `https://onoffix-production.up.railway.app`
 
 ---
@@ -191,8 +242,11 @@ URL prod actuelles :
 PORT, DATABASE_URL, REDIS_HOST/REDIS_PORT (ou REDIS_URL en prod)
 JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN
 FRONTEND_URL
-BREVO_API_KEY, EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME
+ALLOWED_ORIGINS                   # CORS multi-domaine, séparés par des virgules ; repli sur FRONTEND_URL
+RESEND_API_KEY, EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME
 GOOGLE_AI_API_KEY, GOOGLE_AI_MODEL
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL   # Sign in with Google
+SUPER_ADMIN_EMAILS                # emails autorisés sur /admin, séparés par des virgules
 ORGANIZER_DEBOUNCE_SECONDS        # délai avant classification IA après le dernier message (défaut 30s)
 SPACES_ENDPOINT, SPACES_REGION, SPACES_BUCKET, SPACES_KEY, SPACES_SECRET, SPACES_PUBLIC_URL
 NEXT_PUBLIC_API_URL               # côté web
@@ -223,5 +277,6 @@ Autres conventions :
 ## 6. À compléter au fil de l'eau
 
 - [ ] Design tokens supplémentaires si on introduit un dark mode.
-- [ ] Rename OnOffix → OOffix (logo déjà mis à jour, reste : nom affiché, favicon, éventuellement identifiants techniques).
 - [ ] Rotation des secrets prod (JWT, Google AI, R2) — voir mémoire de session du 2026-08-11.
+- [ ] Réintroduire une confirmation par mot de passe avant Ban/Delete dans le panneau admin (retirée temporairement à la demande).
+- [ ] Pas de création manuelle de Projet dans l'UI — un vrai Projet naît uniquement de la conversion d'un plan Organizer.
