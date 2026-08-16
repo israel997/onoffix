@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export default function OfficesPage() {
   const [creating, setCreating] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const inFlightRef = useRef<Set<string>>(new Set());
 
   async function load() {
     const [bureauxData, invitationsData] = await Promise.all([listBureaux(), listMyBureauInvitations()]);
@@ -42,6 +43,8 @@ export default function OfficesPage() {
   }
 
   async function handleAcceptInvitation(invitation: MyBureauInvitation) {
+    if (inFlightRef.current.has(invitation.id)) return;
+    inFlightRef.current.add(invitation.id);
     setRespondingId(invitation.id);
     try {
       await acceptBureauInvitation(invitation.id);
@@ -50,11 +53,14 @@ export default function OfficesPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
     } finally {
+      inFlightRef.current.delete(invitation.id);
       setRespondingId(null);
     }
   }
 
   async function handleDeclineInvitation(invitation: MyBureauInvitation) {
+    if (inFlightRef.current.has(invitation.id)) return;
+    inFlightRef.current.add(invitation.id);
     setRespondingId(invitation.id);
     try {
       await declineBureauInvitation(invitation.id);
@@ -63,6 +69,7 @@ export default function OfficesPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
     } finally {
+      inFlightRef.current.delete(invitation.id);
       setRespondingId(null);
     }
   }

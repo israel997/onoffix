@@ -72,7 +72,7 @@ export default function DashboardPage() {
 
       <TodayChecklist />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/offices">
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardHeader>
@@ -81,19 +81,11 @@ export default function DashboardPage() {
             </CardHeader>
           </Card>
         </Link>
-        <Link href="/my-tasks">
+        <Link href="/my-space">
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardHeader>
-              <CardTitle>My Tasks</CardTitle>
-              <CardDescription>Everything assigned to you, everywhere.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/my-organizer">
-          <Card className="h-full transition-shadow hover:shadow-md">
-            <CardHeader>
-              <CardTitle>My Organizer</CardTitle>
-              <CardDescription>Your private brain dump.</CardDescription>
+              <CardTitle>My Space</CardTitle>
+              <CardDescription>Your Organizer and every task assigned to you.</CardDescription>
             </CardHeader>
           </Card>
         </Link>

@@ -63,7 +63,7 @@ export class TachesService {
   }
 
   private lienTache(bureauId: string | null) {
-    return bureauId ? `/offices/${bureauId}/tasks` : '/my-tasks';
+    return bureauId ? `/offices/${bureauId}/tasks` : '/my-space?tab=tasks';
   }
 
   async assigner(tacheId: string, user: AuthenticatedUser, assigneeUserId: string) {

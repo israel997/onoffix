@@ -13,13 +13,13 @@ interface NavItem {
   available: boolean;
   adminOnly?: boolean;
   superAdminOnly?: boolean;
+  hideIfNoOffices?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true },
-  { label: 'My Organizer', href: '/my-organizer', available: true },
-  { label: 'My Tasks', href: '/my-tasks', available: true },
-  { label: 'Offices', href: '/offices', available: true },
+  { label: 'My Space', href: '/my-space', available: true },
+  { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true },
   { label: 'Members', href: '/members', available: true },
   { label: 'Daily check-in', href: '/check-in', available: false },
   { label: 'Reporting', href: '/reporting', available: false },
@@ -35,14 +35,21 @@ function SidebarNav({
   pathname,
   isAdmin,
   isSuperAdmin,
+  hasOffices,
 }: {
   pathname: string;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  hasOffices: boolean;
 }) {
   return (
     <nav className="flex flex-1 flex-col gap-1">
-      {NAV_ITEMS.filter((item) => (!item.adminOnly || isAdmin) && (!item.superAdminOnly || isSuperAdmin)).map((item) => {
+      {NAV_ITEMS.filter(
+        (item) =>
+          (!item.adminOnly || isAdmin) &&
+          (!item.superAdminOnly || isSuperAdmin) &&
+          (!item.hideIfNoOffices || isAdmin || hasOffices),
+      ).map((item) => {
         const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
         if (!item.available) {
           return (
@@ -79,6 +86,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
   const { user } = useAuth();
   const isAdmin = user?.roleGlobal === 'ADMIN';
   const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
+  const hasOffices = !!user && user.bureaux.length > 0;
 
   useEffect(() => {
     onMobileClose?.();
@@ -91,7 +99,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
         <Link href="/" className="mb-8 flex items-center px-2">
           <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-14 w-auto" />
         </Link>
-        <SidebarNav pathname={pathname} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
+        <SidebarNav pathname={pathname} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} hasOffices={hasOffices} />
       </aside>
 
       {mobileOpen && (
@@ -110,7 +118,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
                 ✕
               </button>
             </div>
-            <SidebarNav pathname={pathname} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
+            <SidebarNav pathname={pathname} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} hasOffices={hasOffices} />
           </aside>
         </div>
       )}
