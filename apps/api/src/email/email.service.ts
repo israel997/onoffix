@@ -57,7 +57,7 @@ export class EmailService {
     nom: string,
     organisationNom: string,
     inviterNom: string,
-    role: 'ADMIN' | 'MEMBRE',
+    poste: string | null,
     token: string,
   ) {
     const acceptLink = `${this.frontendUrl}/accept-invite?token=${token}`;
@@ -65,7 +65,7 @@ export class EmailService {
     await this.send(
       to,
       `You've been invited to join ${organisationNom} on OOffix`,
-      invitationEmailTemplate(nom, organisationNom, inviterNom, role, acceptLink, declineLink),
+      invitationEmailTemplate(nom, organisationNom, inviterNom, poste, acceptLink, declineLink),
     );
   }
 
@@ -105,22 +105,21 @@ function otpEmailTemplate(nom: string, code: string): string {
   `;
 }
 
-const ROLE_LABEL: Record<'ADMIN' | 'MEMBRE', string> = { ADMIN: 'Admin', MEMBRE: 'Member' };
-
 function invitationEmailTemplate(
   nom: string,
   organisationNom: string,
   inviterNom: string,
-  role: 'ADMIN' | 'MEMBRE',
+  poste: string | null,
   acceptLink: string,
   declineLink: string,
 ): string {
+  const asPoste = poste ? ` as <strong>${escapeHtml(poste)}</strong>` : '';
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
       <h1 style="color: #0a1440; font-size: 20px;">Hi ${escapeHtml(nom)},</h1>
       <p style="color: #333; font-size: 14px; line-height: 1.5;">
         You've been invited by <strong>${escapeHtml(inviterNom)}</strong> to join
-        <strong>${escapeHtml(organisationNom)}</strong> as <strong>${ROLE_LABEL[role]}</strong> on OOffix.
+        <strong>${escapeHtml(organisationNom)}</strong>${asPoste} on OOffix.
         Click below to set your password and get started.
       </p>
       <p style="margin: 24px 0;">

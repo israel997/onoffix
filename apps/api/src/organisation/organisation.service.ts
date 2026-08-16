@@ -207,7 +207,7 @@ export class OrganisationService {
       dto.nom,
       organisation.nom,
       inviter.nom,
-      RoleGlobal.MEMBRE,
+      dto.poste ?? null,
       rawToken,
     );
 
@@ -316,6 +316,13 @@ export class OrganisationService {
       throw new NotFoundException("Ce collaborateur ne fait pas partie de l'organisation");
 
     await this.prisma.user.delete({ where: { id: targetUserId } });
+
+    // Si ce collaborateur n'appartenait à aucune autre organisation, son compte
+    // devient orphelin — on le supprime aussi pour qu'il reparte de zéro.
+    const remaining = await this.prisma.user.count({ where: { accountId: membre.accountId } });
+    if (remaining === 0) {
+      await this.prisma.account.delete({ where: { id: membre.accountId } });
+    }
   }
 
   private async assertOwner(organisationId: string, userId: string) {
