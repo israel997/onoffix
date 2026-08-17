@@ -101,7 +101,19 @@ export function Chat({
     });
 
     const socket = getSocket();
+
+    // Réémis à chaque connexion, y compris une reconnexion après coupure — sinon
+    // le client reste hors de la room côté serveur et ne reçoit plus rien (pas
+    // même l'écho de ses propres messages) jusqu'à un rechargement de page.
+    function join() {
+      socket.emit(joinEvent, { [roomKey]: roomId });
+      // On a pu manquer des messages pendant la coupure : on resynchronise l'historique.
+      fetchHistory(roomId).then((history) => {
+        if (active) setMessages(history);
+      });
+    }
     socket.emit(joinEvent, { [roomKey]: roomId });
+    socket.on('connect', join);
 
     function onMessage(message: ChatMessage) {
       if (message.conversationId && active) {
@@ -113,6 +125,7 @@ export function Chat({
     return () => {
       active = false;
       socket.emit(leaveEvent, { [roomKey]: roomId });
+      socket.off('connect', join);
       socket.off(messageEvent, onMessage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

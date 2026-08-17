@@ -69,6 +69,11 @@ export default function OfficeDetailPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    // Un collaborateur qui accepte une invitation ailleurs (ou sur un autre onglet)
+    // ne déclenche rien ici — on repasse périodiquement pour refléter les changements
+    // sans obliger à recharger la page manuellement.
+    const interval = setInterval(load, 20_000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bureauId]);
 

@@ -51,7 +51,15 @@ export default function OfficesPage() {
       toast(`You joined ${invitation.bureau.nom}`);
       await load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      // Déjà traitée (double clic, coupure réseau...) : la liste va se remettre à
+      // jour toute seule ci-dessous, pas la peine d'afficher une erreur alarmante.
+      if (message === 'Invitation introuvable') {
+        toast('This invitation was already handled.');
+      } else {
+        toast(message, 'error');
+      }
+      await load();
     } finally {
       inFlightRef.current.delete(invitation.id);
       setRespondingId(null);
@@ -67,7 +75,13 @@ export default function OfficesPage() {
       toast(`Invitation to ${invitation.bureau.nom} declined`);
       await load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      if (message === 'Invitation introuvable') {
+        toast('This invitation was already handled.');
+      } else {
+        toast(message, 'error');
+      }
+      await load();
     } finally {
       inFlightRef.current.delete(invitation.id);
       setRespondingId(null);
