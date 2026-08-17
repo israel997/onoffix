@@ -122,12 +122,23 @@ export function Chat({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function handleSend(event: FormEvent) {
-    event.preventDefault();
+  function sendMessage() {
     const contenu = draft.trim();
     if (!contenu) return;
     getSocket().emit(messageEvent, { [roomKey]: roomId, contenu });
     setDraft('');
+  }
+
+  function handleSend(event: FormEvent) {
+    event.preventDefault();
+    sendMessage();
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
   }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -201,11 +212,13 @@ export function Chat({
         >
           {uploading ? '…' : '📎'}
         </Button>
-        <input
+        <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a message…"
-          className="h-10 flex-1 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+          onKeyDown={handleKeyDown}
+          placeholder="Write a message… (Shift+Enter for a new line)"
+          rows={1}
+          className="max-h-40 min-h-10 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
         />
         <Button type="submit" disabled={!draft.trim()}>
           Send
