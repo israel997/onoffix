@@ -1,7 +1,8 @@
-import { IsOptional, IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { NormalizedEmail } from '../../common/decorators/normalized-email.decorator';
 
 export class AddOrganisationMembreDto {
-  @IsEmail()
+  @NormalizedEmail()
   email: string;
 
   @IsString()

@@ -25,7 +25,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       done(new Error('Aucun email fourni par Google'), undefined);
       return;
     }
-    const googleProfile: GoogleProfile = { email, nom: profile.displayName || email };
+    const googleProfile: GoogleProfile = {
+      email: email.trim().toLowerCase(),
+      nom: profile.displayName || email,
+    };
     done(null, googleProfile);
   }
 }

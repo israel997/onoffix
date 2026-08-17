@@ -1,9 +1,10 @@
-import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { RoleBureau } from '@prisma/client';
+import { NormalizedEmail } from '../../common/decorators/normalized-email.decorator';
 
 export class AddMembreDto {
   /** Doit correspondre à un utilisateur déjà présent dans l'organisation. */
-  @IsEmail()
+  @NormalizedEmail()
   email: string;
 
   @IsEnum(RoleBureau)

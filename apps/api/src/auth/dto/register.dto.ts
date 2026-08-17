@@ -1,4 +1,5 @@
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { IsString, Matches, MinLength } from 'class-validator';
+import { NormalizedEmail } from '../../common/decorators/normalized-email.decorator';
 import { PASSWORD_MESSAGE, PASSWORD_REGEX } from '../../common/password.validator';
 
 export class RegisterDto {
@@ -10,7 +11,7 @@ export class RegisterDto {
   @MinLength(2)
   nom: string;
 
-  @IsEmail()
+  @NormalizedEmail()
   email: string;
 
   @IsString()
