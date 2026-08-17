@@ -47,7 +47,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           </svg>
         </button>
         <div>
-          <OrgSwitcher organisationNom={user.organisation.nom} />
+          <OrgSwitcher organisationNom={user.organisation.nom} logoUrl={user.organisation.logoUrl} />
           <p className="text-xs text-muted-foreground">{bureauLabel}</p>
         </div>
       </div>

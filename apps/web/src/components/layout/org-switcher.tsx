@@ -2,10 +2,35 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { getMyOrganisations, storeTokens, switchOrganisation, type MyOrganisation } from '@/lib/api';
+import {
+  getMyOrganisations,
+  resolveAssetUrl,
+  storeTokens,
+  switchOrganisation,
+  type MyOrganisation,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
-export function OrgSwitcher({ organisationNom }: { organisationNom: string }) {
+function OrgLogo({ nom, logoUrl }: { nom: string; logoUrl: string | null }) {
+  const src = resolveAssetUrl(logoUrl);
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={nom} className="h-6 w-6 shrink-0 rounded-md object-cover" />;
+  }
+  return (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-navy text-[10px] font-semibold text-white">
+      {nom.slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+export function OrgSwitcher({
+  organisationNom,
+  logoUrl,
+}: {
+  organisationNom: string;
+  logoUrl: string | null;
+}) {
   const { refresh } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -46,8 +71,9 @@ export function OrgSwitcher({ organisationNom }: { organisationNom: string }) {
     <div className="relative">
       <button
         onClick={handleToggle}
-        className="flex items-center gap-1 rounded-lg px-1 py-0.5 text-left hover:bg-surface-muted"
+        className="flex items-center gap-2 rounded-lg px-1 py-0.5 text-left hover:bg-surface-muted"
       >
+        <OrgLogo nom={organisationNom} logoUrl={logoUrl} />
         <span className="text-sm font-semibold text-foreground">{organisationNom}</span>
         <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5 shrink-0 text-muted-foreground">
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -69,7 +95,10 @@ export function OrgSwitcher({ organisationNom }: { organisationNom: string }) {
                 onClick={() => handleSwitch(org)}
                 className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-muted disabled:opacity-50"
               >
-                <span className="truncate text-foreground">{org.nom}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <OrgLogo nom={org.nom} logoUrl={org.logoUrl} />
+                  <span className="truncate text-foreground">{org.nom}</span>
+                </span>
                 {org.current && <span className="shrink-0 text-xs font-medium text-brand-blue">Current</span>}
               </button>
             ))
