@@ -45,7 +45,14 @@ export class OrganizerScheduler {
     await this.queue.add(
       ORGANIZER_PROCESS_JOB,
       { subjectId },
-      { jobId: id, delay: seconds * 1000 },
+      {
+        jobId: id,
+        delay: seconds * 1000,
+        // En cas de panne IA transitoire (503/429), le processor relance
+        // l'erreur — BullMQ réessaie ce job plutôt que de perdre les messages.
+        attempts: 4,
+        backoff: { type: 'exponential', delay: 10_000 },
+      },
     );
   }
 

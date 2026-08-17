@@ -76,6 +76,19 @@ Règles :
 - Réponds uniquement avec un objet JSON, sans texte autour, au format :
 {"narrative": "...", "pointsPositifs": ["..."], "pointsAmelioration": ["..."], "recommandations": ["..."]}`;
 
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1500;
+
+/** Erreurs transitoires côté Google — Gemini invite explicitement à réessayer. */
+function isRetryable(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /\b(503|429)\b|overloaded|high demand|unavailable/i.test(message);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -94,37 +107,61 @@ export class AiService {
     }
   }
 
+  /** Appelle Gemini avec quelques tentatives (backoff) sur les erreurs transitoires (503/429). */
+  private async generateWithRetry(prompt: string): Promise<string> {
+    const model = this.client!.getGenerativeModel({
+      model: this.model,
+      generationConfig: { responseMimeType: 'application/json' },
+    });
+
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+      } catch (error) {
+        lastError = error;
+        if (attempt < MAX_ATTEMPTS && isRetryable(error)) {
+          this.logger.warn(
+            `Appel IA échoué (tentative ${attempt}/${MAX_ATTEMPTS}), nouvel essai: ${error}`,
+          );
+          await sleep(RETRY_DELAY_MS * attempt);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw lastError;
+  }
+
+  /**
+   * Génère des tâches depuis un Subject. Contrairement aux autres méthodes de ce
+   * service, ceci relance l'erreur après épuisement des tentatives (au lieu de
+   * rendre un tableau vide) : l'appelant (OrganizerProcessor) doit distinguer
+   * "aucune tâche trouvée" (résultat légitime) d'un échec IA, pour ne jamais
+   * marquer des messages comme traités alors qu'ils ne l'ont pas vraiment été.
+   */
   async suggestTasks(texte: string): Promise<SuggestedTask[]> {
     if (!this.client) return [];
     if (!texte.trim()) return [];
 
-    try {
-      const model = this.client.getGenerativeModel({
-        model: this.model,
-        generationConfig: { responseMimeType: 'application/json' },
-      });
-      const result = await model.generateContent(`${SYSTEM_PROMPT}\n\nTexte :\n${texte}`);
-      const raw = result.response.text();
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
+    const raw = await this.generateWithRetry(`${SYSTEM_PROMPT}\n\nTexte :\n${texte}`);
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
 
-      return (parsed as unknown[])
-        .filter(
-          (item): item is { titre: string; description?: unknown } =>
-            typeof item === 'object' &&
-            item !== null &&
-            typeof (item as Record<string, unknown>).titre === 'string' &&
-            ((item as Record<string, unknown>).titre as string).trim().length > 0,
-        )
-        .map((item) => ({
-          titre: item.titre.trim(),
-          description:
-            typeof item.description === 'string' ? item.description.trim() || undefined : undefined,
-        }));
-    } catch (error) {
-      this.logger.warn(`Échec de la suggestion de tâches par IA: ${error}`);
-      return [];
-    }
+    return (parsed as unknown[])
+      .filter(
+        (item): item is { titre: string; description?: unknown } =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as Record<string, unknown>).titre === 'string' &&
+          ((item as Record<string, unknown>).titre as string).trim().length > 0,
+      )
+      .map((item) => ({
+        titre: item.titre.trim(),
+        description:
+          typeof item.description === 'string' ? item.description.trim() || undefined : undefined,
+      }));
   }
 
   async suggestPlan(texte: string): Promise<SuggestedPlan> {
@@ -135,12 +172,7 @@ export class AiService {
     const priorites = new Set(Object.values(PrioriteTache));
 
     try {
-      const model = this.client.getGenerativeModel({
-        model: this.model,
-        generationConfig: { responseMimeType: 'application/json' },
-      });
-      const result = await model.generateContent(`${PLAN_PROMPT}\n\nTexte :\n${texte}`);
-      const raw = result.response.text();
+      const raw = await this.generateWithRetry(`${PLAN_PROMPT}\n\nTexte :\n${texte}`);
       const parsed: unknown = JSON.parse(raw);
       if (typeof parsed !== 'object' || parsed === null) return empty;
 
@@ -179,14 +211,9 @@ export class AiService {
     if (!this.client) return null;
 
     try {
-      const model = this.client.getGenerativeModel({
-        model: this.model,
-        generationConfig: { responseMimeType: 'application/json' },
-      });
-      const result = await model.generateContent(
+      const raw = await this.generateWithRetry(
         `${RAPPORT_PROMPT}\n\nDonnées :\n${JSON.stringify(data)}`,
       );
-      const raw = result.response.text();
       const parsed: unknown = JSON.parse(raw);
       if (typeof parsed !== 'object' || parsed === null) return null;
 

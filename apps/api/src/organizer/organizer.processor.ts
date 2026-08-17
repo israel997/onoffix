@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { AiService } from '../ai/ai.service';
+import { AiService, type SuggestedTask } from '../ai/ai.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ORGANIZER_QUEUE } from './organizer.constants';
 
@@ -52,7 +52,18 @@ export class OrganizerProcessor extends WorkerHost {
     }
 
     const texte = messages.map((m) => `${m.auteur.nom}: ${m.contenu}`).join('\n');
-    const suggestions = await this.aiService.suggestTasks(texte);
+
+    let suggestions: SuggestedTask[];
+    try {
+      suggestions = await this.aiService.suggestTasks(texte);
+    } catch (error) {
+      // Échec IA (panne/quota) : on ne touche pas derniereGenerationTaches pour que
+      // ces messages restent "à traiter" — BullMQ réessaiera ce job (cf. scheduler).
+      this.logger.warn(
+        `Subject ${subjectId}: échec de la génération IA, nouvelle tentative programmée — ${error}`,
+      );
+      throw error;
+    }
 
     if (suggestions.length > 0) {
       await this.prisma.tache.createMany({
