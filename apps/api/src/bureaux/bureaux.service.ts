@@ -9,7 +9,6 @@ import { NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { OrganizerScheduler } from '../organizer/organizer.scheduler';
 import { OrganizerService } from '../organizer/organizer.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RituelsScheduler } from '../queue/rituels.scheduler';
@@ -42,7 +41,6 @@ export class BureauxService {
     private readonly prisma: PrismaService,
     private readonly rituelsScheduler: RituelsScheduler,
     private readonly organizerService: OrganizerService,
-    private readonly organizerScheduler: OrganizerScheduler,
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -108,13 +106,6 @@ export class BureauxService {
   async remove(bureauId: string, organisationId: string) {
     await this.assertInOrganisation(bureauId, organisationId);
     await this.rituelsScheduler.removeBureauJobs(bureauId);
-
-    const organizer = await this.prisma.projet.findFirst({
-      where: { bureauId, estOrganizer: true },
-      select: { id: true },
-    });
-    if (organizer) await this.organizerScheduler.cancel(organizer.id);
-
     await this.prisma.bureau.delete({ where: { id: bureauId } });
   }
 

@@ -118,7 +118,7 @@ export class OrganizerController {
       type: file.mimetype,
       tailleOctets: file.size,
     });
-    await this.organizerScheduler.debounceSubject(subjectId);
+    await this.organizerScheduler.scheduleMessageProcessing(message.id);
     this.chatGateway.broadcastOrganizerMessage(subjectId, message);
     return message;
   }

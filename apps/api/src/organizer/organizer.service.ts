@@ -6,7 +6,6 @@ import { ChatService } from '../chat/chat.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConvertPlanDto } from './dto/convert-plan.dto';
 import { CreateTacheDto } from './dto/create-tache.dto';
-import { OrganizerScheduler } from './organizer.scheduler';
 
 const TACHE_INCLUDE = {
   assigneA: { select: { id: true, nom: true } },
@@ -20,7 +19,6 @@ export class OrganizerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
-    private readonly scheduler: OrganizerScheduler,
     private readonly aiService: AiService,
   ) {}
 
@@ -86,7 +84,6 @@ export class OrganizerService {
     if (remaining.length <= 1) {
       throw new ForbiddenException('Un organizer doit garder au moins un Subject');
     }
-    await this.scheduler.cancelSubject(subjectId);
     await this.chatService.deleteSubject(subjectId);
   }
 

@@ -6,9 +6,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ORGANIZER_QUEUE } from './organizer.constants';
 
 /**
- * Relit les messages d'un Subject (Conversation) d'Organizer depuis la
- * dernière génération et les transforme en tâches via l'IA. Les tâches
- * s'accumulent — rien n'est écrasé d'un cycle à l'autre (cf. phase C).
+ * Traite un unique message d'Organizer et le transforme en 0, 1 ou plusieurs
+ * tâches via l'IA. Chaque message est une unité de travail indépendante — pas
+ * d'accumulation entre messages, donc pas de risque de perdre tout un batch si
+ * un seul appel IA échoue.
  */
 @Processor(ORGANIZER_QUEUE)
 export class OrganizerProcessor extends WorkerHost {
@@ -21,70 +22,50 @@ export class OrganizerProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<{ subjectId: string }>): Promise<void> {
-    const { subjectId } = job.data;
+  async process(job: Job<{ messageId: string }>): Promise<void> {
+    const { messageId } = job.data;
 
-    const subject = await this.prisma.conversation.findUnique({
-      where: { id: subjectId },
-      include: { projet: true },
-    });
-    if (!subject || !subject.projet?.estOrganizer) return;
-
-    const now = new Date();
-
-    const messages = await this.prisma.message.findMany({
-      where: {
-        conversationId: subjectId,
-        createdAt: subject.derniereGenerationTaches
-          ? { gt: subject.derniereGenerationTaches }
-          : undefined,
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        auteur: { select: { nom: true } },
+        conversation: { include: { projet: true } },
       },
-      orderBy: { createdAt: 'asc' },
-      include: { auteur: { select: { nom: true } } },
     });
+    if (!message || !message.conversation?.projet?.estOrganizer) return;
+    if (!message.contenu?.trim()) return; // pièce jointe sans texte : rien à extraire
 
-    if (messages.length === 0) {
-      await this.prisma.conversation.update({
-        where: { id: subjectId },
-        data: { derniereGenerationTaches: now },
-      });
-      return;
-    }
-
-    const texte = messages.map((m) => `${m.auteur.nom}: ${m.contenu}`).join('\n');
+    const texte = `${message.auteur.nom}: ${message.contenu}`;
 
     let suggestions: SuggestedTask[];
     try {
       suggestions = await this.aiService.suggestTasks(texte);
     } catch (error) {
-      // Échec IA (panne/quota) : on ne touche pas derniereGenerationTaches pour que
-      // ces messages restent "à traiter" — BullMQ réessaiera ce job (cf. scheduler).
       this.logger.warn(
-        `Subject ${subjectId}: échec de la génération IA, nouvelle tentative programmée — ${error}`,
+        `Message ${messageId}: échec de la génération IA, nouvelle tentative programmée — ${error}`,
       );
-      throw error;
+      throw error; // BullMQ réessaie ce job (cf. scheduler : attempts + backoff).
     }
 
     if (suggestions.length > 0) {
       await this.prisma.tache.createMany({
         data: suggestions.map((s) => ({
-          projetId: subject.projetId!,
-          conversationId: subjectId,
+          projetId: message.conversation.projetId!,
+          conversationId: message.conversationId,
           titre: s.titre,
           description: s.description,
           // Organizer personnel : les tâches générées s'assignent directement au propriétaire.
-          assigneAId: subject.projet!.proprietaireId ?? undefined,
-          assigneParId: subject.projet!.proprietaireId ?? undefined,
+          assigneAId: message.conversation.projet!.proprietaireId ?? undefined,
+          assigneParId: message.conversation.projet!.proprietaireId ?? undefined,
         })),
       });
     }
 
     await this.prisma.conversation.update({
-      where: { id: subjectId },
-      data: { derniereGenerationTaches: now },
+      where: { id: message.conversationId },
+      data: { derniereGenerationTaches: new Date() },
     });
-    this.logger.log(
-      `Subject ${subjectId}: ${suggestions.length} tâche(s) générée(s) depuis ${messages.length} message(s)`,
-    );
+
+    this.logger.log(`Message ${messageId}: ${suggestions.length} tâche(s) générée(s)`);
   }
 }

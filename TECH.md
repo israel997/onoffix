@@ -35,7 +35,7 @@ Fichier vivant : design system, commandes, hébergement et workflow. À complét
 ### Organizer (brain dump → tâches)
 - Un Organizer personnel (privé, par utilisateur) + un Organizer par bureau.
 - **Subjects** : plusieurs fils de discussion nommés par Organizer, chacun avec son propre chat et sa propre génération de tâches.
-- Génération de tâches par IA (Google Gemini) à partir des messages d'un Subject, **déclenchement réactif** ~30s après le dernier message (debounce BullMQ, pas de poll fixe).
+- Génération de tâches par IA (Google Gemini) : **chaque message déclenche son propre traitement**, quasi immédiatement (job BullMQ par message, pas d'accumulation ni de poll fixe) — un échec IA sur un message ne fait perdre que celui-là, pas tout un batch (retry automatique en plus, cf. §3).
 - Ajout manuel d'une tâche dans un Organizer (sans passer par l'IA).
 - **Plan structuré via IA** : à partir d'un Subject, l'IA suggère `{projetNom, tâches priorisées}` — aperçu affiché côté client, rien n'est persisté tant que l'utilisateur n'a pas explicitement validé la conversion (`/plan/convertir`), qui crée un **vrai Projet** + ses tâches.
 

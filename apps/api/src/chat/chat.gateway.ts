@@ -158,7 +158,7 @@ export class ChatGateway implements OnGatewayConnection {
       user.roleGlobal,
     );
     const message = await this.chatService.createMessage(data.subjectId, user.userId, contenu);
-    await this.organizerScheduler.debounceSubject(data.subjectId);
+    await this.organizerScheduler.scheduleMessageProcessing(message.id);
 
     this.server.to(organizerRoom(data.subjectId)).emit('organizer:message', message);
   }
