@@ -60,6 +60,7 @@ export function TaskItem({
   isManager,
   isAdmin = false,
   assignableMembres,
+  moveTargets,
   onChange,
 }: {
   tache: Tache;
@@ -67,6 +68,7 @@ export function TaskItem({
   isManager: boolean;
   isAdmin?: boolean;
   assignableMembres: { user: { id: string; nom: string } }[];
+  moveTargets?: { conversationId: string | null; nom: string }[];
   onChange: () => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -255,9 +257,15 @@ export function TaskItem({
           </Button>
         )}
 
-        {isAssignee && (tache.statut === 'ACCEPTEE' || tache.statut === 'A_REVOIR') && (
+        {isAssignee && tache.statut === 'ACCEPTEE' && (
           <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
             Start
+          </Button>
+        )}
+
+        {isAssignee && tache.statut === 'A_REVOIR' && (
+          <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}>
+            Resubmit
           </Button>
         )}
 
@@ -266,6 +274,24 @@ export function TaskItem({
             Mark as done
           </Button>
         )}
+
+        {!tache.assigneAId && !isManager && (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => run(() => assignerTache(tache.id, currentUserId), 'Assigned to you')}
+          >
+            Assign to me
+          </Button>
+        )}
+
+        {(isAssignee || isManager) &&
+          (tache.statut === 'ACCEPTEE' || tache.statut === 'EN_COURS' || tache.statut === 'A_REVOIR') && (
+            <Button size="sm" variant="secondary" onClick={() => setShowDetail(true)}>
+              Report a problem
+            </Button>
+          )}
 
         {canValidate && (
           <>
@@ -282,12 +308,35 @@ export function TaskItem({
             </Button>
           </>
         )}
+
+        {isManager && moveTargets && moveTargets.length > 0 && (
+          <select
+            disabled={busy}
+            defaultValue=""
+            onChange={(e) => {
+              if (!e.target.value) return;
+              const conversationId = e.target.value === '__none__' ? null : e.target.value;
+              run(() => updateTache(tache.id, { conversationId }), 'Task moved');
+            }}
+            className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
+          >
+            <option value="" disabled>
+              Move to…
+            </option>
+            {moveTargets.map((g) => (
+              <option key={g.conversationId ?? '__none__'} value={g.conversationId ?? '__none__'}>
+                {g.nom}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {showDetail && (
         <TaskDetailModal
           tache={tache}
           isManager={isManager}
+          currentUserId={currentUserId}
           onClose={() => setShowDetail(false)}
           onChange={onChange}
         />

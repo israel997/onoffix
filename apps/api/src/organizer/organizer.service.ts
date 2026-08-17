@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { RoleBureau, RoleGlobal } from '@prisma/client';
+import { NotificationType, RoleBureau, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { AiService } from '../ai/ai.service';
 import { ChatService } from '../chat/chat.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConvertPlanDto } from './dto/convert-plan.dto';
 import { CreateTacheDto } from './dto/create-tache.dto';
@@ -20,6 +21,7 @@ export class OrganizerService {
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
     private readonly aiService: AiService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Crée l'Organizer unique d'un bureau (chat en vrac + génération de tâches). */
@@ -97,6 +99,7 @@ export class OrganizerService {
           projetId,
           titre: dto.titre,
           description: dto.description,
+          priorite: dto.priorite,
           assigneAId: projet.proprietaireId,
           assigneParId: projet.proprietaireId,
         },
@@ -106,10 +109,36 @@ export class OrganizerService {
 
     await this.assertManager(projet.bureauId!, user);
 
-    return this.prisma.tache.create({
-      data: { projetId, titre: dto.titre, description: dto.description },
+    // Une tâche de bureau créée sans assignation explicite passe par défaut au
+    // propriétaire de l'organisation, pour qu'elle ne reste jamais orpheline.
+    const bureau = await this.prisma.bureau.findUniqueOrThrow({
+      where: { id: projet.bureauId! },
+      select: { organisation: { select: { proprietaireId: true } } },
+    });
+    const proprietaireId = bureau.organisation.proprietaireId;
+
+    const tache = await this.prisma.tache.create({
+      data: {
+        projetId,
+        titre: dto.titre,
+        description: dto.description,
+        priorite: dto.priorite,
+        assigneAId: proprietaireId,
+        assigneParId: user.userId,
+      },
       include: TACHE_INCLUDE,
     });
+
+    if (proprietaireId !== user.userId) {
+      await this.notifications.create(
+        proprietaireId,
+        NotificationType.TACHE_ASSIGNEE,
+        `On vous a assigné la tâche « ${tache.titre} »`,
+        `/offices/${projet.bureauId}/tasks`,
+      );
+    }
+
+    return tache;
   }
 
   /** Génère un aperçu de plan (nom de projet + tâches priorisées) depuis les messages d'un Subject. Rien n'est persisté. */

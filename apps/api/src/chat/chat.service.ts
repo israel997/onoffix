@@ -106,6 +106,14 @@ export class ChatService {
     }
   }
 
+  async getConversationRoomInfo(conversationId: string) {
+    const conversation = await this.prisma.conversation.findUniqueOrThrow({
+      where: { id: conversationId },
+      select: { bureauId: true },
+    });
+    return conversation;
+  }
+
   async ensureConversationForBureau(bureauId: string) {
     const existing = await this.prisma.conversation.findUnique({ where: { bureauId } });
     if (existing) return existing;
@@ -157,5 +165,40 @@ export class ChatService {
       },
       include: { auteur: { select: AUTEUR_SELECT } },
     });
+  }
+
+  /** Seul l'auteur peut modifier son propre message. */
+  async updateMessage(messageId: string, userId: string, contenu: string) {
+    const existing = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { auteurId: true },
+    });
+    if (!existing) throw new NotFoundException('Message introuvable');
+    if (existing.auteurId !== userId) {
+      throw new ForbiddenException('Vous ne pouvez modifier que vos propres messages');
+    }
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { contenu, edited: true },
+      include: { auteur: { select: AUTEUR_SELECT } },
+    });
+  }
+
+  /** Seul l'auteur peut supprimer son propre message. Renvoie la room à notifier. */
+  async deleteMessage(messageId: string, userId: string) {
+    const existing = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: {
+        auteurId: true,
+        conversationId: true,
+        conversation: { select: { bureauId: true } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Message introuvable');
+    if (existing.auteurId !== userId) {
+      throw new ForbiddenException('Vous ne pouvez supprimer que vos propres messages');
+    }
+    await this.prisma.message.delete({ where: { id: messageId } });
+    return { conversationId: existing.conversationId, bureauId: existing.conversation.bureauId };
   }
 }

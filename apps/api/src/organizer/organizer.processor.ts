@@ -1,7 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
+import { NotificationType } from '@prisma/client';
 import { AiService, type SuggestedTask } from '../ai/ai.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ORGANIZER_QUEUE } from './organizer.constants';
 
@@ -18,6 +20,7 @@ export class OrganizerProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
+    private readonly notifications: NotificationsService,
   ) {
     super();
   }
@@ -48,17 +51,40 @@ export class OrganizerProcessor extends WorkerHost {
     }
 
     if (suggestions.length > 0) {
+      const projet = message.conversation.projet;
+      // Organizer personnel : les tâches générées s'assignent directement au propriétaire.
+      // Organizer de bureau : à défaut, elles reviennent au propriétaire de l'organisation
+      // plutôt que de rester orphelines et invisibles de tous.
+      let assigneeId = projet.proprietaireId ?? undefined;
+      if (!assigneeId && projet.bureauId) {
+        const bureau = await this.prisma.bureau.findUnique({
+          where: { id: projet.bureauId },
+          select: { organisation: { select: { proprietaireId: true } } },
+        });
+        assigneeId = bureau?.organisation.proprietaireId;
+      }
+
       await this.prisma.tache.createMany({
         data: suggestions.map((s) => ({
           projetId: message.conversation.projetId!,
           conversationId: message.conversationId,
           titre: s.titre,
           description: s.description,
-          // Organizer personnel : les tâches générées s'assignent directement au propriétaire.
-          assigneAId: message.conversation.projet!.proprietaireId ?? undefined,
-          assigneParId: message.conversation.projet!.proprietaireId ?? undefined,
+          assigneAId: assigneeId,
+          assigneParId: assigneeId,
         })),
       });
+
+      if (assigneeId && !projet.proprietaireId) {
+        await this.notifications.create(
+          assigneeId,
+          NotificationType.TACHE_ASSIGNEE,
+          suggestions.length === 1
+            ? `On vous a assigné la tâche « ${suggestions[0].titre} »`
+            : `${suggestions.length} nouvelles tâches vous ont été assignées`,
+          `/offices/${projet.bureauId}/tasks`,
+        );
+      }
     }
 
     await this.prisma.conversation.update({

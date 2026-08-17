@@ -72,14 +72,32 @@ export class TachesService {
     if (tache.projet.bureauId === null) {
       throw new BadRequestException('Une tâche personnelle est déjà assignée à vous-même');
     }
+    const bureauId = tache.projet.bureauId;
 
-    await this.assertManager(tache.projet.bureauId, user);
-
-    const assigneeMembership = await this.prisma.userBureau.findUnique({
-      where: { userId_bureauId: { userId: assigneeUserId, bureauId: tache.projet.bureauId } },
+    const bureau = await this.prisma.bureau.findUniqueOrThrow({
+      where: { id: bureauId },
+      select: { organisation: { select: { proprietaireId: true } } },
     });
-    if (!assigneeMembership) {
-      throw new BadRequestException('Ce collaborateur ne fait pas partie de ce bureau');
+    const proprietaireId = bureau.organisation.proprietaireId;
+    const isSelfAssign = assigneeUserId === user.userId;
+
+    // S'assigner soi-même une tâche non prise ne demande pas d'être manager — juste
+    // de faire partie du bureau (le propriétaire de l'organisation en est toujours autorisé).
+    if (isSelfAssign) {
+      if (user.userId !== proprietaireId) {
+        await this.assertBureauMember(bureauId, user);
+      }
+    } else {
+      await this.assertManager(bureauId, user);
+    }
+
+    if (assigneeUserId !== proprietaireId) {
+      const assigneeMembership = await this.prisma.userBureau.findUnique({
+        where: { userId_bureauId: { userId: assigneeUserId, bureauId } },
+      });
+      if (!assigneeMembership) {
+        throw new BadRequestException('Ce collaborateur ne fait pas partie de ce bureau');
+      }
     }
 
     const updated = await this.prisma.tache.update({
@@ -130,10 +148,25 @@ export class TachesService {
   async modifier(
     tacheId: string,
     user: AuthenticatedUser,
-    dto: { titre?: string; description?: string; dateCible?: string | null },
+    dto: {
+      titre?: string;
+      description?: string;
+      dateCible?: string | null;
+      conversationId?: string | null;
+    },
   ) {
     const tache = await this.loadWithBureau(tacheId, user);
     await this.assertManager(tache.projet.bureauId, user);
+
+    if (dto.conversationId) {
+      const target = await this.prisma.conversation.findUnique({
+        where: { id: dto.conversationId },
+        select: { projetId: true },
+      });
+      if (!target || target.projetId !== tache.projetId) {
+        throw new BadRequestException('Ce groupe ne fait pas partie du même bureau');
+      }
+    }
 
     return this.prisma.tache.update({
       where: { id: tacheId },
@@ -142,6 +175,7 @@ export class TachesService {
         description: dto.description,
         dateCible:
           dto.dateCible === undefined ? undefined : dto.dateCible ? new Date(dto.dateCible) : null,
+        conversationId: dto.conversationId === undefined ? undefined : dto.conversationId,
       },
       include: TACHE_INCLUDE,
     });
@@ -391,7 +425,13 @@ export class TachesService {
 
   async creerBlocage(tacheId: string, user: AuthenticatedUser, dto: CreateBlocageDto) {
     const tache = await this.loadWithBureau(tacheId, user);
-    await this.assertManager(tache.projet.bureauId, user);
+    // La personne assignée doit pouvoir signaler elle-même un blocage sur sa propre
+    // tâche — pas seulement un manager, sinon elle n'a aucun moyen de le faire.
+    if (tache.assigneAId !== user.userId) {
+      await this.assertManager(tache.projet.bureauId, user);
+    } else {
+      await this.assertBureauMember(tache.projet.bureauId, user);
+    }
 
     const [blocage] = await this.prisma.$transaction([
       this.prisma.tacheBlocage.create({

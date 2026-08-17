@@ -14,4 +14,9 @@ export class UpdateTacheDto {
   @IsOptional()
   @IsDateString()
   dateCible?: string | null;
+
+  /** Déplace la tâche vers un autre Subject (groupe) du même bureau. */
+  @IsOptional()
+  @IsString()
+  conversationId?: string | null;
 }

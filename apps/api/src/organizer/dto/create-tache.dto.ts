@@ -1,4 +1,5 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { PrioriteTache } from '@prisma/client';
 
 export class CreateTacheDto {
   @IsString()
@@ -8,4 +9,8 @@ export class CreateTacheDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsEnum(PrioriteTache)
+  priorite?: PrioriteTache;
 }

@@ -34,14 +34,17 @@ const BLOCAGE_TYPES: TypeBlocage[] = ['TACHE', 'PERSONNE', 'DECISION', 'CLIENT',
 export function TaskDetailModal({
   tache,
   isManager,
+  currentUserId,
   onClose,
   onChange,
 }: {
   tache: Tache;
   isManager: boolean;
+  currentUserId: string;
   onClose: () => void;
   onChange: () => void;
 }) {
+  const canReportBlocker = isManager || tache.assigneAId === currentUserId;
   const [blocages, setBlocages] = useState<TacheBlocage[] | null>(null);
   const [chrono, setChrono] = useState<ChronoStatut | null>(null);
   const [newCause, setNewCause] = useState('');
@@ -151,7 +154,7 @@ export function TaskDetailModal({
             ))
           )}
         </div>
-        {isManager && (
+        {canReportBlocker && (
           <div className="mt-3 flex items-center gap-2">
             <select
               value={newType}

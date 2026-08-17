@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { resolveAssetUrl, type ChatMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useConfirm } from '@/lib/confirm-context';
 import { getSocket } from '@/lib/socket';
 
 function initials(name: string) {
@@ -85,10 +86,13 @@ export function Chat({
   description,
 }: ChatProps) {
   const { user } = useAuth();
+  const confirmDialog = useConfirm();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [draft, setDraft] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -122,11 +126,27 @@ export function Chat({
     }
     socket.on(messageEvent, onMessage);
 
+    function onMessageUpdated(message: ChatMessage) {
+      if (active) {
+        setMessages((prev) => prev?.map((m) => (m.id === message.id ? message : m)) ?? prev);
+      }
+    }
+    socket.on('message:updated', onMessageUpdated);
+
+    function onMessageDeleted(data: { id: string }) {
+      if (active) {
+        setMessages((prev) => prev?.filter((m) => m.id !== data.id) ?? prev);
+      }
+    }
+    socket.on('message:deleted', onMessageDeleted);
+
     return () => {
       active = false;
       socket.emit(leaveEvent, { [roomKey]: roomId });
       socket.off('connect', join);
       socket.off(messageEvent, onMessage);
+      socket.off('message:updated', onMessageUpdated);
+      socket.off('message:deleted', onMessageDeleted);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
@@ -152,6 +172,28 @@ export function Chat({
       event.preventDefault();
       sendMessage();
     }
+  }
+
+  function startEdit(message: ChatMessage) {
+    setEditingId(message.id);
+    setEditDraft(message.contenu ?? '');
+  }
+
+  function saveEdit(messageId: string) {
+    const contenu = editDraft.trim();
+    if (!contenu) return;
+    getSocket().emit('message:edit', { messageId, contenu });
+    setEditingId(null);
+  }
+
+  async function handleDelete(messageId: string) {
+    const ok = await confirmDialog({
+      title: 'Delete this message?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (ok) getSocket().emit('message:delete', { messageId });
   }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -185,19 +227,79 @@ export function Chat({
           <div className="flex flex-col gap-3">
             {messages.map((m) => {
               const mine = m.auteurId === user?.id;
+              const isEditing = editingId === m.id;
               return (
-                <div key={m.id} className={`flex items-start gap-2 ${mine ? 'flex-row-reverse text-right' : ''}`}>
+                <div
+                  key={m.id}
+                  className={`group flex items-start gap-2 ${mine ? 'flex-row-reverse text-right' : ''}`}
+                >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white">
                     {initials(m.auteur.nom)}
                   </span>
                   <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-brand-blue text-white' : 'bg-surface-muted text-foreground'}`}>
                     {!mine && <p className="mb-0.5 text-xs font-semibold text-muted-foreground">{m.auteur.nom}</p>}
-                    {m.contenu && <p className="whitespace-pre-wrap break-words">{m.contenu}</p>}
-                    <Attachment message={m} />
-                    <p className={`mt-1 text-[10px] ${mine ? 'text-white/70' : 'text-muted-foreground'}`}>
-                      {formatTime(m.createdAt)}
-                    </p>
+                    {isEditing ? (
+                      <div className="flex flex-col gap-1.5">
+                        <textarea
+                          autoFocus
+                          value={editDraft}
+                          onChange={(e) => setEditDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              saveEdit(m.id);
+                            }
+                            if (e.key === 'Escape') setEditingId(null);
+                          }}
+                          rows={2}
+                          className="min-w-56 resize-none rounded-lg border border-white/30 bg-white/10 px-2 py-1 text-sm text-inherit outline-none"
+                        />
+                        <div className="flex gap-1.5 text-right">
+                          <button
+                            onClick={() => saveEdit(m.id)}
+                            className="rounded px-2 py-0.5 text-xs font-medium underline"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="rounded px-2 py-0.5 text-xs underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {m.contenu && <p className="whitespace-pre-wrap break-words">{m.contenu}</p>}
+                        <Attachment message={m} />
+                        <p className={`mt-1 text-[10px] ${mine ? 'text-white/70' : 'text-muted-foreground'}`}>
+                          {formatTime(m.createdAt)}
+                          {m.edited && ' · edited'}
+                        </p>
+                      </>
+                    )}
                   </div>
+                  {mine && !isEditing && (
+                    <div className="flex shrink-0 items-center gap-1 self-center opacity-0 transition-opacity group-hover:opacity-100">
+                      {m.contenu && (
+                        <button
+                          onClick={() => startEdit(m)}
+                          aria-label="Edit message"
+                          className="rounded px-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          ✎
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(m.id)}
+                        aria-label="Delete message"
+                        className="rounded px-1 text-xs text-muted-foreground hover:text-status-review"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

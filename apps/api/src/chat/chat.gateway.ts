@@ -163,6 +163,42 @@ export class ChatGateway implements OnGatewayConnection {
     this.server.to(organizerRoom(data.subjectId)).emit('organizer:message', message);
   }
 
+  @SubscribeMessage('message:edit')
+  async handleMessageEdit(
+    @MessageBody() data: { messageId: string; contenu: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = getUser(client);
+    const contenu = data.contenu?.trim();
+    if (!contenu || contenu.length > 4000) return;
+
+    const message = await this.chatService.updateMessage(data.messageId, user.userId, contenu);
+    const room = await this.roomForConversation(message.conversationId);
+    this.server.to(room).emit('message:updated', message);
+  }
+
+  @SubscribeMessage('message:delete')
+  async handleMessageDelete(
+    @MessageBody() data: { messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = getUser(client);
+    const { conversationId, bureauId } = await this.chatService.deleteMessage(
+      data.messageId,
+      user.userId,
+    );
+    const room = bureauId ? bureauRoom(bureauId) : organizerRoom(conversationId);
+    this.server.to(room).emit('message:deleted', { id: data.messageId, conversationId });
+  }
+
+  /** Résout la room socket.io d'une conversation, qu'elle appartienne à un bureau ou à un Subject d'organizer. */
+  private async roomForConversation(conversationId: string): Promise<string> {
+    const conversation = await this.chatService.getConversationRoomInfo(conversationId);
+    return conversation.bureauId
+      ? bureauRoom(conversation.bureauId)
+      : organizerRoom(conversationId);
+  }
+
   /** Diffuse un message créé hors WebSocket (ex. upload de fichier via REST) aux clients connectés. */
   broadcastBureauMessage(bureauId: string, message: unknown) {
     this.server.to(bureauRoom(bureauId)).emit('bureau:message', message);

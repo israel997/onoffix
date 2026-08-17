@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
 import { ChatModule } from '../chat/chat.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import {
   BureauOrganizersController,
   OrganizerController,
@@ -16,6 +17,7 @@ import { OrganizerService } from './organizer.service';
   imports: [
     BullModule.registerQueue({ name: ORGANIZER_QUEUE }),
     AiModule,
+    NotificationsModule,
     forwardRef(() => ChatModule),
   ],
   controllers: [BureauOrganizersController, OrganizerController, PersonalOrganizerController],

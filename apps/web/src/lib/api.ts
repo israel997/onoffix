@@ -377,6 +377,7 @@ export interface ChatMessage {
   conversationId: string;
   auteurId: string;
   contenu: string | null;
+  edited: boolean;
   createdAt: string;
   fichierUrl: string | null;
   fichierNom: string | null;
@@ -670,6 +671,7 @@ export function updateTache(
     titre?: string;
     description?: string;
     dateCible?: string | null;
+    conversationId?: string | null;
   },
 ) {
   return authFetch<Tache>(`/taches/${tacheId}`, { method: 'PATCH', body: data });
@@ -906,7 +908,10 @@ export function sendOrganizerFile(projetId: string, subjectId: string, file: Fil
   return sendFile(`/organizers/${projetId}/subjects/${subjectId}/messages/fichier`, file, contenu);
 }
 
-export function createTache(projetId: string, data: { titre: string; description?: string }) {
+export function createTache(
+  projetId: string,
+  data: { titre: string; description?: string; priorite?: PrioriteTache },
+) {
   return authFetch<Tache>(`/organizers/${projetId}/taches`, { method: 'POST', body: data });
 }
 

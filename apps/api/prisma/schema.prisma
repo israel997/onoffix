@@ -140,6 +140,7 @@ model Message {
   conversationId String   @map("conversation_id")
   auteurId       String   @map("auteur_id")
   contenu        String?
+  edited         Boolean  @default(false)
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Pièce jointe optionnelle (cf. phase D — pas de vidéos, images limitées en poids)
