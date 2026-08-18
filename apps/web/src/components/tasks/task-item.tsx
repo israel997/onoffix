@@ -275,7 +275,7 @@ export function TaskItem({
           </Button>
         )}
 
-        {!tache.assigneAId && !isManager && (
+        {!tache.assigneAId && (
           <Button
             size="sm"
             variant="secondary"
