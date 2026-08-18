@@ -1,4 +1,5 @@
-import { IsDateString, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { PrioriteTache } from '@prisma/client';
 
 export class UpdateTacheDto {
   @IsOptional()
@@ -19,4 +20,14 @@ export class UpdateTacheDto {
   @IsOptional()
   @IsString()
   conversationId?: string | null;
+
+  @IsOptional()
+  @IsEnum(PrioriteTache)
+  priorite?: PrioriteTache;
+
+  /** Charge estimée en minutes, ou null pour la retirer. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  dureeEstimeeMinutes?: number | null;
 }

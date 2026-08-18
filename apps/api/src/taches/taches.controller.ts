@@ -117,17 +117,6 @@ export class TachesController {
     return this.tachesService.resoudreBlocage(tacheId, blocageId, user);
   }
 
-  @Post('chrono/demarrer')
-  @HttpCode(200)
-  demarrerChrono(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.tachesService.demarrerChrono(tacheId, user);
-  }
-
-  @Post('chrono/arreter')
-  arreterChrono(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.tachesService.arreterChrono(tacheId, user);
-  }
-
   @Get('chrono')
   chronoStatut(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.tachesService.chronoStatut(tacheId, user);

@@ -672,6 +672,8 @@ export function updateTache(
     description?: string;
     dateCible?: string | null;
     conversationId?: string | null;
+    priorite?: PrioriteTache;
+    dureeEstimeeMinutes?: number | null;
   },
 ) {
   return authFetch<Tache>(`/taches/${tacheId}`, { method: 'PATCH', body: data });
@@ -732,14 +734,6 @@ export interface ChronoStatut {
 
 export function getChronoStatut(tacheId: string) {
   return authFetch<ChronoStatut>(`/taches/${tacheId}/chrono`);
-}
-
-export function demarrerChrono(tacheId: string) {
-  return authFetch<{ id: string }>(`/taches/${tacheId}/chrono/demarrer`, { method: 'POST' });
-}
-
-export function arreterChrono(tacheId: string) {
-  return authFetch<{ id: string }>(`/taches/${tacheId}/chrono/arreter`, { method: 'POST' });
 }
 
 export interface Subject {

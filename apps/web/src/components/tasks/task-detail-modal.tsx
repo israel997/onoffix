@@ -5,9 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import {
-  arreterChrono,
   creerBlocage,
-  demarrerChrono,
   getChronoStatut,
   listBlocages,
   resoudreBlocage,
@@ -16,6 +14,7 @@ import {
   type TacheBlocage,
   type TypeBlocage,
 } from '@/lib/api';
+import { useToast } from '@/lib/toast-context';
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
@@ -50,6 +49,7 @@ export function TaskDetailModal({
   const [newCause, setNewCause] = useState('');
   const [newType, setNewType] = useState<TypeBlocage>('TACHE');
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   async function load() {
     const [b, c] = await Promise.all([listBlocages(tache.id), getChronoStatut(tache.id)]);
@@ -69,6 +69,8 @@ export function TaskDetailModal({
       await action();
       await load();
       onChange();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
     } finally {
       setBusy(false);
     }
@@ -113,22 +115,14 @@ export function TaskDetailModal({
 
       <div className="mt-4 border-t border-border pt-4">
         <p className="text-sm font-semibold text-foreground">Time tracking</p>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {chrono ? formatMinutes(chrono.dureeReelleMinutes) : '—'} logged
-            {tache.dureeEstimeeMinutes ? ` / ${formatMinutes(tache.dureeEstimeeMinutes)} estimated` : ''}
-          </span>
-          {chrono && (
-            <Button
-              size="sm"
-              variant={chrono.enCours ? 'danger' : 'secondary'}
-              disabled={busy}
-              onClick={() => run(() => (chrono.enCours ? arreterChrono(tache.id) : demarrerChrono(tache.id)))}
-            >
-              {chrono.enCours ? 'Stop timer' : 'Start timer'}
-            </Button>
-          )}
-        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {chrono ? formatMinutes(chrono.dureeReelleMinutes) : '—'} logged
+          {tache.dureeEstimeeMinutes ? ` / ${formatMinutes(tache.dureeEstimeeMinutes)} estimated` : ''}
+          {chrono?.enCours && ' · running now'}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Tracked automatically: it starts when the task is started and stops once marked as done.
+        </p>
       </div>
 
       <div className="mt-4 border-t border-border pt-4">

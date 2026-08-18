@@ -4,7 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType, RoleBureau, RoleGlobal, SanteTache, StatutTache } from '@prisma/client';
+import {
+  NotificationType,
+  PrioriteTache,
+  RoleBureau,
+  RoleGlobal,
+  SanteTache,
+  StatutTache,
+} from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -153,6 +160,8 @@ export class TachesService {
       description?: string;
       dateCible?: string | null;
       conversationId?: string | null;
+      priorite?: PrioriteTache;
+      dureeEstimeeMinutes?: number | null;
     },
   ) {
     const tache = await this.loadWithBureau(tacheId, user);
@@ -176,6 +185,8 @@ export class TachesService {
         dateCible:
           dto.dateCible === undefined ? undefined : dto.dateCible ? new Date(dto.dateCible) : null,
         conversationId: dto.conversationId === undefined ? undefined : dto.conversationId,
+        priorite: dto.priorite,
+        dureeEstimeeMinutes: dto.dureeEstimeeMinutes,
       },
       include: TACHE_INCLUDE,
     });
@@ -193,11 +204,22 @@ export class TachesService {
       throw new BadRequestException('Cette tâche ne peut pas être démarrée dans son état actuel');
     }
 
-    return this.prisma.tache.update({
+    const updated = await this.prisma.tache.update({
       where: { id: tacheId },
       data: { statut: StatutTache.EN_COURS, dateDebut: tache.dateDebut ?? new Date() },
       include: TACHE_INCLUDE,
     });
+
+    // Le chronomètre suit automatiquement le cycle de vie de la tâche : pas de bouton
+    // manuel séparé à penser à actionner, le temps réel se mesure tout seul.
+    const activeSession = await this.prisma.tacheSession.findFirst({
+      where: { tacheId, userId: user.userId, fin: null },
+    });
+    if (!activeSession) {
+      await this.prisma.tacheSession.create({ data: { tacheId, userId: user.userId } });
+    }
+
+    return updated;
   }
 
   async declarer(tacheId: string, user: AuthenticatedUser) {
@@ -215,6 +237,11 @@ export class TachesService {
       where: { id: tacheId },
       data: { statut: StatutTache.DECLARE, dateDeclaration: new Date() },
       include: TACHE_INCLUDE,
+    });
+
+    await this.prisma.tacheSession.updateMany({
+      where: { tacheId, userId: user.userId, fin: null },
+      data: { fin: new Date() },
     });
 
     if (tache.assigneParId && tache.assigneParId !== tache.assigneAId) {
@@ -475,33 +502,11 @@ export class TachesService {
 
   // ---------- Chronomètre ----------
 
-  async demarrerChrono(tacheId: string, user: AuthenticatedUser) {
-    const tache = await this.loadWithBureau(tacheId, user);
-    await this.assertBureauMember(tache.projet.bureauId, user);
-    if (tache.assigneAId !== user.userId) {
-      throw new ForbiddenException('Seule la personne assignée peut lancer le chronomètre');
-    }
-
-    const active = await this.prisma.tacheSession.findFirst({
-      where: { tacheId, userId: user.userId, fin: null },
-    });
-    if (active) return active;
-
-    return this.prisma.tacheSession.create({ data: { tacheId, userId: user.userId } });
-  }
-
-  async arreterChrono(tacheId: string, user: AuthenticatedUser) {
-    const tache = await this.loadWithBureau(tacheId, user);
-    await this.assertBureauMember(tache.projet.bureauId, user);
-
-    const active = await this.prisma.tacheSession.findFirst({
-      where: { tacheId, userId: user.userId, fin: null },
-    });
-    if (!active) throw new BadRequestException('Aucune session de chronomètre en cours');
-
-    return this.prisma.tacheSession.update({ where: { id: active.id }, data: { fin: new Date() } });
-  }
-
+  /**
+   * Le chronomètre n'a plus de contrôle manuel : une session s'ouvre/se ferme
+   * automatiquement avec demarrer()/declarer(). Cet endpoint ne fait qu'exposer
+   * le temps réellement enregistré, pour affichage.
+   */
   async chronoStatut(tacheId: string, user: AuthenticatedUser) {
     await this.loadWithBureau(tacheId, user);
     const [dureeReelleMinutes, active] = await Promise.all([

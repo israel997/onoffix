@@ -14,6 +14,7 @@ import {
   demarrerTache,
   updateTache,
   validerTache,
+  type PrioriteTache,
   type Tache,
 } from '@/lib/api';
 import { useConfirm } from '@/lib/confirm-context';
@@ -27,6 +28,13 @@ import {
 } from '@/lib/tache-labels';
 import { useToast } from '@/lib/toast-context';
 
+function formatMinutes(min: number) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m}min`;
+  return `${h}h${m > 0 ? ` ${m}min` : ''}`;
+}
+
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(totalSeconds / 3600);
@@ -36,6 +44,8 @@ function formatDuration(ms: number) {
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
+
+const PRIORITES: PrioriteTache[] = ['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'];
 
 function ProgressBar({ percent }: { percent: number }) {
   return (
@@ -74,11 +84,14 @@ export function TaskItem({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [titre, setTitre] = useState(tache.titre);
   const [description, setDescription] = useState(tache.description ?? '');
   const [dateCible, setDateCible] = useState(tache.dateCible ?? '');
+  const [priorite, setPriorite] = useState<PrioriteTache>(tache.priorite);
+  const [dureeEstimeeHeures, setDureeEstimeeHeures] = useState(
+    tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
+  );
 
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
@@ -104,8 +117,16 @@ export function TaskItem({
   }
 
   async function handleSaveEdit() {
+    const heures = parseFloat(dureeEstimeeHeures);
     await run(
-      () => updateTache(tache.id, { titre, description: description || undefined, dateCible: dateCible || null }),
+      () =>
+        updateTache(tache.id, {
+          titre,
+          description: description || undefined,
+          dateCible: dateCible || null,
+          priorite,
+          dureeEstimeeMinutes: dureeEstimeeHeures.trim() && !Number.isNaN(heures) ? Math.round(heures * 60) : null,
+        }),
       'Task updated',
     );
     setEditing(false);
@@ -124,6 +145,31 @@ export function TaskItem({
             <Input value={description} onChange={(e) => setDescription(e.target.value)} />
           </Label>
           <Label>
+            Priority
+            <select
+              value={priorite}
+              onChange={(e) => setPriorite(e.target.value as PrioriteTache)}
+              className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+            >
+              {PRIORITES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </Label>
+          <Label>
+            Estimated time (hours)
+            <Input
+              type="number"
+              min="0"
+              step="0.5"
+              value={dureeEstimeeHeures}
+              onChange={(e) => setDureeEstimeeHeures(e.target.value)}
+              placeholder="e.g. 2"
+            />
+          </Label>
+          <Label>
             Target date (daily ritual)
             <Input type="date" value={dateCible} onChange={(e) => setDateCible(e.target.value)} />
           </Label>
@@ -140,6 +186,8 @@ export function TaskItem({
                 setTitre(tache.titre);
                 setDescription(tache.description ?? '');
                 setDateCible(tache.dateCible ?? '');
+                setPriorite(tache.priorite);
+                setDureeEstimeeHeures(tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '');
                 setEditing(false);
               }}
             >
@@ -160,49 +208,34 @@ export function TaskItem({
         >
           {tache.titre}
         </button>
-        <div className="relative flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
-          {(isManager || canDeleteTask) && (
+          {isManager && (
             <button
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label="More actions"
+              onClick={() => setEditing(true)}
+              aria-label="Edit task"
               className="rounded px-1 text-muted-foreground hover:text-foreground"
             >
-              ⋯
+              ✎
             </button>
           )}
-          {menuOpen && (
-            <div className="animate-fade-in-up absolute right-0 top-6 z-10 flex w-32 flex-col rounded-lg border border-border bg-surface py-1 text-xs shadow-md">
-              {isManager && (
-                <button
-                  onClick={() => {
-                    setEditing(true);
-                    setMenuOpen(false);
-                  }}
-                  className="px-3 py-1.5 text-left hover:bg-surface-muted"
-                >
-                  Edit
-                </button>
-              )}
-              {canDeleteTask && (
-                <button
-                  onClick={async () => {
-                    setMenuOpen(false);
-                    const ok = await confirmDialog({
-                      title: `Delete "${tache.titre}"?`,
-                      description: 'This cannot be undone.',
-                      confirmLabel: 'Delete',
-                      danger: true,
-                    });
-                    if (ok) run(() => deleteTache(tache.id), 'Task deleted');
-                  }}
-                  className="px-3 py-1.5 text-left text-status-review hover:bg-surface-muted"
-                >
-                  Delete
-                </button>
-              )}
-            </div>
+          {canDeleteTask && (
+            <button
+              onClick={async () => {
+                const ok = await confirmDialog({
+                  title: `Delete "${tache.titre}"?`,
+                  description: 'This cannot be undone.',
+                  confirmLabel: 'Delete',
+                  danger: true,
+                });
+                if (ok) run(() => deleteTache(tache.id), 'Task deleted');
+              }}
+              aria-label="Delete task"
+              className="rounded px-1 text-muted-foreground hover:text-status-review"
+            >
+              🗑
+            </button>
           )}
         </div>
       </div>
@@ -214,6 +247,9 @@ export function TaskItem({
           <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
         )}
         {tache.conversation && <Badge tone="brand">{tache.conversation.nom}</Badge>}
+        {tache.dureeEstimeeMinutes != null && (
+          <span>· estimated {formatMinutes(tache.dureeEstimeeMinutes)}</span>
+        )}
         {tache.dateCible && <span>· due {tache.dateCible}</span>}
         {tache.statut === 'EN_COURS' && tache.dateDebut && (
           <span>
