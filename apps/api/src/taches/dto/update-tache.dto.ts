@@ -30,4 +30,9 @@ export class UpdateTacheDto {
   @IsInt()
   @Min(0)
   dureeEstimeeMinutes?: number | null;
+
+  /** Échéance (date + heure), ou null pour la retirer — utilisée par le calendrier. */
+  @IsOptional()
+  @IsDateString()
+  dateEcheance?: string | null;
 }

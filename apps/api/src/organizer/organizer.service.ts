@@ -100,6 +100,7 @@ export class OrganizerService {
           titre: dto.titre,
           description: dto.description,
           priorite: dto.priorite,
+          dateEcheance: dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
           assigneAId: projet.proprietaireId,
           assigneParId: projet.proprietaireId,
         },

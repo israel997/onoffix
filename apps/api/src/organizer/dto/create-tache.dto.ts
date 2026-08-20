@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { PrioriteTache } from '@prisma/client';
 
 export class CreateTacheDto {
@@ -13,4 +13,9 @@ export class CreateTacheDto {
   @IsOptional()
   @IsEnum(PrioriteTache)
   priorite?: PrioriteTache;
+
+  /** Échéance (date + heure) — utilisée par le calendrier. */
+  @IsOptional()
+  @IsDateString()
+  dateEcheance?: string;
 }

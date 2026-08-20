@@ -69,6 +69,15 @@ export class TachesService {
     if (!membership) throw new ForbiddenException('Vous ne faites pas partie de ce bureau');
   }
 
+  private async isManager(bureauId: string | null, user: AuthenticatedUser): Promise<boolean> {
+    if (bureauId === null) return true; // Tâche personnelle : le propriétaire gère seul
+    if (user.roleGlobal === RoleGlobal.ADMIN) return true;
+    const membership = await this.prisma.userBureau.findUnique({
+      where: { userId_bureauId: { userId: user.userId, bureauId } },
+    });
+    return membership?.roleDansBureau === RoleBureau.MANAGER;
+  }
+
   private lienTache(bureauId: string | null) {
     return bureauId ? `/offices/${bureauId}/tasks` : '/my-space?tab=tasks';
   }
@@ -162,10 +171,23 @@ export class TachesService {
       conversationId?: string | null;
       priorite?: PrioriteTache;
       dureeEstimeeMinutes?: number | null;
+      dateEcheance?: string | null;
     },
   ) {
     const tache = await this.loadWithBureau(tacheId, user);
-    await this.assertManager(tache.projet.bureauId, user);
+    const manager = await this.isManager(tache.projet.bureauId, user);
+
+    if (!manager) {
+      // La personne assignée peut ajuster l'échéance/priorité de sa propre tâche
+      // depuis le calendrier, sans avoir besoin des droits manager.
+      const assigneeAllowedKeys = new Set(['priorite', 'dateEcheance']);
+      const hasOtherField = Object.keys(dto).some(
+        (key) => dto[key as keyof typeof dto] !== undefined && !assigneeAllowedKeys.has(key),
+      );
+      if (tache.assigneAId !== user.userId || hasOtherField) {
+        throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
+      }
+    }
 
     if (dto.conversationId) {
       const target = await this.prisma.conversation.findUnique({
@@ -187,6 +209,12 @@ export class TachesService {
         conversationId: dto.conversationId === undefined ? undefined : dto.conversationId,
         priorite: dto.priorite,
         dureeEstimeeMinutes: dto.dureeEstimeeMinutes,
+        dateEcheance:
+          dto.dateEcheance === undefined
+            ? undefined
+            : dto.dateEcheance
+              ? new Date(dto.dateEcheance)
+              : null,
       },
       include: TACHE_INCLUDE,
     });
@@ -300,6 +328,34 @@ export class TachesService {
   }
 
   /** Agrège toutes les tâches pertinentes pour l'utilisateur : assignées dans un bureau + Organizer personnel. */
+  /** Vue calendrier admin : toutes les tâches à échéance de l'organisation, tous membres confondus. */
+  async organisationTaches(user: AuthenticatedUser) {
+    if (user.roleGlobal !== RoleGlobal.ADMIN) {
+      throw new ForbiddenException('Réservé aux admins');
+    }
+    return this.prisma.tache.findMany({
+      where: {
+        dateEcheance: { not: null },
+        OR: [
+          { projet: { bureau: { organisationId: user.organisationId } } },
+          { projet: { proprietaire: { organisationId: user.organisationId } } },
+        ],
+      },
+      orderBy: { dateEcheance: 'asc' },
+      include: {
+        ...TACHE_INCLUDE,
+        projet: {
+          select: {
+            id: true,
+            nom: true,
+            proprietaireId: true,
+            bureau: { select: { id: true, nom: true } },
+          },
+        },
+      },
+    });
+  }
+
   async mesTaches(user: AuthenticatedUser) {
     return this.prisma.tache.findMany({
       where: {

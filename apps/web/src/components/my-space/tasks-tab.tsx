@@ -1,16 +1,32 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { TaskItem } from '@/components/tasks/task-item';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription } from '@/components/ui/card';
 import { getMyTasks, type MyTache } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
+interface Group {
+  key: string;
+  nom: string;
+  taches: MyTache[];
+}
+
+function groupByOffice(taches: MyTache[]): Group[] {
+  const groups = new Map<string, Group>();
+  for (const t of taches) {
+    const key = t.projet.bureau?.id ?? 'personal';
+    const nom = t.projet.bureau?.nom ?? 'Personal';
+    if (!groups.has(key)) groups.set(key, { key, nom, taches: [] });
+    groups.get(key)!.taches.push(t);
+  }
+  return Array.from(groups.values());
+}
+
 export function TasksTab() {
   const { user } = useAuth();
   const [taches, setTaches] = useState<MyTache[] | null>(null);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   async function load() {
     setTaches(await getMyTasks());
@@ -21,37 +37,62 @@ export function TasksTab() {
     load();
   }, []);
 
+  function toggleGroup(key: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  if (taches === null) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (taches.length === 0) {
+    return (
+      <Card>
+        <CardDescription>Nothing assigned to you yet.</CardDescription>
+      </Card>
+    );
+  }
+
+  const groups = groupByOffice(taches);
+
   return (
-    <Card>
-      <div className="flex flex-col gap-3">
-        {taches === null ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : taches.length === 0 ? (
-          <CardDescription>Nothing assigned to you yet.</CardDescription>
-        ) : (
-          user &&
-          taches.map((t) => (
-            <div key={t.id} className="flex flex-col gap-2">
-              <Link
-                href={t.projet.bureau ? `/offices/${t.projet.bureau.id}/tasks` : '/my-space?tab=organizer'}
-                className="w-fit"
+    <div className="flex flex-col gap-4">
+      {user &&
+        groups.map((g) => {
+          const open = openGroups.has(g.key);
+          return (
+            <Card key={g.key}>
+              <button
+                onClick={() => toggleGroup(g.key)}
+                className="flex w-full items-center gap-2 text-left"
               >
-                <Badge tone={t.projet.bureau ? 'neutral' : 'brand'}>
-                  {t.projet.bureau ? t.projet.bureau.nom : 'Personal'}
-                </Badge>
-              </Link>
-              <TaskItem
-                tache={t}
-                currentUserId={user.id}
-                isManager={false}
-                isAdmin={user.roleGlobal === 'ADMIN'}
-                assignableMembres={[]}
-                onChange={load}
-              />
-            </div>
-          ))
-        )}
-      </div>
-    </Card>
+                <span className={`text-xs text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}>
+                  ▶
+                </span>
+                <h2 className="text-sm font-semibold text-foreground">
+                  {g.nom} ({g.taches.length})
+                </h2>
+              </button>
+              {open && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {g.taches.map((t) => (
+                    <TaskItem
+                      key={t.id}
+                      tache={t}
+                      currentUserId={user.id}
+                      isManager={false}
+                      isAdmin={user.roleGlobal === 'ADMIN'}
+                      assignableMembres={[]}
+                      onChange={load}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+    </div>
   );
 }

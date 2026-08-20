@@ -19,6 +19,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true },
   { label: 'My Space', href: '/my-space', available: true },
+  { label: 'Calendar', href: '/calendar', available: true },
   { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true },
   { label: 'Members', href: '/members', available: true },
   { label: 'Daily check-in', href: '/check-in', available: false },

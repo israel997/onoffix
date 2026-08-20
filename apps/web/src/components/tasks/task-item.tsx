@@ -18,22 +18,8 @@ import {
   type Tache,
 } from '@/lib/api';
 import { useConfirm } from '@/lib/confirm-context';
-import {
-  PRIORITE_TONE,
-  SANTE_LABEL,
-  SANTE_TONE,
-  STATUT_LABEL,
-  STATUT_PROGRESS,
-  STATUT_TONE,
-} from '@/lib/tache-labels';
+import { PRIORITE_TONE, SANTE_LABEL, SANTE_TONE, STATUT_LABEL, STATUT_TONE } from '@/lib/tache-labels';
 import { useToast } from '@/lib/toast-context';
-
-function formatMinutes(min: number) {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (h === 0) return `${m}min`;
-  return `${h}h${m > 0 ? ` ${m}min` : ''}`;
-}
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -46,14 +32,6 @@ function formatDuration(ms: number) {
 }
 
 const PRIORITES: PrioriteTache[] = ['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'];
-
-function ProgressBar({ percent }: { percent: number }) {
-  return (
-    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-      <div className="h-full rounded-full bg-brand-blue transition-all" style={{ width: `${percent}%` }} />
-    </div>
-  );
-}
 
 function LiveTimer({ since }: { since: string }) {
   const [now, setNow] = useState(() => Date.now());
@@ -199,16 +177,33 @@ export function TaskItem({
     );
   }
 
+  const canCheckDone = isAssignee && tache.statut === 'EN_COURS';
+  const isChecked = tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
+  const checkboxInteractive = canCheckDone || canValidate;
+
   return (
-    <div className="rounded-lg border border-border p-3">
-      <div className="flex items-start justify-between gap-2">
+    <div className="rounded-lg border border-border p-2.5">
+      <div className="flex items-start gap-2">
+        {(checkboxInteractive || isChecked) && (
+          <input
+            type="checkbox"
+            checked={isChecked}
+            disabled={busy || !checkboxInteractive || isChecked}
+            onChange={() => {
+              if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
+              else if (canValidate) run(() => validerTache(tache.id, 'ok'), 'Task approved');
+            }}
+            aria-label={canValidate ? 'Approve task' : 'Mark task as done'}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded accent-status-validated"
+          />
+        )}
         <button
-          className="text-left text-sm font-medium text-foreground hover:underline"
+          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
           onClick={() => setShowDetail(true)}
         >
           {tache.titre}
         </button>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
           {isManager && (
@@ -239,34 +234,24 @@ export function TaskItem({
           )}
         </div>
       </div>
-      {tache.description && <p className="mt-1 text-xs text-muted-foreground">{tache.description}</p>}
 
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        {tache.assigneA ? <span>Assigned to {tache.assigneA.nom}</span> : <span>Unassigned</span>}
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
+        <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>
         {tache.priorite !== 'NORMALE' && (
           <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
         )}
         {tache.conversation && <Badge tone="brand">{tache.conversation.nom}</Badge>}
-        {tache.dureeEstimeeMinutes != null && (
-          <span>· estimated {formatMinutes(tache.dureeEstimeeMinutes)}</span>
-        )}
-        {tache.dateCible && <span>· due {tache.dateCible}</span>}
         {tache.statut === 'EN_COURS' && tache.dateDebut && (
           <span>
-            · running for <LiveTimer since={tache.dateDebut} />
+            running <LiveTimer since={tache.dateDebut} />
           </span>
         )}
-        {tache.statut === 'VALIDE' && tache.dateDebut && tache.dateDeclaration && (
-          <span>
-            · took {formatDuration(new Date(tache.dateDeclaration).getTime() - new Date(tache.dateDebut).getTime())}
-          </span>
-        )}
+        {tache.description && <span className="truncate">— {tache.description}</span>}
       </div>
-      <ProgressBar percent={STATUT_PROGRESS[tache.statut]} />
 
-      {error && <p className="mt-2 text-xs text-status-review">{error}</p>}
+      {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-6">
         {!tache.assigneAId && isManager && (
           <select
             disabled={busy}
@@ -274,7 +259,7 @@ export function TaskItem({
             onChange={(e) => {
               if (e.target.value) run(() => assignerTache(tache.id, e.target.value), 'Task assigned');
             }}
-            className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
+            className="h-7 rounded-lg border border-border bg-surface px-2 text-xs"
           >
             <option value="" disabled>
               Assign to…
@@ -305,12 +290,6 @@ export function TaskItem({
           </Button>
         )}
 
-        {isAssignee && tache.statut === 'EN_COURS' && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => declarerTache(tache.id), 'Marked as done')}>
-            Mark as done
-          </Button>
-        )}
-
         {!tache.assigneAId && (
           <Button
             size="sm"
@@ -330,19 +309,14 @@ export function TaskItem({
           )}
 
         {canValidate && (
-          <>
-            <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'), 'Task approved')}>
-              Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => run(() => validerTache(tache.id, 'litige'), 'Sent back for rework')}
-            >
-              Send back
-            </Button>
-          </>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => run(() => validerTache(tache.id, 'litige'), 'Sent back for rework')}
+          >
+            Send back
+          </Button>
         )}
 
         {isManager && moveTargets && moveTargets.length > 0 && (
@@ -354,7 +328,7 @@ export function TaskItem({
               const conversationId = e.target.value === '__none__' ? null : e.target.value;
               run(() => updateTache(tache.id, { conversationId }), 'Task moved');
             }}
-            className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
+            className="h-7 rounded-lg border border-border bg-surface px-2 text-xs"
           >
             <option value="" disabled>
               Move to…

@@ -674,6 +674,7 @@ export function updateTache(
     conversationId?: string | null;
     priorite?: PrioriteTache;
     dureeEstimeeMinutes?: number | null;
+    dateEcheance?: string | null;
   },
 ) {
   return authFetch<Tache>(`/taches/${tacheId}`, { method: 'PATCH', body: data });
@@ -798,6 +799,10 @@ export function getMyTasks() {
   return authFetch<MyTache[]>('/taches/mes-taches');
 }
 
+export function getOrganisationTasks() {
+  return authFetch<MyTache[]>('/taches/organisation');
+}
+
 export type RaisonAlerte = 'A_RISQUE' | 'BLOQUEE' | 'ECHEANCE_PROCHE' | 'ECHEANCE_DEPASSEE';
 
 export interface AlerteTache {
@@ -904,7 +909,7 @@ export function sendOrganizerFile(projetId: string, subjectId: string, file: Fil
 
 export function createTache(
   projetId: string,
-  data: { titre: string; description?: string; priorite?: PrioriteTache },
+  data: { titre: string; description?: string; priorite?: PrioriteTache; dateEcheance?: string },
 ) {
   return authFetch<Tache>(`/organizers/${projetId}/taches`, { method: 'POST', body: data });
 }
