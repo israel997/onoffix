@@ -163,7 +163,7 @@ export default function TasksPage() {
                 </p>
               </button>
               {open && (
-                <div className="mt-3 flex flex-col gap-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {user &&
                     g.taches.map((t) => (
                       <TaskItem

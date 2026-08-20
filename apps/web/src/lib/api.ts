@@ -245,6 +245,7 @@ export interface Bureau {
   photoUrl: string | null;
   ordre: number;
   createdAt: string;
+  _count: { membres: number };
 }
 
 export interface Membre {

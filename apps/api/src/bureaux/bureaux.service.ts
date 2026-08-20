@@ -67,11 +67,12 @@ export class BureauxService {
       return this.prisma.bureau.findMany({
         where: { organisationId: user.organisationId },
         orderBy: [{ ordre: 'asc' }, { createdAt: 'asc' }],
+        include: { _count: { select: { membres: true } } },
       });
     }
     const memberships = await this.prisma.userBureau.findMany({
       where: { userId: user.userId },
-      select: { bureau: true },
+      select: { bureau: { include: { _count: { select: { membres: true } } } } },
       orderBy: { bureau: { ordre: 'asc' } },
     });
     return memberships.map((m) => m.bureau);

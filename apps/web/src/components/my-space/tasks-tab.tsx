@@ -76,13 +76,15 @@ export function TasksTab() {
                 </h2>
               </button>
               {open && (
-                <div className="mt-3 flex flex-col gap-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {g.taches.map((t) => (
                     <TaskItem
                       key={t.id}
                       tache={t}
                       currentUserId={user.id}
-                      isManager={false}
+                      // Une tâche personnelle (hors bureau) est intégralement gérée par son
+                      // propriétaire — sinon impossible d'éditer/prioriser ce qu'on a soi-même créé.
+                      isManager={t.projet.bureau === null || user.roleGlobal === 'ADMIN'}
                       isAdmin={user.roleGlobal === 'ADMIN'}
                       assignableMembres={[]}
                       onChange={load}

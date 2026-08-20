@@ -14,11 +14,34 @@ import {
   listOrganisationInvitations,
   listOrganisationMembres,
   removeOrganisationMembre,
+  resolveAssetUrl,
   updateMembrePoste,
   updateOrganisationMembreRole,
   type Invitation,
   type OrganisationMembre,
 } from '@/lib/api';
+
+function initials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function MemberAvatar({ nom, photoUrl }: { nom: string; photoUrl: string | null }) {
+  const src = resolveAssetUrl(photoUrl);
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={nom} className="h-9 w-9 shrink-0 rounded-full object-cover" />;
+  }
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white">
+      {initials(nom)}
+    </span>
+  );
+}
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
@@ -237,7 +260,9 @@ export default function MembersPage() {
             ))}
             {membres.map((m) => (
               <div key={m.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+                <div className="flex items-center gap-3">
+                  <MemberAvatar nom={m.nom} photoUrl={m.photoUrl} />
+                  <div>
                   <p className="text-sm font-medium text-foreground">{m.nom}</p>
                   <p className="text-xs text-muted-foreground">{m.email}</p>
                   {editingPosteId === m.id ? (
@@ -273,6 +298,7 @@ export default function MembersPage() {
                     )
                   )}
                   {!isAdmin && m.poste && <p className="mt-0.5 text-xs text-muted-foreground">{m.poste}</p>}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge tone="validated">Joined</Badge>

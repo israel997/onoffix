@@ -198,12 +198,12 @@ export default function OfficesPage() {
           <CardDescription>No office yet.</CardDescription>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {bureaux.map((bureau, index) => {
             const photoSrc = resolveAssetUrl(bureau.photoUrl);
             return (
-              <Card key={bureau.id} className="flex items-center justify-between gap-4 py-4">
-                <Link href={`/offices/${bureau.id}`} className="flex flex-1 items-center gap-4">
+              <Card key={bureau.id} className="flex flex-col gap-3 py-4">
+                <Link href={`/offices/${bureau.id}`} className="flex flex-col gap-3">
                   {photoSrc ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={photoSrc} alt={bureau.nom} className="h-10 w-10 rounded-lg object-cover" />
@@ -214,9 +214,15 @@ export default function OfficesPage() {
                     <p className="text-sm font-semibold text-foreground">{bureau.nom}</p>
                     <p className="text-xs text-muted-foreground">Daily check-in at {bureau.heureDeclaration}</p>
                   </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>
+                      {bureau._count.membres} member{bureau._count.membres === 1 ? '' : 's'}
+                    </span>
+                    <span>· created {new Date(bureau.createdAt).toLocaleDateString()}</span>
+                  </div>
                 </Link>
                 {isAdmin && (
-                  <div className="flex shrink-0 gap-1">
+                  <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
