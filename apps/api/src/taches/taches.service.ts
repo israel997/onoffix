@@ -327,6 +327,34 @@ export class TachesService {
     return updated;
   }
 
+  /**
+   * Rouvre une tâche personnelle validée par erreur — remet à zéro le cycle
+   * (statut + dates), pour que la case à cocher de My Space soit réversible.
+   * Réservé aux tâches personnelles : le workflow d'équipe (bureau) n'a pas
+   * d'action "annuler la validation" et ce n'est pas le rôle de cet endpoint.
+   */
+  async reouvrir(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    if (tache.projet.bureauId !== null) {
+      throw new ForbiddenException('Seule une tâche personnelle peut être rouverte');
+    }
+    if (tache.assigneAId !== user.userId) {
+      throw new ForbiddenException('Seul le propriétaire peut rouvrir cette tâche');
+    }
+
+    return this.prisma.tache.update({
+      where: { id: tacheId },
+      data: {
+        statut: StatutTache.A_FAIRE,
+        dateDebut: null,
+        dateDeclaration: null,
+        dateValidation: null,
+        valideParId: null,
+      },
+      include: TACHE_INCLUDE,
+    });
+  }
+
   /** Agrège toutes les tâches pertinentes pour l'utilisateur : assignées dans un bureau + Organizer personnel. */
   /** Vue calendrier admin : toutes les tâches à échéance de l'organisation, tous membres confondus. */
   async organisationTaches(user: AuthenticatedUser) {

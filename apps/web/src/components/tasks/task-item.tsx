@@ -12,6 +12,7 @@ import {
   declarerTache,
   deleteTache,
   demarrerTache,
+  reouvrirTache,
   updateTache,
   validerTache,
   type PrioriteTache,
@@ -216,9 +217,13 @@ export function TaskItem({
             checked={isChecked}
             disabled={busy || (!checkboxInteractive && !isChecked)}
             onChange={() => {
+              if (isPersonal) {
+                if (isChecked) run(() => reouvrirTache(tache.id), 'Task reopened');
+                else completePersonalTask();
+                return;
+              }
               if (isChecked) return;
-              if (isPersonal) completePersonalTask();
-              else if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
+              if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
               else if (canValidate) run(() => validerTache(tache.id, 'ok'), 'Task approved');
             }}
             aria-label={canValidate ? 'Approve task' : 'Mark task as done'}

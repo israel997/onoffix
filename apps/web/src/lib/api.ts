@@ -701,6 +701,10 @@ export function validerTache(tacheId: string, decision: 'ok' | 'litige') {
   return authFetch<Tache>(`/taches/${tacheId}/valider`, { method: 'POST', body: { decision } });
 }
 
+export function reouvrirTache(tacheId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/reouvrir`, { method: 'POST' });
+}
+
 export function listBureauTaches(bureauId: string) {
   return authFetch<Tache[]>(`/bureaux/${bureauId}/taches`);
 }

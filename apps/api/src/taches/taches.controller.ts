@@ -99,6 +99,11 @@ export class TachesController {
     return this.tachesService.valider(tacheId, user, dto.decision);
   }
 
+  @Post('reouvrir')
+  reouvrir(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.reouvrir(tacheId, user);
+  }
+
   @Get('blocages')
   listBlocages(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.tachesService.listBlocages(tacheId, user);
