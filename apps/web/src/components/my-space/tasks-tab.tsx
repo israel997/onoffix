@@ -86,6 +86,7 @@ export function TasksTab() {
                       // propriétaire — sinon impossible d'éditer/prioriser ce qu'on a soi-même créé.
                       isManager={t.projet.bureau === null || user.roleGlobal === 'ADMIN'}
                       isAdmin={user.roleGlobal === 'ADMIN'}
+                      isPersonal={t.projet.bureau === null}
                       assignableMembres={[]}
                       onChange={load}
                     />

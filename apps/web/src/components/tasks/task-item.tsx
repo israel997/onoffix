@@ -47,6 +47,7 @@ export function TaskItem({
   currentUserId,
   isManager,
   isAdmin = false,
+  isPersonal = false,
   assignableMembres,
   moveTargets,
   onChange,
@@ -55,6 +56,8 @@ export function TaskItem({
   currentUserId: string;
   isManager: boolean;
   isAdmin?: boolean;
+  /** Tâche de l'Organizer personnel (pas de bureau) : pas de workflow d'équipe, juste fait/pas fait. */
+  isPersonal?: boolean;
   assignableMembres: { user: { id: string; nom: string } }[];
   moveTargets?: { conversationId: string | null; nom: string }[];
   onChange: () => void;
@@ -74,7 +77,7 @@ export function TaskItem({
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
   const canValidate = tache.statut === 'DECLARE' && (isAssigner || isManager);
-  const canDeleteTask = isAdmin;
+  const canDeleteTask = isAdmin || (isPersonal && isAssignee);
   const toast = useToast();
   const confirmDialog = useConfirm();
 
@@ -177,9 +180,32 @@ export function TaskItem({
     );
   }
 
+  // Tâche personnelle : pas de workflow d'équipe (accepter/démarrer/valider séparément),
+  // juste "fait ou pas" — la case coche enchaîne toutes les étapes nécessaires d'un coup.
+  async function completePersonalTask() {
+    await run(async () => {
+      let statut = tache.statut;
+      if (statut === 'A_FAIRE') {
+        await accepterTache(tache.id);
+        statut = 'ACCEPTEE';
+      }
+      if (statut === 'ACCEPTEE' || statut === 'A_REVOIR') {
+        await demarrerTache(tache.id);
+        statut = 'EN_COURS';
+      }
+      if (statut === 'EN_COURS') {
+        await declarerTache(tache.id);
+        statut = 'DECLARE';
+      }
+      if (statut === 'DECLARE') {
+        await validerTache(tache.id, 'ok');
+      }
+    }, 'Task completed');
+  }
+
   const canCheckDone = isAssignee && tache.statut === 'EN_COURS';
-  const isChecked = tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
-  const checkboxInteractive = canCheckDone || canValidate;
+  const isChecked = isPersonal ? tache.statut === 'VALIDE' : tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
+  const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone || canValidate;
 
   return (
     <div className="rounded-lg border border-border p-2.5">
@@ -190,7 +216,8 @@ export function TaskItem({
             checked={isChecked}
             disabled={busy || !checkboxInteractive || isChecked}
             onChange={() => {
-              if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
+              if (isPersonal) completePersonalTask();
+              else if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
               else if (canValidate) run(() => validerTache(tache.id, 'ok'), 'Task approved');
             }}
             aria-label={canValidate ? 'Approve task' : 'Mark task as done'}
@@ -251,6 +278,7 @@ export function TaskItem({
 
       {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
 
+      {!isPersonal && (
       <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-6">
         {!tache.assigneAId && isManager && (
           <select
@@ -341,6 +369,7 @@ export function TaskItem({
           </select>
         )}
       </div>
+      )}
 
       {showDetail && (
         <TaskDetailModal
