@@ -214,8 +214,9 @@ export function TaskItem({
           <input
             type="checkbox"
             checked={isChecked}
-            disabled={busy || !checkboxInteractive || isChecked}
+            disabled={busy || (!checkboxInteractive && !isChecked)}
             onChange={() => {
+              if (isChecked) return;
               if (isPersonal) completePersonalTask();
               else if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
               else if (canValidate) run(() => validerTache(tache.id, 'ok'), 'Task approved');
