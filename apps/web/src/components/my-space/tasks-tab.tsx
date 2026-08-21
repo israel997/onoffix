@@ -20,6 +20,10 @@ function groupByOffice(taches: MyTache[]): Group[] {
     if (!groups.has(key)) groups.set(key, { key, nom, taches: [] });
     groups.get(key)!.taches.push(t);
   }
+  // Une tâche cochée (validée) descend en bas de sa liste plutôt que de rester à sa place.
+  for (const group of groups.values()) {
+    group.taches.sort((a, b) => Number(a.statut === 'VALIDE') - Number(b.statut === 'VALIDE'));
+  }
   return Array.from(groups.values());
 }
 

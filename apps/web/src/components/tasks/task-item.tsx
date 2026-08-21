@@ -221,7 +221,7 @@ export function TaskItem({
               else if (canValidate) run(() => validerTache(tache.id, 'ok'), 'Task approved');
             }}
             aria-label={canValidate ? 'Approve task' : 'Mark task as done'}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded accent-status-validated"
+            className={`mt-0.5 h-4 w-4 shrink-0 rounded ${isPersonal ? 'accent-brand-blue' : 'accent-status-validated'}`}
           />
         )}
         <button
