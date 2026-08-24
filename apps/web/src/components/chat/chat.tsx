@@ -385,12 +385,13 @@ export function Chat({
                         {m.replyTo && (
                           <button
                             onClick={() => jumpToMessage(m.replyTo!.id)}
-                            className={`mb-1 block w-full rounded-lg border-l-2 px-2 py-1 text-left text-xs ${mine ? 'border-white/50 bg-white/10 text-white/80' : 'border-brand-blue bg-black/5 text-muted-foreground'}`}
+                            style={{ borderLeftColor: colorForUser(m.replyTo.auteur.id) }}
+                            className={`mb-1 block w-full rounded-lg border-l-4 px-2 py-1 text-left text-xs ${mine ? 'bg-black/15 text-white' : 'bg-black/5 text-muted-foreground'}`}
                           >
-                            <span className="block font-semibold" style={{ color: mine ? undefined : colorForUser(m.replyTo.auteur.id) }}>
+                            <span className="block font-semibold" style={{ color: mine ? '#fff' : colorForUser(m.replyTo.auteur.id) }}>
                               {m.replyTo.auteur.nom}
                             </span>
-                            <span className="line-clamp-1">{quotePreview(m.replyTo)}</span>
+                            <span className={`line-clamp-1 ${mine ? 'text-white/85' : ''}`}>{quotePreview(m.replyTo)}</span>
                           </button>
                         )}
                         {m.contenu && (
