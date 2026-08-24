@@ -1,24 +1,64 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateProfile } from '@/lib/api';
+import { removeProfilePhoto, resolveAssetUrl, updateProfile, uploadProfilePhoto } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/lib/toast-context';
+
+function initials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
 
 export default function ProfilePage() {
   const { user, refresh } = useAuth();
+  const toast = useToast();
   const [nom, setNom] = useState(user?.nom ?? '');
   const [poste, setPoste] = useState(user?.poste ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
+
+  async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      await uploadProfilePhoto(file);
+      await refresh();
+      toast('Profile photo updated');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Upload failed', 'error');
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  }
+
+  async function handleRemovePhoto() {
+    setUploadingPhoto(true);
+    try {
+      await removeProfilePhoto();
+      await refresh();
+      toast('Profile photo removed');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -49,6 +89,48 @@ export default function ProfilePage() {
           <CardTitle>Personal information</CardTitle>
           <CardDescription>{user.email}</CardDescription>
         </CardHeader>
+
+        <div className="mb-4 flex items-center gap-4">
+          {resolveAssetUrl(user.photoUrl) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={resolveAssetUrl(user.photoUrl)!}
+              alt={user.nom}
+              className="h-16 w-16 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-navy text-lg font-semibold text-white">
+              {initials(user.nom)}
+            </span>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={uploadingPhoto}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                {uploadingPhoto ? 'Uploading…' : 'Change photo'}
+              </Button>
+              {user.photoUrl && (
+                <Button type="button" size="sm" variant="ghost" disabled={uploadingPhoto} onClick={handleRemovePhoto}>
+                  Remove
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">PNG, JPEG or WebP, up to 2MB.</p>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Label>
             Full name

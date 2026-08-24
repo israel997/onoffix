@@ -606,6 +606,16 @@ export function updateProfile(data: { nom?: string; poste?: string; bio?: string
   return authFetch<Me>('/users/me', { method: 'PATCH', body: data });
 }
 
+export function uploadProfilePhoto(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return authFetchForm<Me>('/users/me/photo', formData);
+}
+
+export function removeProfilePhoto() {
+  return authFetch<Me>('/users/me/photo', { method: 'DELETE' });
+}
+
 export type NotificationType =
   | 'TACHE_ASSIGNEE'
   | 'TACHE_ACCEPTEE'
@@ -638,6 +648,10 @@ export function getUnreadNotificationsCount() {
 
 export function markNotificationAsRead(notificationId: string) {
   return authFetch<AppNotification>(`/notifications/${notificationId}/read`, { method: 'PATCH' });
+}
+
+export function markNotificationAsUnread(notificationId: string) {
+  return authFetch<AppNotification>(`/notifications/${notificationId}/unread`, { method: 'PATCH' });
 }
 
 export function markAllNotificationsAsRead() {

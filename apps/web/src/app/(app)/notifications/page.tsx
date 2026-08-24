@@ -9,6 +9,7 @@ import {
   listNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
+  markNotificationAsUnread,
   type AppNotification,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -44,6 +45,13 @@ export default function NotificationsPage() {
     if (notification.lue) return;
     setNotifications((prev) => prev?.map((n) => (n.id === notification.id ? { ...n, lue: true } : n)) ?? null);
     await markNotificationAsRead(notification.id);
+  }
+
+  async function handleToggleRead(notification: AppNotification) {
+    const lue = !notification.lue;
+    setNotifications((prev) => prev?.map((n) => (n.id === notification.id ? { ...n, lue } : n)) ?? null);
+    if (lue) await markNotificationAsRead(notification.id);
+    else await markNotificationAsUnread(notification.id);
   }
 
   const unreadCount = notifications?.filter((n) => !n.lue).length ?? 0;
@@ -85,18 +93,34 @@ export default function NotificationsPage() {
                   <p className="whitespace-pre-wrap break-words text-sm text-foreground">{n.message}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">{formatWhen(n.createdAt)}</p>
                 </div>
-                {n.lien && (
-                  <Link
-                    href={n.lien}
+                <div className="flex shrink-0 items-center gap-3">
+                  {n.lien && (
+                    <Link
+                      href={n.lien}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMarkAsRead(n);
+                      }}
+                      className="whitespace-nowrap text-xs font-medium text-brand-blue hover:underline"
+                    >
+                      View →
+                    </Link>
+                  )}
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleMarkAsRead(n);
+                      handleToggleRead(n);
                     }}
-                    className="shrink-0 whitespace-nowrap text-xs font-medium text-brand-blue hover:underline"
+                    aria-label={n.lue ? 'Mark as unread' : 'Mark as read'}
+                    title={n.lue ? 'Mark as unread' : 'Mark as read'}
+                    className={cn(
+                      'rounded px-1 text-base',
+                      n.lue ? 'text-muted-foreground hover:text-foreground' : 'text-brand-blue',
+                    )}
                   >
-                    View →
-                  </Link>
-                )}
+                    {n.lue ? '✉' : '📩'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

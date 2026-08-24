@@ -49,4 +49,20 @@ export class UsersService {
       },
     });
   }
+
+  async setPhoto(userId: string, photoUrl: string | null) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { photoUrl },
+      select: {
+        id: true,
+        nom: true,
+        email: true,
+        poste: true,
+        bio: true,
+        photoUrl: true,
+        roleGlobal: true,
+      },
+    });
+  }
 }

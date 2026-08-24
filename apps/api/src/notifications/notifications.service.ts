@@ -38,6 +38,20 @@ export class NotificationsService {
     });
   }
 
+  async markAsUnread(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification) throw new NotFoundException('Notification introuvable');
+    if (notification.userId !== userId) {
+      throw new ForbiddenException('Cette notification ne vous appartient pas');
+    }
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { lue: false },
+    });
+  }
+
   async markAllAsRead(userId: string) {
     await this.prisma.notification.updateMany({
       where: { userId, lue: false },

@@ -28,4 +28,12 @@ export class NotificationsController {
   ) {
     return this.notificationsService.markAsRead(notificationId, user.userId);
   }
+
+  @Patch(':notificationId/unread')
+  markAsUnread(
+    @Param('notificationId') notificationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.notificationsService.markAsUnread(notificationId, user.userId);
+  }
 }
