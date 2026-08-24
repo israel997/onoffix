@@ -20,10 +20,12 @@ export function SubjectsChat({
   projetId,
   canManage,
   tasksHref,
+  mentionableUsers,
 }: {
   projetId: string;
   canManage: boolean;
   tasksHref?: string;
+  mentionableUsers?: { id: string; nom: string }[];
 }) {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -157,6 +159,7 @@ export function SubjectsChat({
           uploadFile={(subjectId, file, contenu, replyToId) =>
             sendOrganizerFile(projetId, subjectId, file, contenu, replyToId)
           }
+          mentionableUsers={mentionableUsers}
           title={active.nom}
           description={
             active.derniereGenerationTaches

@@ -83,7 +83,7 @@ function Attachment({ message }: { message: ChatMessage }) {
 
 export interface ChatProps {
   roomId: string;
-  roomKey: 'bureauId' | 'subjectId';
+  roomKey: 'bureauId' | 'subjectId' | 'conversationId';
   joinEvent: string;
   leaveEvent: string;
   messageEvent: string;
@@ -91,6 +91,8 @@ export interface ChatProps {
   uploadFile: (roomId: string, file: File, contenu?: string, replyToId?: string) => Promise<ChatMessage>;
   title: string;
   description: string;
+  /** Personnes qu'on peut @mentionner ici — omis pour un chat sans notion d'équipe (DM, organizer perso). */
+  mentionableUsers?: { id: string; nom: string }[];
 }
 
 export function Chat({
@@ -103,6 +105,7 @@ export function Chat({
   uploadFile,
   title,
   description,
+  mentionableUsers = [],
 }: ChatProps) {
   const { user } = useAuth();
   const confirmDialog = useConfirm();
@@ -114,9 +117,35 @@ export function Chat({
   const [editDraft, setEditDraft] = useState('');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const mentionMatches =
+    mentionQuery === null
+      ? []
+      : mentionableUsers.filter((u) => u.nom.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6);
+
+  function mentionedUserIdsIn(text: string) {
+    return mentionableUsers.filter((u) => text.includes(`@${u.nom}`)).map((u) => u.id);
+  }
+
+  function renderWithMentions(text: string, mine: boolean) {
+    const names = mentionableUsers.map((u) => u.nom).filter(Boolean);
+    if (names.length === 0) return text;
+    const pattern = new RegExp(`(@(?:${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}))`, 'g');
+    return text.split(pattern).map((part, i) => {
+      const nom = part.startsWith('@') ? part.slice(1) : null;
+      const match = nom ? mentionableUsers.find((u) => u.nom === nom) : null;
+      if (!match) return part;
+      return (
+        <span key={i} className="rounded px-0.5 font-medium" style={{ color: mine ? undefined : colorForUser(match.id) }}>
+          {part}
+        </span>
+      );
+    });
+  }
 
   useEffect(() => {
     let active = true;
@@ -180,7 +209,12 @@ export function Chat({
   function sendMessage() {
     const contenu = draft.trim();
     if (!contenu) return;
-    getSocket().emit(messageEvent, { [roomKey]: roomId, contenu, replyToId: replyingTo?.id });
+    getSocket().emit(messageEvent, {
+      [roomKey]: roomId,
+      contenu,
+      replyToId: replyingTo?.id,
+      mentionedUserIds: mentionedUserIdsIn(contenu),
+    });
     setDraft('');
     setReplyingTo(null);
   }
@@ -190,13 +224,32 @@ export function Chat({
     sendMessage();
   }
 
+  function handleDraftChange(value: string) {
+    setDraft(value);
+    // Suggestions déclenchées par un "@" suivi d'un mot en cours de frappe, en fin de texte.
+    const match = /(?:^|\s)@(\w*)$/.exec(value);
+    setMentionQuery(match && mentionableUsers.length > 0 ? match[1] : null);
+  }
+
+  function selectMention(nom: string) {
+    setDraft((prev) => prev.replace(/(?:^|\s)@(\w*)$/, (whole) => `${whole[0] === '@' ? '' : whole[0]}@${nom} `));
+    setMentionQuery(null);
+    textareaRef.current?.focus();
+  }
+
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionQuery !== null && mentionMatches.length > 0 && (event.key === 'Enter' || event.key === 'Tab')) {
+      event.preventDefault();
+      selectMention(mentionMatches[0].nom);
+      return;
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       sendMessage();
     }
-    if (event.key === 'Escape' && replyingTo) {
-      setReplyingTo(null);
+    if (event.key === 'Escape') {
+      if (mentionQuery !== null) setMentionQuery(null);
+      else if (replyingTo) setReplyingTo(null);
     }
   }
 
@@ -340,7 +393,9 @@ export function Chat({
                             <span className="line-clamp-1">{quotePreview(m.replyTo)}</span>
                           </button>
                         )}
-                        {m.contenu && <p className="whitespace-pre-wrap break-words">{m.contenu}</p>}
+                        {m.contenu && (
+                          <p className="whitespace-pre-wrap break-words">{renderWithMentions(m.contenu, mine)}</p>
+                        )}
                         <Attachment message={m} />
                         <p className={`mt-1 text-[10px] ${mine ? 'text-white/70' : 'text-muted-foreground'}`}>
                           {formatTime(m.createdAt)}
@@ -406,7 +461,23 @@ export function Chat({
         </div>
       )}
 
-      <form onSubmit={handleSend} className={`${replyingTo ? 'mt-2' : 'mt-4'} flex gap-2`}>
+      <form onSubmit={handleSend} className={`relative ${replyingTo ? 'mt-2' : 'mt-4'} flex gap-2`}>
+        {mentionQuery !== null && mentionMatches.length > 0 && (
+          <div className="animate-fade-in-up absolute bottom-full left-11 z-10 mb-1 flex w-48 flex-col overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-lg">
+            {mentionMatches.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => selectMention(u.nom)}
+                className="px-3 py-1.5 text-left text-sm hover:bg-surface-muted"
+              >
+                <span className="font-medium" style={{ color: colorForUser(u.id) }}>
+                  @{u.nom}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -426,9 +497,9 @@ export function Chat({
         <textarea
           ref={textareaRef}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => handleDraftChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Write a message… (Shift+Enter for a new line)"
+          placeholder={mentionableUsers.length > 0 ? 'Write a message… (@ to mention someone)' : 'Write a message… (Shift+Enter for a new line)'}
           rows={1}
           className="max-h-40 min-h-10 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
         />

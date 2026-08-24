@@ -608,13 +608,16 @@ export function updateProfile(data: { nom?: string; poste?: string; bio?: string
 
 export type NotificationType =
   | 'TACHE_ASSIGNEE'
+  | 'TACHE_ACCEPTEE'
   | 'RAPPEL_DECLARATION'
   | 'RELANCE_RETARD'
   | 'VALIDATION_A_FAIRE'
   | 'TACHE_VALIDEE'
   | 'TACHE_A_REVOIR'
   | 'RESUME_QUOTIDIEN'
-  | 'RAPPORT_HEBDOMADAIRE';
+  | 'RAPPORT_HEBDOMADAIRE'
+  | 'INVITATION_BUREAU'
+  | 'MENTION';
 
 export interface AppNotification {
   id: string;
@@ -923,6 +926,29 @@ export function sendOrganizerFile(
   replyToId?: string,
 ) {
   return sendFile(`/organizers/${projetId}/subjects/${subjectId}/messages/fichier`, file, contenu, replyToId);
+}
+
+export interface DirectConversation {
+  id: string;
+  otherUser: { id: string; nom: string; photoUrl: string | null };
+  lastMessage: { contenu: string | null; fichierNom: string | null; auteurId: string; createdAt: string } | null;
+  lastActivity: string;
+}
+
+export function listDirectConversations() {
+  return authFetch<DirectConversation[]>('/me/direct-messages');
+}
+
+export function startDirectConversation(otherUserId: string) {
+  return authFetch<{ id: string }>(`/me/direct-messages/${otherUserId}`, { method: 'POST' });
+}
+
+export function listDirectMessages(conversationId: string) {
+  return authFetch<ChatMessage[]>(`/direct-messages/${conversationId}/messages`);
+}
+
+export function sendDirectFile(conversationId: string, file: File, contenu?: string, replyToId?: string) {
+  return sendFile(`/direct-messages/${conversationId}/messages/fichier`, file, contenu, replyToId);
 }
 
 export function createTache(

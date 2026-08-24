@@ -6,48 +6,62 @@ import {
   Param,
   Post,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { RoleBureau } from '@prisma/client';
-import { BureauRole } from '../common/decorators/bureau-role.decorator';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
-import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
 import { StorageService } from '../common/storage.service';
 import { assertImageWeight, messageFileMulterOptions } from './chat-file.config';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 
-const ANY_MEMBER = [RoleBureau.MANAGER, RoleBureau.COLLABORATEUR];
+@Controller('me/direct-messages')
+export class MyDirectMessagesController {
+  constructor(private readonly chatService: ChatService) {}
 
-@UseGuards(BureauRoleGuard)
-@Controller('bureaux/:bureauId/messages')
-export class ChatController {
+  @Get()
+  list(@CurrentUser() user: AuthenticatedUser) {
+    return this.chatService.listMyDirectConversations(user.userId);
+  }
+
+  @Post(':otherUserId')
+  start(@Param('otherUserId') otherUserId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.chatService.findOrCreateDirectConversation(
+      user.userId,
+      otherUserId,
+      user.organisationId,
+    );
+  }
+}
+
+@Controller('direct-messages/:conversationId')
+export class DirectMessagesController {
   constructor(
     private readonly chatService: ChatService,
     private readonly chatGateway: ChatGateway,
     private readonly storage: StorageService,
   ) {}
 
-  @BureauRole(...ANY_MEMBER)
-  @Get()
-  async list(@Param('bureauId') bureauId: string) {
-    const conversation = await this.chatService.ensureConversationForBureau(bureauId);
-    return this.chatService.listMessages(conversation.id);
+  @Get('messages')
+  async messages(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.chatService.assertDirectAccess(conversationId, user.userId);
+    return this.chatService.listMessages(conversationId);
   }
 
-  @BureauRole(...ANY_MEMBER)
-  @Post('fichier')
+  @Post('messages/fichier')
   @UseInterceptors(FileInterceptor('file', messageFileMulterOptions))
   async sendFile(
-    @Param('bureauId') bureauId: string,
+    @Param('conversationId') conversationId: string,
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
     @Body('contenu') contenu?: string,
     @Body('replyToId') replyToId?: string,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
+    await this.chatService.assertDirectAccess(conversationId, user.userId);
     assertImageWeight(file);
     const url = await this.storage.upload(
       file.buffer,
@@ -55,14 +69,13 @@ export class ChatController {
       file.originalname,
       file.mimetype,
     );
-    const conversation = await this.chatService.ensureConversationForBureau(bureauId);
-    const message = await this.chatService.createMessage(conversation.id, user.userId, {
+    const message = await this.chatService.createMessage(conversationId, user.userId, {
       contenu,
       fichier: { url, nom: file.originalname, type: file.mimetype, tailleOctets: file.size },
       replyToId,
-      lien: `/offices/${bureauId}`,
+      lien: `/chat/${conversationId}`,
     });
-    this.chatGateway.broadcastBureauMessage(bureauId, message);
+    this.chatGateway.broadcastDmMessage(conversationId, message);
     return message;
   }
 }

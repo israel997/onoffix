@@ -3,7 +3,13 @@
 import { listMessages, sendBureauFile } from '@/lib/api';
 import { Chat } from './chat';
 
-export function BureauChat({ bureauId }: { bureauId: string }) {
+export function BureauChat({
+  bureauId,
+  mentionableUsers,
+}: {
+  bureauId: string;
+  mentionableUsers?: { id: string; nom: string }[];
+}) {
   return (
     <Chat
       roomId={bureauId}
@@ -15,6 +21,7 @@ export function BureauChat({ bureauId }: { bureauId: string }) {
       uploadFile={sendBureauFile}
       title="Team chat"
       description="Real-time discussion for this office."
+      mentionableUsers={mentionableUsers}
     />
   );
 }

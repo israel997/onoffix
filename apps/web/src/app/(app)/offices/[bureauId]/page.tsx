@@ -322,7 +322,10 @@ export default function OfficeDetailPage() {
         </div>
       </Card>
 
-      <BureauChat bureauId={bureauId} />
+      <BureauChat
+        bureauId={bureauId}
+        mentionableUsers={bureau.membres.map((m) => ({ id: m.user.id, nom: m.user.nom }))}
+      />
 
       {statsMember && (
         <MembreStatsModal

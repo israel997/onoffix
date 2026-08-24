@@ -85,6 +85,7 @@ export function NotificationsBell() {
   }
 
   const unreadCount = notifications?.filter((n) => !n.lue).length ?? 0;
+  const preview = notifications?.slice(0, 5) ?? null;
 
   return (
     <div ref={containerRef} className="relative">
@@ -125,12 +126,12 @@ export function NotificationsBell() {
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {notifications === null ? (
+            {preview === null ? (
               <p className="px-3 py-4 text-sm text-muted-foreground">Loading…</p>
-            ) : notifications.length === 0 ? (
+            ) : preview.length === 0 ? (
               <p className="px-3 py-4 text-sm text-muted-foreground">No notifications yet.</p>
             ) : (
-              notifications.map((n) => (
+              preview.map((n) => (
                 <div
                   key={n.id}
                   onClick={() => handleMarkAsRead(n)}
@@ -159,6 +160,16 @@ export function NotificationsBell() {
                 </div>
               ))
             )}
+          </div>
+
+          <div className="border-t border-border px-3 py-2 text-center">
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+              className="text-xs font-medium text-brand-blue hover:underline"
+            >
+              View all
+            </Link>
           </div>
         </div>
       )}

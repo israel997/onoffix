@@ -113,13 +113,11 @@ export class OrganizerController {
       file.originalname,
       file.mimetype,
     );
-    const message = await this.chatService.createMessage(
-      subjectId,
-      user.userId,
+    const message = await this.chatService.createMessage(subjectId, user.userId, {
       contenu,
-      { url, nom: file.originalname, type: file.mimetype, tailleOctets: file.size },
+      fichier: { url, nom: file.originalname, type: file.mimetype, tailleOctets: file.size },
       replyToId,
-    );
+    });
     await this.organizerScheduler.scheduleMessageProcessing(message.id);
     this.chatGateway.broadcastOrganizerMessage(subjectId, message);
     return message;

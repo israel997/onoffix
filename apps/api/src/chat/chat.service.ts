@@ -4,7 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RoleGlobal } from '@prisma/client';
+import { NotificationType, RoleGlobal } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const AUTEUR_SELECT = { id: true, nom: true, photoUrl: true };
@@ -20,6 +21,13 @@ const MESSAGE_INCLUDE = {
   },
 };
 
+const MESSAGE_PREVIEW_SELECT = {
+  contenu: true,
+  fichierNom: true,
+  auteurId: true,
+  createdAt: true,
+};
+
 export interface MessageFile {
   url: string;
   nom: string;
@@ -29,7 +37,10 @@ export interface MessageFile {
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Vérifie que l'utilisateur appartient au bureau (ou est admin) avant tout accès à son chat. */
   async assertBureauAccess(
@@ -120,7 +131,7 @@ export class ChatService {
   async getConversationRoomInfo(conversationId: string) {
     const conversation = await this.prisma.conversation.findUniqueOrThrow({
       where: { id: conversationId },
-      select: { bureauId: true },
+      select: { bureauId: true, userAId: true },
     });
     return conversation;
   }
@@ -163,10 +174,15 @@ export class ChatService {
   async createMessage(
     conversationId: string,
     auteurId: string,
-    contenu?: string,
-    fichier?: MessageFile,
-    replyToId?: string,
+    options: {
+      contenu?: string;
+      fichier?: MessageFile;
+      replyToId?: string;
+      mentionedUserIds?: string[];
+      lien?: string;
+    } = {},
   ) {
+    const { contenu, fichier, replyToId, mentionedUserIds, lien } = options;
     if (!contenu?.trim() && !fichier) {
       throw new BadRequestException('Un message doit contenir du texte ou une pièce jointe');
     }
@@ -181,7 +197,18 @@ export class ChatService {
         )?.id
       : undefined;
 
-    return this.prisma.message.create({
+    // On ne garde que des ids d'utilisateurs réels — une référence invalide (ou
+    // périmée) ne doit jamais faire échouer l'envoi du message.
+    const validMentionedIds = mentionedUserIds?.length
+      ? (
+          await this.prisma.user.findMany({
+            where: { id: { in: [...new Set(mentionedUserIds)] } },
+            select: { id: true },
+          })
+        ).map((u) => u.id)
+      : [];
+
+    const message = await this.prisma.message.create({
       data: {
         conversationId,
         auteurId,
@@ -191,9 +218,24 @@ export class ChatService {
         fichierType: fichier?.type,
         fichierTailleOctets: fichier?.tailleOctets,
         replyToId: validReplyToId,
+        mentionedUserIds: validMentionedIds,
       },
       include: MESSAGE_INCLUDE,
     });
+
+    const notifiedIds = validMentionedIds.filter((id) => id !== auteurId);
+    await Promise.all(
+      notifiedIds.map((userId) =>
+        this.notifications.create(
+          userId,
+          NotificationType.MENTION,
+          `${message.auteur.nom} vous a mentionné : « ${(contenu?.trim() ?? fichier?.nom ?? '').slice(0, 80)} »`,
+          lien,
+        ),
+      ),
+    );
+
+    return message;
   }
 
   /** Seul l'auteur peut modifier son propre message. */
@@ -229,5 +271,68 @@ export class ChatService {
     }
     await this.prisma.message.delete({ where: { id: messageId } });
     return { conversationId: existing.conversationId, bureauId: existing.conversation.bureauId };
+  }
+
+  // ---------- Messages directs (1:1) ----------
+
+  /** Retrouve (ou crée) la conversation directe entre deux membres de la même organisation. */
+  async findOrCreateDirectConversation(
+    userId: string,
+    otherUserId: string,
+    organisationId: string,
+  ) {
+    if (userId === otherUserId) {
+      throw new BadRequestException('Impossible de démarrer une conversation avec vous-même');
+    }
+    const other = await this.prisma.user.findFirst({
+      where: { id: otherUserId, organisationId },
+      select: { id: true },
+    });
+    if (!other) throw new NotFoundException('Membre introuvable');
+
+    const [userAId, userBId] = [userId, otherUserId].sort();
+    const existing = await this.prisma.conversation.findUnique({
+      where: { userAId_userBId: { userAId, userBId } },
+    });
+    if (existing) return existing;
+    return this.prisma.conversation.create({ data: { userAId, userBId } });
+  }
+
+  async assertDirectAccess(conversationId: string, userId: string) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { userAId: true, userBId: true },
+    });
+    if (!conversation || (!conversation.userAId && !conversation.userBId)) {
+      throw new NotFoundException('Conversation introuvable');
+    }
+    if (conversation.userAId !== userId && conversation.userBId !== userId) {
+      throw new ForbiddenException('Vous ne faites pas partie de cette conversation');
+    }
+  }
+
+  /** Toutes les conversations directes de l'utilisateur, triées par dernière activité. */
+  async listMyDirectConversations(userId: string) {
+    const conversations = await this.prisma.conversation.findMany({
+      where: { OR: [{ userAId: userId }, { userBId: userId }] },
+      include: {
+        userA: { select: { id: true, nom: true, photoUrl: true } },
+        userB: { select: { id: true, nom: true, photoUrl: true } },
+        messages: { orderBy: { createdAt: 'desc' }, take: 1, select: MESSAGE_PREVIEW_SELECT },
+      },
+    });
+
+    return conversations
+      .map((c) => {
+        const other = c.userA?.id === userId ? c.userB! : c.userA!;
+        const lastMessage = c.messages[0] ?? null;
+        return {
+          id: c.id,
+          otherUser: other,
+          lastMessage,
+          lastActivity: lastMessage?.createdAt ?? c.createdAt,
+        };
+      })
+      .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
   }
 }
