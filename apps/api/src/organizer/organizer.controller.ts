@@ -102,6 +102,7 @@ export class OrganizerController {
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
     @Body('contenu') contenu?: string,
+    @Body('replyToId') replyToId?: string,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
     await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
@@ -112,12 +113,13 @@ export class OrganizerController {
       file.originalname,
       file.mimetype,
     );
-    const message = await this.chatService.createMessage(subjectId, user.userId, contenu, {
-      url,
-      nom: file.originalname,
-      type: file.mimetype,
-      tailleOctets: file.size,
-    });
+    const message = await this.chatService.createMessage(
+      subjectId,
+      user.userId,
+      contenu,
+      { url, nom: file.originalname, type: file.mimetype, tailleOctets: file.size },
+      replyToId,
+    );
     await this.organizerScheduler.scheduleMessageProcessing(message.id);
     this.chatGateway.broadcastOrganizerMessage(subjectId, message);
     return message;

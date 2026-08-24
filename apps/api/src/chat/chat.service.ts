@@ -8,6 +8,17 @@ import { RoleGlobal } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const AUTEUR_SELECT = { id: true, nom: true, photoUrl: true };
+const MESSAGE_INCLUDE = {
+  auteur: { select: AUTEUR_SELECT },
+  replyTo: {
+    select: {
+      id: true,
+      contenu: true,
+      fichierNom: true,
+      auteur: { select: { id: true, nom: true } },
+    },
+  },
+};
 
 export interface MessageFile {
   url: string;
@@ -144,15 +155,32 @@ export class ChatService {
       where: { conversationId },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: { auteur: { select: AUTEUR_SELECT } },
+      include: MESSAGE_INCLUDE,
     });
     return messages.reverse();
   }
 
-  createMessage(conversationId: string, auteurId: string, contenu?: string, fichier?: MessageFile) {
+  async createMessage(
+    conversationId: string,
+    auteurId: string,
+    contenu?: string,
+    fichier?: MessageFile,
+    replyToId?: string,
+  ) {
     if (!contenu?.trim() && !fichier) {
       throw new BadRequestException('Un message doit contenir du texte ou une pièce jointe');
     }
+    // On ignore silencieusement une référence de réponse invalide (message supprimé
+    // entre-temps, ou d'une autre conversation) plutôt que de bloquer l'envoi.
+    const validReplyToId = replyToId
+      ? (
+          await this.prisma.message.findFirst({
+            where: { id: replyToId, conversationId },
+            select: { id: true },
+          })
+        )?.id
+      : undefined;
+
     return this.prisma.message.create({
       data: {
         conversationId,
@@ -162,8 +190,9 @@ export class ChatService {
         fichierNom: fichier?.nom,
         fichierType: fichier?.type,
         fichierTailleOctets: fichier?.tailleOctets,
+        replyToId: validReplyToId,
       },
-      include: { auteur: { select: AUTEUR_SELECT } },
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -180,7 +209,7 @@ export class ChatService {
     return this.prisma.message.update({
       where: { id: messageId },
       data: { contenu, edited: true },
-      include: { auteur: { select: AUTEUR_SELECT } },
+      include: MESSAGE_INCLUDE,
     });
   }
 

@@ -45,6 +45,7 @@ export class ChatController {
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: Express.Multer.File,
     @Body('contenu') contenu?: string,
+    @Body('replyToId') replyToId?: string,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
     assertImageWeight(file);
@@ -55,12 +56,13 @@ export class ChatController {
       file.mimetype,
     );
     const conversation = await this.chatService.ensureConversationForBureau(bureauId);
-    const message = await this.chatService.createMessage(conversation.id, user.userId, contenu, {
-      url,
-      nom: file.originalname,
-      type: file.mimetype,
-      tailleOctets: file.size,
-    });
+    const message = await this.chatService.createMessage(
+      conversation.id,
+      user.userId,
+      contenu,
+      { url, nom: file.originalname, type: file.mimetype, tailleOctets: file.size },
+      replyToId,
+    );
     this.chatGateway.broadcastBureauMessage(bureauId, message);
     return message;
   }

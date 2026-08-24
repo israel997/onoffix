@@ -385,21 +385,28 @@ export interface ChatMessage {
   fichierType: string | null;
   fichierTailleOctets: number | null;
   auteur: { id: string; nom: string; photoUrl: string | null };
+  replyTo: {
+    id: string;
+    contenu: string | null;
+    fichierNom: string | null;
+    auteur: { id: string; nom: string };
+  } | null;
 }
 
 export function listMessages(bureauId: string) {
   return authFetch<ChatMessage[]>(`/bureaux/${bureauId}/messages`);
 }
 
-function sendFile(path: string, file: File, contenu?: string): Promise<ChatMessage> {
+function sendFile(path: string, file: File, contenu?: string, replyToId?: string): Promise<ChatMessage> {
   const formData = new FormData();
   formData.append('file', file);
   if (contenu) formData.append('contenu', contenu);
+  if (replyToId) formData.append('replyToId', replyToId);
   return authFetchForm<ChatMessage>(path, formData);
 }
 
-export function sendBureauFile(bureauId: string, file: File, contenu?: string) {
-  return sendFile(`/bureaux/${bureauId}/messages/fichier`, file, contenu);
+export function sendBureauFile(bureauId: string, file: File, contenu?: string, replyToId?: string) {
+  return sendFile(`/bureaux/${bureauId}/messages/fichier`, file, contenu, replyToId);
 }
 
 export interface Organisation {
@@ -908,8 +915,14 @@ export function listOrganizerMessages(projetId: string, subjectId: string) {
   return authFetch<ChatMessage[]>(`/organizers/${projetId}/subjects/${subjectId}/messages`);
 }
 
-export function sendOrganizerFile(projetId: string, subjectId: string, file: File, contenu?: string) {
-  return sendFile(`/organizers/${projetId}/subjects/${subjectId}/messages/fichier`, file, contenu);
+export function sendOrganizerFile(
+  projetId: string,
+  subjectId: string,
+  file: File,
+  contenu?: string,
+  replyToId?: string,
+) {
+  return sendFile(`/organizers/${projetId}/subjects/${subjectId}/messages/fichier`, file, contenu, replyToId);
 }
 
 export function createTache(

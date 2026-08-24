@@ -154,7 +154,9 @@ export function SubjectsChat({
           leaveEvent="organizer:leave"
           messageEvent="organizer:message"
           fetchHistory={(subjectId) => listOrganizerMessages(projetId, subjectId)}
-          uploadFile={(subjectId, file, contenu) => sendOrganizerFile(projetId, subjectId, file, contenu)}
+          uploadFile={(subjectId, file, contenu, replyToId) =>
+            sendOrganizerFile(projetId, subjectId, file, contenu, replyToId)
+          }
           title={active.nom}
           description={
             active.derniereGenerationTaches

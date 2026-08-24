@@ -141,6 +141,7 @@ model Message {
   auteurId       String   @map("auteur_id")
   contenu        String?
   edited         Boolean  @default(false)
+  replyToId      String?  @map("reply_to_id")
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Pièce jointe optionnelle (cf. phase D — pas de vidéos, images limitées en poids)
@@ -151,6 +152,8 @@ model Message {
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   auteur       User         @relation(fields: [auteurId], references: [id], onDelete: Cascade)
+  replyTo      Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]    @relation("MessageReplies")
 
   @@index([conversationId, createdAt])
   @@map("messages")

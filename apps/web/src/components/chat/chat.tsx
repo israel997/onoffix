@@ -32,6 +32,25 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Palette stable par utilisateur (comme WhatsApp en groupe) — dérivée de son id,
+// donc toujours la même couleur pour une même personne, sans état à synchroniser.
+const USER_COLORS = [
+  '#e11d48', '#ea580c', '#ca8a04', '#16a34a', '#059669',
+  '#0891b2', '#2563eb', '#7c3aed', '#c026d3', '#db2777',
+];
+
+function colorForUser(userId: string) {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  return USER_COLORS[hash % USER_COLORS.length];
+}
+
+function quotePreview(message: { contenu: string | null; fichierNom: string | null }) {
+  if (message.contenu) return message.contenu;
+  if (message.fichierNom) return `📎 ${message.fichierNom}`;
+  return '…';
+}
+
 function Attachment({ message }: { message: ChatMessage }) {
   const url = resolveAssetUrl(message.fichierUrl);
   if (!url) return null;
@@ -69,7 +88,7 @@ export interface ChatProps {
   leaveEvent: string;
   messageEvent: string;
   fetchHistory: (roomId: string) => Promise<ChatMessage[]>;
-  uploadFile: (roomId: string, file: File, contenu?: string) => Promise<ChatMessage>;
+  uploadFile: (roomId: string, file: File, contenu?: string, replyToId?: string) => Promise<ChatMessage>;
   title: string;
   description: string;
 }
@@ -93,8 +112,11 @@ export function Chat({
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -158,8 +180,9 @@ export function Chat({
   function sendMessage() {
     const contenu = draft.trim();
     if (!contenu) return;
-    getSocket().emit(messageEvent, { [roomKey]: roomId, contenu });
+    getSocket().emit(messageEvent, { [roomKey]: roomId, contenu, replyToId: replyingTo?.id });
     setDraft('');
+    setReplyingTo(null);
   }
 
   function handleSend(event: FormEvent) {
@@ -172,6 +195,22 @@ export function Chat({
       event.preventDefault();
       sendMessage();
     }
+    if (event.key === 'Escape' && replyingTo) {
+      setReplyingTo(null);
+    }
+  }
+
+  function startReply(message: ChatMessage) {
+    setReplyingTo(message);
+    textareaRef.current?.focus();
+  }
+
+  function jumpToMessage(messageId: string) {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedId(messageId);
+    setTimeout(() => setHighlightedId((current) => (current === messageId ? null : current)), 1500);
   }
 
   function startEdit(message: ChatMessage) {
@@ -202,7 +241,8 @@ export function Chat({
     setError(null);
     setUploading(true);
     try {
-      await uploadFile(roomId, file);
+      await uploadFile(roomId, file, undefined, replyingTo?.id);
+      setReplyingTo(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -224,20 +264,38 @@ export function Chat({
         ) : messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">No messages yet — say hello.</p>
         ) : (
-          <div className="flex flex-col gap-3">
-            {messages.map((m) => {
+          <div className="flex flex-col">
+            {messages.map((m, index) => {
               const mine = m.auteurId === user?.id;
               const isEditing = editingId === m.id;
+              const prev = messages[index - 1];
+              // Regroupe les messages consécutifs d'une même personne (< 3 min d'écart) :
+              // moins de répétition visuelle d'avatar/nom, comme WhatsApp/iMessage.
+              const grouped =
+                !!prev &&
+                prev.auteurId === m.auteurId &&
+                new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < 3 * 60 * 1000;
+              const color = colorForUser(m.auteurId);
+              const highlighted = highlightedId === m.id;
+
               return (
                 <div
                   key={m.id}
-                  className={`group flex items-start gap-2 ${mine ? 'flex-row-reverse text-right' : ''}`}
+                  id={`msg-${m.id}`}
+                  className={`group flex items-start gap-2 rounded-lg transition-colors ${mine ? 'flex-row-reverse text-right' : ''} ${grouped ? 'mt-0.5' : 'mt-3'} ${highlighted ? 'bg-brand-blue/10' : ''}`}
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white">
-                    {initials(m.auteur.nom)}
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+                    style={{ backgroundColor: grouped ? 'transparent' : color }}
+                  >
+                    {!grouped && initials(m.auteur.nom)}
                   </span>
                   <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-brand-blue text-white' : 'bg-surface-muted text-foreground'}`}>
-                    {!mine && <p className="mb-0.5 text-xs font-semibold text-muted-foreground">{m.auteur.nom}</p>}
+                    {!mine && !grouped && (
+                      <p className="mb-0.5 text-xs font-semibold" style={{ color }}>
+                        {m.auteur.nom}
+                      </p>
+                    )}
                     {isEditing ? (
                       <div className="flex flex-col gap-1.5">
                         <textarea
@@ -271,6 +329,17 @@ export function Chat({
                       </div>
                     ) : (
                       <>
+                        {m.replyTo && (
+                          <button
+                            onClick={() => jumpToMessage(m.replyTo!.id)}
+                            className={`mb-1 block w-full rounded-lg border-l-2 px-2 py-1 text-left text-xs ${mine ? 'border-white/50 bg-white/10 text-white/80' : 'border-brand-blue bg-black/5 text-muted-foreground'}`}
+                          >
+                            <span className="block font-semibold" style={{ color: mine ? undefined : colorForUser(m.replyTo.auteur.id) }}>
+                              {m.replyTo.auteur.nom}
+                            </span>
+                            <span className="line-clamp-1">{quotePreview(m.replyTo)}</span>
+                          </button>
+                        )}
                         {m.contenu && <p className="whitespace-pre-wrap break-words">{m.contenu}</p>}
                         <Attachment message={m} />
                         <p className={`mt-1 text-[10px] ${mine ? 'text-white/70' : 'text-muted-foreground'}`}>
@@ -280,9 +349,16 @@ export function Chat({
                       </>
                     )}
                   </div>
-                  {mine && !isEditing && (
+                  {!isEditing && (
                     <div className="flex shrink-0 items-center gap-1 self-center opacity-0 transition-opacity group-hover:opacity-100">
-                      {m.contenu && (
+                      <button
+                        onClick={() => startReply(m)}
+                        aria-label="Reply"
+                        className="rounded px-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        ↩
+                      </button>
+                      {mine && m.contenu && (
                         <button
                           onClick={() => startEdit(m)}
                           aria-label="Edit message"
@@ -291,13 +367,15 @@ export function Chat({
                           ✎
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(m.id)}
-                        aria-label="Delete message"
-                        className="rounded px-1 text-xs text-muted-foreground hover:text-status-review"
-                      >
-                        🗑
-                      </button>
+                      {mine && (
+                        <button
+                          onClick={() => handleDelete(m.id)}
+                          aria-label="Delete message"
+                          className="rounded px-1 text-xs text-muted-foreground hover:text-status-review"
+                        >
+                          🗑
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -310,7 +388,25 @@ export function Chat({
 
       {error && <p className="mt-2 text-xs text-status-review">{error}</p>}
 
-      <form onSubmit={handleSend} className="mt-4 flex gap-2">
+      {replyingTo && (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border-l-2 border-brand-blue bg-surface-muted px-3 py-1.5 text-xs">
+          <div className="min-w-0">
+            <span className="font-semibold" style={{ color: colorForUser(replyingTo.auteurId) }}>
+              Replying to {replyingTo.auteur.nom}
+            </span>
+            <p className="truncate text-muted-foreground">{quotePreview(replyingTo)}</p>
+          </div>
+          <button
+            onClick={() => setReplyingTo(null)}
+            aria-label="Cancel reply"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSend} className={`${replyingTo ? 'mt-2' : 'mt-4'} flex gap-2`}>
         <input
           ref={fileInputRef}
           type="file"
@@ -328,6 +424,7 @@ export function Chat({
           {uploading ? '…' : '📎'}
         </Button>
         <textarea
+          ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}

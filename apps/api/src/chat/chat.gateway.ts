@@ -100,7 +100,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('bureau:message')
   async handleBureauMessage(
-    @MessageBody() data: { bureauId: string; contenu: string },
+    @MessageBody() data: { bureauId: string; contenu: string; replyToId?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const user = getUser(client);
@@ -114,7 +114,13 @@ export class ChatGateway implements OnGatewayConnection {
       user.roleGlobal,
     );
     const conversation = await this.chatService.ensureConversationForBureau(data.bureauId);
-    const message = await this.chatService.createMessage(conversation.id, user.userId, contenu);
+    const message = await this.chatService.createMessage(
+      conversation.id,
+      user.userId,
+      contenu,
+      undefined,
+      data.replyToId,
+    );
 
     this.server.to(bureauRoom(data.bureauId)).emit('bureau:message', message);
   }
@@ -144,7 +150,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   @SubscribeMessage('organizer:message')
   async handleOrganizerMessage(
-    @MessageBody() data: { subjectId: string; contenu: string },
+    @MessageBody() data: { subjectId: string; contenu: string; replyToId?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const user = getUser(client);
@@ -157,7 +163,13 @@ export class ChatGateway implements OnGatewayConnection {
       user.organisationId,
       user.roleGlobal,
     );
-    const message = await this.chatService.createMessage(data.subjectId, user.userId, contenu);
+    const message = await this.chatService.createMessage(
+      data.subjectId,
+      user.userId,
+      contenu,
+      undefined,
+      data.replyToId,
+    );
     await this.organizerScheduler.scheduleMessageProcessing(message.id);
 
     this.server.to(organizerRoom(data.subjectId)).emit('organizer:message', message);
