@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { SubjectsChat } from '@/components/organizer/subjects-chat';
@@ -64,7 +66,7 @@ export default function OrganizerPage() {
     }
   }
 
-  if (!organizer || !bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!organizer || !bureau) return <Loading className="text-sm" />;
 
   return (
     <div className="flex flex-col gap-6">

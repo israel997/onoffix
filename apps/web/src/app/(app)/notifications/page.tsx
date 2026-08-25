@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -72,7 +74,7 @@ export default function NotificationsPage() {
       </div>
 
       {notifications === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       ) : notifications.length === 0 ? (
         <Card>
           <CardDescription>No notifications yet.</CardDescription>

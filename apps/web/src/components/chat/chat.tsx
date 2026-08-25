@@ -1,6 +1,9 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { PaperPlaneIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { resolveAssetUrl, type ChatMessage } from '@/lib/api';
@@ -313,7 +316,7 @@ export function Chat({
 
       <div className="flex-1 overflow-y-auto pr-1">
         {messages === null ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <Loading className="text-sm" />
         ) : messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">No messages yet — say hello.</p>
         ) : (
@@ -504,8 +507,8 @@ export function Chat({
           rows={1}
           className="max-h-40 min-h-10 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
         />
-        <Button type="submit" disabled={!draft.trim()}>
-          Send
+        <Button type="submit" disabled={!draft.trim()} aria-label="Send message" title="Send message">
+          <PaperPlaneIcon className="h-4 w-4" />
         </Button>
       </form>
     </Card>

@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -86,7 +88,7 @@ export function OrgSwitcher({
             Your organisations
           </p>
           {organisations === null ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">Loading…</p>
+            <Loading className="px-3 py-2 text-sm" />
           ) : (
             organisations.map((org) => (
               <button

@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -108,7 +110,7 @@ export default function OrganisationSettingsPage() {
     }
   }
 
-  if (!organisation) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!organisation) return <Loading className="text-sm" />;
 
   if (!isAdmin) {
     return <p className="text-sm text-muted-foreground">You don&apos;t have access to this page.</p>;

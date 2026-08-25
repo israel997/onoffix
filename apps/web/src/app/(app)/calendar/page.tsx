@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useMemo, useState } from 'react';
 import { TaskCalendarModal } from '@/components/calendar/task-calendar-modal';
 import { Badge } from '@/components/ui/badge';
@@ -172,7 +174,7 @@ export default function CalendarPage() {
       </div>
 
       {tasks === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-3">

@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -43,7 +45,7 @@ export default function ProjectsPage() {
   const isManager =
     isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
 
-  if (!projets || !bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!projets || !bureau) return <Loading className="text-sm" />;
 
   return (
     <div className="flex flex-col gap-6">

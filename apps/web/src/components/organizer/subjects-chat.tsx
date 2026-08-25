@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Chat } from '@/components/chat/chat';
@@ -168,7 +170,7 @@ export function SubjectsChat({
           }
         />
       ) : (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       )}
     </div>
   );

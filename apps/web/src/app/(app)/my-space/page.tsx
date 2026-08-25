@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { OrganizerTab } from '@/components/my-space/organizer-tab';
@@ -51,7 +53,7 @@ function MySpaceContent() {
 
 export default function MySpacePage() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+    <Suspense fallback={<Loading className="text-sm" />}>
       <MySpaceContent />
     </Suspense>
   );

@@ -1,8 +1,11 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BureauChat } from '@/components/chat/bureau-chat';
+import { ChairIcon, ExitIcon } from '@/components/icons/office-icons';
 import { MembreStatsModal } from '@/components/offices/membre-stats-modal';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
@@ -138,7 +141,7 @@ export default function OfficeDetailPage() {
     await load();
   }
 
-  if (!bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!bureau) return <Loading className="text-sm" />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -197,8 +200,13 @@ export default function OfficeDetailPage() {
             <CardDescription>{bureau.membres.length} people in this office.</CardDescription>
           </div>
           {isManager && (
-            <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-              {showForm ? 'Cancel' : 'Add member'}
+            <Button
+              size="sm"
+              onClick={() => setShowForm((v) => !v)}
+              aria-label={showForm ? 'Cancel' : 'Add member'}
+              title={showForm ? 'Cancel' : 'Add member'}
+            >
+              {showForm ? '✕' : <ChairIcon className="h-4 w-4" />}
             </Button>
           )}
         </div>
@@ -285,9 +293,14 @@ export default function OfficeDetailPage() {
                   <Badge tone="neutral">{m.roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}</Badge>
                 )}
                 {isManager && (
-                  <Button variant="ghost" size="sm" onClick={() => handleRemove(m.user.id)}>
-                    Remove
-                  </Button>
+                  <button
+                    onClick={() => handleRemove(m.user.id)}
+                    aria-label={`Remove ${m.user.nom}`}
+                    title={`Remove ${m.user.nom}`}
+                    className="rounded p-1 text-muted-foreground hover:text-status-review"
+                  >
+                    <ExitIcon className="h-[18px] w-[18px]" />
+                  </button>
                 )}
               </div>
             </div>

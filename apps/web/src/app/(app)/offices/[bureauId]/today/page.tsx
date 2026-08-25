@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { OfficeNav } from '@/components/offices/office-nav';
@@ -173,7 +175,7 @@ export default function TodayRituelPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bureauId]);
 
-  if (!bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!bureau) return <Loading className="text-sm" />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -197,7 +199,7 @@ export default function TodayRituelPage() {
       {brief && <DailyBriefCard brief={brief} />}
 
       {membres === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       ) : membres.length === 0 ? (
         <Card>
           <CardDescription>No task with a target date for today in this office.</CardDescription>

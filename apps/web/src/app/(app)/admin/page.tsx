@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -123,7 +125,7 @@ export default function AdminPage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>;
+    return <Loading className="text-sm" />;
   }
 
   if (!authorized) {
@@ -149,7 +151,7 @@ export default function AdminPage() {
       <Card>
         <CardTitle>Organisations</CardTitle>
         {organisations === null ? (
-          <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+          <Loading className="mt-3 text-sm" />
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
             {organisations.map((org) => (
@@ -185,7 +187,7 @@ export default function AdminPage() {
       <Card>
         <CardTitle>Members</CardTitle>
         {membres === null ? (
-          <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+          <Loading className="mt-3 text-sm" />
         ) : membres.length === 0 ? (
           <CardDescription className="mt-3">No member yet.</CardDescription>
         ) : (

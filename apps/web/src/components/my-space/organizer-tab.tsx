@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useState, type FormEvent } from 'react';
 import { SubjectsChat } from '@/components/organizer/subjects-chat';
 import { Button } from '@/components/ui/button';
@@ -45,7 +47,7 @@ export function OrganizerTab() {
     }
   }
 
-  if (!organizer) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!organizer) return <Loading className="text-sm" />;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">

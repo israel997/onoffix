@@ -1,6 +1,9 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useState, type FormEvent } from 'react';
+import { ChairIcon, ExitIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -190,7 +193,9 @@ export default function MembersPage() {
           <p className="mt-1 text-sm text-muted-foreground">Everyone in your organisation.</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'Invite member'}</Button>
+          <Button onClick={() => setShowForm((v) => !v)} aria-label={showForm ? 'Cancel' : 'Invite member'} title={showForm ? 'Cancel' : 'Invite member'}>
+            {showForm ? '✕' : <ChairIcon className="h-5 w-5" />}
+          </Button>
         )}
       </div>
 
@@ -231,7 +236,7 @@ export default function MembersPage() {
       <Card>
         <CardTitle>Members</CardTitle>
         {membres === null || invitations === null ? (
-          <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+          <Loading className="mt-3 text-sm" />
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
             {invitations.map((inv) => (
@@ -325,14 +330,15 @@ export default function MembersPage() {
                     </Badge>
                   )}
                   {isAdmin && m.id !== user?.organisation.proprietaireId && m.id !== user?.id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       disabled={removingId === m.id}
                       onClick={() => handleRemove(m)}
+                      aria-label={`Remove ${m.nom}`}
+                      title={`Remove ${m.nom}`}
+                      className="rounded p-1 text-muted-foreground hover:text-status-review disabled:opacity-50"
                     >
-                      Remove
-                    </Button>
+                      <ExitIcon className="h-[18px] w-[18px]" />
+                    </button>
                   )}
                 </div>
               </div>

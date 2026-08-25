@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -129,7 +131,7 @@ export function TaskDetailModal({
         <p className="text-sm font-semibold text-foreground">Blockers</p>
         <div className="mt-2 flex flex-col gap-2">
           {blocages === null ? (
-            <p className="text-xs text-muted-foreground">Loading…</p>
+            <Loading className="text-xs" />
           ) : blocages.length === 0 ? (
             <p className="text-xs text-muted-foreground">None.</p>
           ) : (

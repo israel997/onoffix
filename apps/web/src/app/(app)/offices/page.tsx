@@ -1,7 +1,10 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { DoorIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -192,7 +195,7 @@ export default function OfficesPage() {
       )}
 
       {bureaux === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       ) : bureaux.length === 0 ? (
         <Card>
           <CardDescription>No office yet.</CardDescription>
@@ -203,7 +206,7 @@ export default function OfficesPage() {
             const photoSrc = resolveAssetUrl(bureau.photoUrl);
             return (
               <Card key={bureau.id} className="flex flex-col gap-3 py-4">
-                <Link href={`/offices/${bureau.id}`} className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3">
                   {photoSrc ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={photoSrc} alt={bureau.nom} className="h-10 w-10 rounded-lg object-cover" />
@@ -220,29 +223,40 @@ export default function OfficesPage() {
                     </span>
                     <span>· created {new Date(bureau.createdAt).toLocaleDateString()}</span>
                   </div>
-                </Link>
-                {isAdmin && (
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={reordering || index === 0}
-                      onClick={() => move(index, -1)}
-                      aria-label="Move up"
-                    >
-                      ↑
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={reordering || index === bureaux.length - 1}
-                      onClick={() => move(index, 1)}
-                      aria-label="Move down"
-                    >
-                      ↓
-                    </Button>
-                  </div>
-                )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <Link
+                    href={`/offices/${bureau.id}`}
+                    aria-label={`Enter ${bureau.nom}`}
+                    title={`Enter ${bureau.nom}`}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-brand-blue hover:bg-brand-blue-light"
+                  >
+                    <DoorIcon className="h-5 w-5" />
+                    Enter
+                  </Link>
+                  {isAdmin && (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={reordering || index === 0}
+                        onClick={() => move(index, -1)}
+                        aria-label="Move up"
+                      >
+                        ↑
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={reordering || index === bureaux.length - 1}
+                        onClick={() => move(index, 1)}
+                        aria-label="Move down"
+                      >
+                        ↓
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </Card>
             );
           })}

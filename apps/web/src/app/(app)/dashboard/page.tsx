@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTaskRow } from '@/components/dashboard/alert-task-row';
@@ -54,7 +56,7 @@ export default function DashboardPage() {
           )}
         </div>
         {alertes === null ? (
-          <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
+          <Loading className="mt-3 text-sm" />
         ) : alertes.attention.length === 0 ? (
           <p className="mt-3 text-sm text-status-validated">
             {alertes.totalCount === 0

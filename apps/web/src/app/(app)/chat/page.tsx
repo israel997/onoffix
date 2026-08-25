@@ -1,7 +1,10 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { PersonPlusIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription } from '@/components/ui/card';
@@ -84,14 +87,16 @@ export default function ChatListPage() {
           <h1 className="text-2xl font-bold text-foreground">Chat</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your one-on-one conversations.</p>
         </div>
-        <Button onClick={openPicker}>{showPicker ? 'Cancel' : '+ New message'}</Button>
+        <Button onClick={openPicker} aria-label={showPicker ? 'Cancel' : 'New message'} title={showPicker ? 'Cancel' : 'New message'}>
+          {showPicker ? '✕' : <PersonPlusIcon className="h-5 w-5" />}
+        </Button>
       </div>
 
       {showPicker && (
         <Card>
           <p className="mb-3 text-sm font-medium text-foreground">Start a conversation with…</p>
           {!members ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <Loading className="text-sm" />
           ) : pickable.length === 0 ? (
             <CardDescription>No other member in your organisation yet.</CardDescription>
           ) : (
@@ -119,7 +124,7 @@ export default function ChatListPage() {
       )}
 
       {conversations === null ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       ) : conversations.length === 0 ? (
         <Card>
           <CardDescription>No conversation yet — start one above.</CardDescription>

@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { OfficeNav } from '@/components/offices/office-nav';
@@ -126,7 +128,7 @@ export default function OfficeSettingsPage() {
     }
   }
 
-  if (!bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!bureau) return <Loading className="text-sm" />;
 
   if (!isManager) {
     return <p className="text-sm text-muted-foreground">You don&apos;t have access to this page.</p>;

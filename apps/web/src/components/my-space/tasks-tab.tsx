@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useState } from 'react';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Card, CardDescription } from '@/components/ui/card';
@@ -50,7 +52,7 @@ export function TasksTab() {
     });
   }
 
-  if (taches === null) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (taches === null) return <Loading className="text-sm" />;
   if (taches.length === 0) {
     return (
       <Card>

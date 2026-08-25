@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
+import { DoorControlIcon } from '@/components/icons/office-icons';
 import { getUnreadNotificationsCount } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/cn';
@@ -17,10 +18,11 @@ interface NavItem {
   hideIfNoOffices?: boolean;
   /** Rouge tant qu'il reste du non-lu ; redevient normal une fois tout lu. */
   redIfUnread?: boolean;
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', available: true },
+  { label: 'Dashboard', href: '/dashboard', available: true, icon: DoorControlIcon },
   { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true },
   { label: 'Calendar', href: '/calendar', available: true },
   { label: 'Notifications', href: '/notifications', available: true, redIfUnread: true },
@@ -74,6 +76,7 @@ function SidebarNav({
             </span>
           );
         }
+        const Icon = item.icon;
         return (
           <Link
             key={item.href}
@@ -87,7 +90,10 @@ function SidebarNav({
                   : 'text-foreground hover:bg-surface-muted',
             )}
           >
-            {item.label}
+            <span className="flex items-center gap-2.5">
+              {Icon && <Icon className="h-[18px] w-[18px] shrink-0" />}
+              {item.label}
+            </span>
             {red && <span className="h-2 w-2 shrink-0 rounded-full bg-status-review" />}
           </Link>
         );

@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { OfficeNav } from '@/components/offices/office-nav';
@@ -66,7 +68,7 @@ export default function ProjectReportPage() {
     );
   }
 
-  if (!rapport) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!rapport) return <Loading className="text-sm" />;
 
   const { projet, syntheseExecutive: s, comparatifPrevuReel: c } = rapport;
 

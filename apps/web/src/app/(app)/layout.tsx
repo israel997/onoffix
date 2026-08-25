@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -20,7 +22,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <Loading className="text-sm" />
       </div>
     );
   }

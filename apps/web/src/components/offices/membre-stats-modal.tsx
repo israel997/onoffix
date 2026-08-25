@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { getMembreStats, type MembreStats } from '@/lib/api';
@@ -29,7 +31,7 @@ export function MembreStatsModal({
       </div>
 
       {!stats ? (
-        <p className="mt-4 text-sm text-muted-foreground">Loading…</p>
+        <Loading className="mt-4 text-sm" />
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <span className="text-muted-foreground">Tasks assigned</span>

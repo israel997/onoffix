@@ -112,3 +112,27 @@ select:not(:disabled),
     animation: none;
   }
 }
+
+/* Loading state, on-brand: footsteps taking their turn instead of a bare spinner. */
+@keyframes footstep {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-1.5px);
+  }
+}
+
+.animate-footstep {
+  animation: footstep 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-footstep {
+    animation: none;
+    opacity: 0.6;
+  }
+}

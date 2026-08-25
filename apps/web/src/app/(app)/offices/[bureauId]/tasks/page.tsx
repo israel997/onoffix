@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { OfficeNav } from '@/components/offices/office-nav';
@@ -95,7 +97,7 @@ export default function TasksPage() {
   const isManager =
     isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
 
-  if (!taches || !bureau) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!taches || !bureau) return <Loading className="text-sm" />;
 
   const filtered = applyFilter(taches, statusFilter);
   const groups = groupBySubject(filtered);

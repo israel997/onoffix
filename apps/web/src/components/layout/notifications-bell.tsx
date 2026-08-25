@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -135,7 +137,7 @@ export function NotificationsBell() {
 
           <div className="max-h-96 overflow-y-auto">
             {preview === null ? (
-              <p className="px-3 py-4 text-sm text-muted-foreground">Loading…</p>
+              <Loading className="px-3 py-4 text-sm" />
             ) : preview.length === 0 ? (
               <p className="px-3 py-4 text-sm text-muted-foreground">No notifications yet.</p>
             ) : (
