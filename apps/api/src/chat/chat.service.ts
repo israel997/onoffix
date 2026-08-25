@@ -331,8 +331,60 @@ export class ChatService {
           otherUser: other,
           lastMessage,
           lastActivity: lastMessage?.createdAt ?? c.createdAt,
+          unread: this.isConversationUnread(c, userId),
         };
       })
       .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
+  }
+
+  /** Marque une conversation directe comme lue par cet utilisateur (à l'ouverture). */
+  async markDirectConversationRead(conversationId: string, userId: string) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { userAId: true, userBId: true },
+    });
+    if (!conversation) return;
+    if (conversation.userAId === userId) {
+      await this.prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastReadAtA: new Date() },
+      });
+    } else if (conversation.userBId === userId) {
+      await this.prisma.conversation.update({
+        where: { id: conversationId },
+        data: { lastReadAtB: new Date() },
+      });
+    }
+  }
+
+  /** Vrai si au moins une conversation directe a un message plus récent que la dernière lecture. */
+  async hasUnreadDirectMessages(userId: string): Promise<boolean> {
+    const conversations = await this.prisma.conversation.findMany({
+      where: { OR: [{ userAId: userId }, { userBId: userId }] },
+      select: {
+        userAId: true,
+        userBId: true,
+        lastReadAtA: true,
+        lastReadAtB: true,
+        messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { auteurId: true, createdAt: true } },
+      },
+    });
+    return conversations.some((c) => this.isConversationUnread(c, userId));
+  }
+
+  private isConversationUnread(
+    conversation: {
+      userAId: string | null;
+      userBId: string | null;
+      lastReadAtA: Date | null;
+      lastReadAtB: Date | null;
+      messages: { auteurId: string; createdAt: Date }[];
+    },
+    userId: string,
+  ): boolean {
+    const lastMessage = conversation.messages[0];
+    if (!lastMessage || lastMessage.auteurId === userId) return false;
+    const lastReadAt = conversation.userAId === userId ? conversation.lastReadAtA : conversation.lastReadAtB;
+    return !lastReadAt || lastMessage.createdAt > lastReadAt;
   }
 }

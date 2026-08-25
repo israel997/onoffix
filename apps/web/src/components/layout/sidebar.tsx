@@ -6,19 +6,19 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
 import {
   AlarmIcon,
+  BriefcaseIcon,
+  BuildingIcon,
   ChairIcon,
   ChartIcon,
-  DeskIcon,
   DeskLampIcon,
   DoorControlIcon,
-  GroupIcon,
+  FolderIcon,
   IdBadgeIcon,
   MailIcon,
   MasterKeyIcon,
-  PhoneIcon,
   WallCalendarIcon,
 } from '@/components/icons/office-icons';
-import { getUnreadNotificationsCount } from '@/lib/api';
+import { getUnreadDirectMessagesCount, getUnreadNotificationsCount } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/cn';
 
@@ -30,18 +30,18 @@ interface NavItem {
   superAdminOnly?: boolean;
   hideIfNoOffices?: boolean;
   /** Rouge tant qu'il reste du non-lu ; redevient normal une fois tout lu. */
-  redIfUnread?: boolean;
+  unreadSource?: 'notifications' | 'chat';
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true, icon: DoorControlIcon },
-  { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true, icon: ChairIcon },
+  { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true, icon: BuildingIcon },
   { label: 'Calendar', href: '/calendar', available: true, icon: WallCalendarIcon },
-  { label: 'Notifications', href: '/notifications', available: true, redIfUnread: true, icon: MailIcon },
-  { label: 'Chat', href: '/chat', available: true, icon: PhoneIcon },
-  { label: 'Members', href: '/members', available: true, icon: GroupIcon },
-  { label: 'My Space', href: '/my-space', available: true, icon: DeskIcon },
+  { label: 'Notifications', href: '/notifications', available: true, unreadSource: 'notifications', icon: FolderIcon },
+  { label: 'Chat', href: '/chat', available: true, unreadSource: 'chat', icon: MailIcon },
+  { label: 'Members', href: '/members', available: true, icon: ChairIcon },
+  { label: 'My Space', href: '/my-space', available: true, icon: BriefcaseIcon },
   { label: 'Daily check-in', href: '/check-in', available: false, icon: AlarmIcon },
   { label: 'Reporting', href: '/reporting', available: false, icon: ChartIcon },
   { label: 'Performance', href: '/performance', available: false, icon: ChartIcon },
@@ -52,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
 const UNREAD_POLL_MS = 20_000;
+const COLLAPSE_STORAGE_KEY = 'ooffix_sidebar_collapsed';
 
 function SidebarNav({
   pathname,
@@ -59,6 +60,7 @@ function SidebarNav({
   isSuperAdmin,
   hasOffices,
   hasUnreadNotifications,
+  hasUnreadChats,
   compact,
 }: {
   pathname: string;
@@ -66,7 +68,8 @@ function SidebarNav({
   isSuperAdmin: boolean;
   hasOffices: boolean;
   hasUnreadNotifications: boolean;
-  /** Rail d'icônes seules (desktop) — le nom n'apparaît qu'au survol. */
+  hasUnreadChats: boolean;
+  /** Rail d'icônes seules (desktop replié) — le nom n'apparaît qu'au survol. */
   compact: boolean;
 }) {
   return (
@@ -78,7 +81,12 @@ function SidebarNav({
           (!item.hideIfNoOffices || isAdmin || hasOffices),
       ).map((item) => {
         const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-        const red = item.redIfUnread && hasUnreadNotifications;
+        const red =
+          item.unreadSource === 'notifications'
+            ? hasUnreadNotifications
+            : item.unreadSource === 'chat'
+              ? hasUnreadChats
+              : false;
         const Icon = item.icon;
 
         if (!item.available) {
@@ -163,6 +171,21 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
   const isSuperAdmin = user?.email === SUPER_ADMIN_EMAIL;
   const hasOffices = !!user && user.bureaux.length > 0;
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsed(localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1');
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSE_STORAGE_KEY, next ? '1' : '0');
+      return next;
+    });
+  }
 
   useEffect(() => {
     onMobileClose?.();
@@ -174,8 +197,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
     let active = true;
     async function poll() {
       try {
-        const { count } = await getUnreadNotificationsCount();
-        if (active) setHasUnreadNotifications(count > 0);
+        const [{ count }, { hasUnread }] = await Promise.all([
+          getUnreadNotificationsCount(),
+          getUnreadDirectMessagesCount(),
+        ]);
+        if (active) {
+          setHasUnreadNotifications(count > 0);
+          setHasUnreadChats(hasUnread);
+        }
       } catch {
         // silencieux — l'indicateur n'est pas critique
       }
@@ -190,9 +219,18 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
 
   return (
     <>
-      <aside className="hidden w-48 shrink-0 flex-col items-start border-r border-border bg-surface py-6 md:flex">
-        <Link href="/" className="mb-8 pl-4">
-          <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-11 w-auto" />
+      <aside
+        className={cn(
+          'hidden shrink-0 flex-col items-start border-r border-border bg-surface py-6 md:flex',
+          collapsed ? 'w-16 items-center' : 'w-48',
+        )}
+      >
+        <Link href="/" className={collapsed ? 'mb-8' : 'mb-8 pl-4'}>
+          {collapsed ? (
+            <Image src="/favicon.png" alt="OOffix" width={32} height={32} priority className="h-8 w-8 rounded-lg" />
+          ) : (
+            <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-11 w-auto" />
+          )}
         </Link>
         <SidebarNav
           pathname={pathname}
@@ -200,8 +238,22 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
           isSuperAdmin={isSuperAdmin}
           hasOffices={hasOffices}
           hasUnreadNotifications={hasUnreadNotifications}
-          compact
+          hasUnreadChats={hasUnreadChats}
+          compact={collapsed}
         />
+        <button
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-muted hover:text-foreground',
+            !collapsed && 'ml-6',
+          )}
+        >
+          <svg viewBox="0 0 24 24" fill="none" className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')}>
+            <path d="M15 5 8 12l7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </aside>
 
       {mobileOpen && (
@@ -226,6 +278,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
               isSuperAdmin={isSuperAdmin}
               hasOffices={hasOffices}
               hasUnreadNotifications={hasUnreadNotifications}
+              hasUnreadChats={hasUnreadChats}
               compact={false}
             />
           </aside>

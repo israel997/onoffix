@@ -130,6 +130,9 @@ model Conversation {
   // pour qu'une paire d'utilisateurs n'ait jamais deux conversations distinctes.
   userAId String? @map("user_a_id")
   userBId String? @map("user_b_id")
+  // Dernière lecture de chaque côté — sert à calculer le badge "non lu" du Chat.
+  lastReadAtA DateTime? @map("last_read_at_a")
+  lastReadAtB DateTime? @map("last_read_at_b")
 
   bureau   Bureau?   @relation(fields: [bureauId], references: [id], onDelete: Cascade)
   projet   Projet?   @relation(fields: [projetId], references: [id], onDelete: Cascade)

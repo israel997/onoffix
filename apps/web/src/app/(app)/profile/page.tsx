@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { UploadProgress } from '@/components/ui/upload-progress';
 import { removeProfilePhoto, resolveAssetUrl, updateProfile, uploadProfilePhoto } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/lib/toast-context';
@@ -144,6 +145,7 @@ export default function ProfilePage() {
               )}
             </div>
             <p className="text-xs text-muted-foreground">PNG, JPEG or WebP, up to 2MB.</p>
+            <UploadProgress active={uploadingPhoto} />
           </div>
         </div>
 

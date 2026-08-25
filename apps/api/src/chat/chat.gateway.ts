@@ -186,6 +186,7 @@ export class ChatGateway implements OnGatewayConnection {
     const user = getUser(client);
     await this.chatService.assertDirectAccess(data.conversationId, user.userId);
     await client.join(dmRoom(data.conversationId));
+    await this.chatService.markDirectConversationRead(data.conversationId, user.userId);
   }
 
   @SubscribeMessage('dm:leave')

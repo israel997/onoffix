@@ -18,6 +18,7 @@ import {
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { cn } from '@/lib/cn';
 
 function initials(name: string) {
   return name
@@ -141,14 +142,19 @@ export default function ChatListPage() {
               >
                 <Avatar nom={c.otherUser.nom} photoUrl={c.otherUser.photoUrl} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{c.otherUser.nom}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className={cn('truncate text-sm text-foreground', c.unread ? 'font-semibold' : 'font-medium')}>
+                    {c.otherUser.nom}
+                  </p>
+                  <p className={cn('truncate text-xs', c.unread ? 'font-medium text-foreground' : 'text-muted-foreground')}>
                     {c.lastMessage
                       ? `${c.lastMessage.auteurId === user?.id ? 'You: ' : ''}${c.lastMessage.contenu ?? (c.lastMessage.fichierNom ? `📎 ${c.lastMessage.fichierNom}` : '')}`
                       : 'No messages yet'}
                   </p>
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">{formatWhen(c.lastActivity)}</span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-xs text-muted-foreground">{formatWhen(c.lastActivity)}</span>
+                  {c.unread && <span className="h-2 w-2 rounded-full bg-brand-blue" />}
+                </div>
               </button>
             ))}
           </div>

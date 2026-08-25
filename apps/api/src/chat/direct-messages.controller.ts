@@ -24,6 +24,11 @@ export class MyDirectMessagesController {
     return this.chatService.listMyDirectConversations(user.userId);
   }
 
+  @Get('unread')
+  async unread(@CurrentUser() user: AuthenticatedUser) {
+    return { hasUnread: await this.chatService.hasUnreadDirectMessages(user.userId) };
+  }
+
   @Post(':otherUserId')
   start(@Param('otherUserId') otherUserId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.chatService.findOrCreateDirectConversation(
@@ -48,6 +53,7 @@ export class DirectMessagesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.chatService.assertDirectAccess(conversationId, user.userId);
+    await this.chatService.markDirectConversationRead(conversationId, user.userId);
     return this.chatService.listMessages(conversationId);
   }
 

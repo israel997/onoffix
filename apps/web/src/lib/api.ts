@@ -965,6 +965,11 @@ export interface DirectConversation {
   otherUser: { id: string; nom: string; photoUrl: string | null };
   lastMessage: { contenu: string | null; fichierNom: string | null; auteurId: string; createdAt: string } | null;
   lastActivity: string;
+  unread: boolean;
+}
+
+export function getUnreadDirectMessagesCount() {
+  return authFetch<{ hasUnread: boolean }>('/me/direct-messages/unread');
 }
 
 export function listDirectConversations() {

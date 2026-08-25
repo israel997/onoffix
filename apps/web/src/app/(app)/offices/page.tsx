@@ -4,7 +4,7 @@ import { Loading } from '@/components/ui/loading';
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { DoorIcon } from '@/components/icons/office-icons';
+import { BuildingIcon, DoorIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -140,7 +140,13 @@ export default function OfficesPage() {
           <p className="mt-1 text-sm text-muted-foreground">Teams and departments in your organisation.</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setShowForm((v) => !v)}>{showForm ? 'Cancel' : 'New office'}</Button>
+          <Button
+            onClick={() => setShowForm((v) => !v)}
+            aria-label={showForm ? 'Cancel' : 'New office'}
+            title={showForm ? 'Cancel' : 'New office'}
+          >
+            {showForm ? '✕' : <BuildingIcon className="h-5 w-5" />}
+          </Button>
         )}
       </div>
 

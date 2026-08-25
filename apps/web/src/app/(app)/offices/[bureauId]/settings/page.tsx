@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { UploadProgress } from '@/components/ui/upload-progress';
 import {
   deleteBureau,
   getBureau,
@@ -189,6 +190,8 @@ export default function OfficeSettingsPage() {
             onChange={handlePhotoChange}
           />
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">PNG, JPEG or WebP, up to 2MB.</p>
+        <UploadProgress active={uploadingPhoto} />
       </Card>
 
       <Card>
