@@ -190,9 +190,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
 
   return (
     <>
-      <aside className="hidden w-16 shrink-0 flex-col items-center border-r border-border bg-surface py-6 md:flex">
+      <aside className="hidden w-48 shrink-0 flex-col items-center border-r border-border bg-surface py-6 md:flex">
         <Link href="/" className="mb-8">
-          <Image src="/favicon.png" alt="OOffix" width={36} height={36} priority className="h-9 w-9 rounded-lg" />
+          <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-11 w-auto" />
         </Link>
         <SidebarNav
           pathname={pathname}
