@@ -30,14 +30,23 @@ export function DoorIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Chaise — ajouter un siège / une personne. */
+/** Fauteuil de bureau à roulettes — ajouter un siège / une personne. */
 export function ChairIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M7 3v8a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 13v8M16 13v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M6 21h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M18.5 5.5v4M16.5 7.5h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="7.5" y="2" width="9" height="9.5" rx="3" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="5" y="12.2" width="14" height="3" rx="1.3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5.5 9.3v3.4M18.5 9.3v3.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 15.2v2.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path
+        d="M12 17.5 7.3 20.8M12 17.5 16.7 20.8M12 17.5 12 21.3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="7.3" cy="20.8" r="0.9" fill="currentColor" />
+      <circle cx="16.7" cy="20.8" r="0.9" fill="currentColor" />
+      <circle cx="12" cy="21.3" r="0.9" fill="currentColor" />
     </svg>
   );
 }
@@ -322,6 +331,35 @@ export function GearIcon(props: SVGProps<SVGSVGElement>) {
         strokeWidth="1.6"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+/** Combiné téléphonique — la section Chat. */
+export function PhoneIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M4.5 4.5c0-1 .7-1.5 1.5-1.5h2c.5 0 1 .3 1.2.8l1 2.4c.2.5 0 1.1-.4 1.4l-1.3 1.1a12.3 12.3 0 0 0 5.8 5.8l1.1-1.3c.4-.4 1-.6 1.4-.4l2.4 1c.5.2.8.7.8 1.2v2c0 .8-.5 1.5-1.5 1.5C10.5 20.5 3.5 13.5 4.5 4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Lampe de bureau articulée — Platform admin. */
+export function DeskLampIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M4 21h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8 21v-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <ellipse cx="8" cy="17" rx="3.5" ry="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 16 12.3 8.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12.3" cy="8.7" r="1.1" fill="currentColor" />
+      <path d="M12.3 8.7 15.3 3.7 20.3 6.7Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
     </svg>
   );
 }

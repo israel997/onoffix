@@ -4,7 +4,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
-import { DoorControlIcon, WallCalendarIcon } from '@/components/icons/office-icons';
+import {
+  ChairIcon,
+  DeskIcon,
+  DeskLampIcon,
+  DoorControlIcon,
+  GroupIcon,
+  IdBadgeIcon,
+  MailIcon,
+  MasterKeyIcon,
+  PhoneIcon,
+  WallCalendarIcon,
+} from '@/components/icons/office-icons';
 import { getUnreadNotificationsCount } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/cn';
@@ -23,18 +34,18 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true, icon: DoorControlIcon },
-  { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true },
+  { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true, icon: ChairIcon },
   { label: 'Calendar', href: '/calendar', available: true, icon: WallCalendarIcon },
-  { label: 'Notifications', href: '/notifications', available: true, redIfUnread: true },
-  { label: 'Chat', href: '/chat', available: true },
-  { label: 'Members', href: '/members', available: true },
-  { label: 'My Space', href: '/my-space', available: true },
+  { label: 'Notifications', href: '/notifications', available: true, redIfUnread: true, icon: MailIcon },
+  { label: 'Chat', href: '/chat', available: true, icon: PhoneIcon },
+  { label: 'Members', href: '/members', available: true, icon: GroupIcon },
+  { label: 'My Space', href: '/my-space', available: true, icon: DeskIcon },
   { label: 'Daily check-in', href: '/check-in', available: false },
   { label: 'Reporting', href: '/reporting', available: false },
   { label: 'Performance', href: '/performance', available: false },
-  { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true },
-  { label: 'Profile', href: '/profile', available: true },
-  { label: 'Platform admin', href: '/admin', available: true, superAdminOnly: true },
+  { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true, icon: MasterKeyIcon },
+  { label: 'Profile', href: '/profile', available: true, icon: IdBadgeIcon },
+  { label: 'Platform admin', href: '/admin', available: true, superAdminOnly: true, icon: DeskLampIcon },
 ];
 
 const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
