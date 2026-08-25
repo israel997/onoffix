@@ -286,6 +286,31 @@ export function WindowIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Enveloppe fermée — notification non lue / marquer comme lu. */
+export function MailIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 6.5 12 13l8-6.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Enveloppe ouverte — notification lue / marquer comme non lu. */
+export function MailOpenIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M3 10.5 12 4l9 6.5V18a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M3 10.7 9.5 15h5l6.5-4.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Engrenage — la salle technique du site (admin plateforme). */
 export function GearIcon(props: SVGProps<SVGSVGElement>) {
   return (

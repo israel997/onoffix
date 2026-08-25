@@ -4,6 +4,7 @@ import { Loading } from '@/components/ui/loading';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { MailIcon, MailOpenIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription } from '@/components/ui/card';
@@ -80,20 +81,27 @@ export default function NotificationsPage() {
           <CardDescription>No notifications yet.</CardDescription>
         </Card>
       ) : (
-        <Card>
+        <Card className="overflow-hidden !p-0">
           <div className="flex flex-col divide-y divide-border">
             {notifications.map((n) => (
               <div
                 key={n.id}
                 onClick={() => handleMarkAsRead(n)}
                 className={cn(
-                  'flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0',
-                  !n.lue && 'bg-brand-blue-light/30',
+                  'flex items-center justify-between gap-3 border-l-4 py-2 pl-4 pr-4',
+                  !n.lue ? 'border-brand-blue bg-brand-blue-light' : 'border-transparent',
                 )}
               >
                 <div className="min-w-0">
-                  <p className="whitespace-pre-wrap break-words text-sm text-foreground">{n.message}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{formatWhen(n.createdAt)}</p>
+                  <p
+                    className={cn(
+                      'line-clamp-1 text-sm text-foreground',
+                      !n.lue && 'font-semibold',
+                    )}
+                  >
+                    {n.message}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{formatWhen(n.createdAt)}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   {n.lien && (
@@ -115,12 +123,9 @@ export default function NotificationsPage() {
                     }}
                     aria-label={n.lue ? 'Mark as unread' : 'Mark as read'}
                     title={n.lue ? 'Mark as unread' : 'Mark as read'}
-                    className={cn(
-                      'rounded px-1 text-base',
-                      n.lue ? 'text-muted-foreground hover:text-foreground' : 'text-brand-blue',
-                    )}
+                    className={cn(n.lue ? 'text-muted-foreground hover:text-foreground' : 'text-brand-blue')}
                   >
-                    {n.lue ? '✉' : '📩'}
+                    {n.lue ? <MailOpenIcon className="h-4 w-4" /> : <MailIcon className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
