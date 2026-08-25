@@ -2,8 +2,8 @@
 
 import { Loading } from '@/components/ui/loading';
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { DownloadIcon, PaperclipIcon, PaperPlaneIcon } from '@/components/icons/office-icons';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { DownloadIcon, PaperclipIcon, PaperPlaneIcon, SmileyIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { resolveAssetUrl, type ChatMessage } from '@/lib/api';
@@ -47,6 +47,15 @@ function colorForUser(userId: string) {
   for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
   return USER_COLORS[hash % USER_COLORS.length];
 }
+
+// Sélection restreinte à des émojis modernes et sobres (pas de doublons datés) —
+// pas de librairie externe, ce sont de simples glyphes Unicode rendus par l'OS.
+const EMOJI_LIST = [
+  '😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '😉', '😍', '🥰', '😘', '😜',
+  '🤔', '😎', '🥳', '😴', '😭', '😢', '😅', '😬', '🙄', '😳', '🤯', '🥺',
+  '😡', '😱', '🤗', '🤝', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '🎉',
+  '❤️', '💙', '💚', '💛', '💜', '🖤', '🤍', '💯', '✅', '❌', '⚠️', '👀',
+];
 
 function quotePreview(message: { contenu: string | null; fichierNom: string | null }) {
   if (message.contenu) return message.contenu;
@@ -183,9 +192,31 @@ export function Chat({
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Zone de texte extensible façon WhatsApp : grandit avec le contenu jusqu'à un plafond,
+  // au-delà duquel elle défile en interne (voir max-h sur le textarea plus bas).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
+  // Prévisualisation locale du fichier en attente d'envoi (image uniquement).
+  const pendingPreviewUrl = useMemo(
+    () => (pendingFile?.type.startsWith('image/') ? URL.createObjectURL(pendingFile) : null),
+    [pendingFile],
+  );
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    };
+  }, [pendingPreviewUrl]);
 
   const mentionMatches =
     mentionQuery === null
@@ -278,8 +309,24 @@ export function Chat({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function sendMessage() {
+  async function sendMessage() {
     const contenu = draft.trim();
+    if (pendingFile) {
+      const file = pendingFile;
+      setError(null);
+      setUploading(true);
+      try {
+        await uploadFile(roomId, file, contenu || undefined, replyingTo?.id);
+        setPendingFile(null);
+        setDraft('');
+        setReplyingTo(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Upload failed');
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
     if (!contenu) return;
     getSocket().emit(messageEvent, {
       [roomKey]: roomId,
@@ -321,6 +368,7 @@ export function Chat({
     }
     if (event.key === 'Escape') {
       if (mentionQuery !== null) setMentionQuery(null);
+      else if (showEmojiPicker) setShowEmojiPicker(false);
       else if (replyingTo) setReplyingTo(null);
     }
   }
@@ -360,20 +408,31 @@ export function Chat({
     if (ok) getSocket().emit('message:delete', { messageId });
   }
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setError(null);
-    setUploading(true);
-    try {
-      await uploadFile(roomId, file, undefined, replyingTo?.id);
-      setReplyingTo(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    setPendingFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function cancelPendingFile() {
+    setPendingFile(null);
+  }
+
+  function insertEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setDraft((prev) => prev + emoji);
+      return;
     }
+    const start = el.selectionStart ?? draft.length;
+    const end = el.selectionEnd ?? draft.length;
+    setDraft(draft.slice(0, start) + emoji + draft.slice(end));
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + emoji.length;
+    });
   }
 
   return (
@@ -534,7 +593,30 @@ export function Chat({
         </div>
       )}
 
-      <form onSubmit={handleSend} className={`relative ${replyingTo ? 'mt-2' : 'mt-4'} flex gap-2`}>
+      {pendingFile && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border-l-2 border-brand-blue bg-surface-muted px-3 py-1.5 text-xs">
+          {pendingPreviewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={pendingPreviewUrl} alt={pendingFile.name} className="h-10 w-10 shrink-0 rounded object-cover" />
+          ) : (
+            <PaperclipIcon className="h-4 w-4 shrink-0" aria-hidden />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium text-foreground">{pendingFile.name}</p>
+            <p className="text-muted-foreground">{formatFileSize(pendingFile.size)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={cancelPendingFile}
+            aria-label="Remove attachment"
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSend} className={`relative ${replyingTo || pendingFile ? 'mt-2' : 'mt-4'} flex gap-2`}>
         {mentionQuery !== null && mentionMatches.length > 0 && (
           <div className="animate-fade-in-up absolute bottom-full left-11 z-10 mb-1 flex w-48 flex-col overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-lg">
             {mentionMatches.map((u) => (
@@ -547,6 +629,20 @@ export function Chat({
                 <span className="font-medium" style={{ color: colorForUser(u.id) }}>
                   @{u.nom}
                 </span>
+              </button>
+            ))}
+          </div>
+        )}
+        {showEmojiPicker && (
+          <div className="animate-fade-in-up absolute bottom-full right-0 z-10 mb-1 grid w-64 grid-cols-8 gap-1 rounded-lg border border-border bg-surface p-2 shadow-lg">
+            {EMOJI_LIST.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => insertEmoji(emoji)}
+                className="rounded p-1 text-lg hover:bg-surface-muted"
+              >
+                {emoji}
               </button>
             ))}
           </div>
@@ -566,19 +662,34 @@ export function Chat({
           aria-label="Attach a file"
           title="Attach a file"
         >
-          {uploading ? '…' : <PaperclipIcon className="h-4 w-4" />}
+          <PaperclipIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setShowEmojiPicker((v) => !v)}
+          aria-label="Insert an emoji"
+          title="Insert an emoji"
+        >
+          <SmileyIcon className="h-4 w-4" />
         </Button>
         <textarea
           ref={textareaRef}
           value={draft}
           onChange={(e) => handleDraftChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => setShowEmojiPicker(false)}
           placeholder={mentionableUsers.length > 0 ? 'Write a message… (@ to mention someone)' : 'Write a message… (Shift+Enter for a new line)'}
           rows={1}
-          className="max-h-40 min-h-10 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+          className="max-h-56 min-h-10 flex-1 resize-none overflow-y-auto rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
         />
-        <Button type="submit" disabled={!draft.trim()} aria-label="Send message" title="Send message">
-          <PaperPlaneIcon className="h-4 w-4" />
+        <Button
+          type="submit"
+          disabled={uploading || (!draft.trim() && !pendingFile)}
+          aria-label="Send message"
+          title="Send message"
+        >
+          {uploading ? '…' : <PaperPlaneIcon className="h-4 w-4" />}
         </Button>
       </form>
     </Card>

@@ -403,3 +403,15 @@ export function DownloadIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Visage souriant en trait — déclenche le sélecteur d'émojis du composeur de chat. */
+export function SmileyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 13.5c1 1.4 2.3 2.1 4 2.1s3-.7 4-2.1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="9" cy="9.5" r="1" fill="currentColor" />
+      <circle cx="15" cy="9.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
