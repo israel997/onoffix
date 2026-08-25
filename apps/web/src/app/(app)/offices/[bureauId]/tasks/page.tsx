@@ -4,10 +4,12 @@ import { Loading } from '@/components/ui/loading';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { FilterIcon } from '@/components/icons/office-icons';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getBureau, listBureauTaches, type BureauDetail, type StatutTache, type Tache } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -118,28 +120,31 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
           <p className="mt-1 text-sm text-muted-foreground">{taches.length} task(s) in this office.</p>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="h-9 rounded-lg border border-border bg-surface px-3 text-sm"
-        >
-          {STATUS_FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-1.5">
+          <FilterIcon className="h-4 w-4 text-muted-foreground" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="h-9 rounded-lg border border-border bg-surface px-3 text-sm"
+          >
+            {STATUS_FILTERS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <OfficeNav bureauId={bureauId} showSettings={isManager} />
 
       {taches.length === 0 ? (
         <Card>
-          <CardDescription>Nothing yet.</CardDescription>
+          <EmptyState>Nothing yet.</EmptyState>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
-          <CardDescription>No task matches this filter.</CardDescription>
+          <EmptyState>No task matches this filter.</EmptyState>
         </Card>
       ) : (
         groups.map((g) => {

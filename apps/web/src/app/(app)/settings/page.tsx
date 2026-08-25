@@ -4,6 +4,7 @@ import { Loading } from '@/components/ui/loading';
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { MasterKeyIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -122,7 +123,10 @@ export default function OrganisationSettingsPage() {
     <div className="flex max-w-2xl flex-col gap-6">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Organisation settings' }]} />
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Organisation settings</h1>
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-foreground">
+          <MasterKeyIcon className="h-6 w-6 text-brand-blue" />
+          Organisation settings
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">{organisation.nom}</p>
       </div>
 

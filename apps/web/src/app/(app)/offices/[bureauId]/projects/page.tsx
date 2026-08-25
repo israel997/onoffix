@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getBureau, listProjets, type BureauDetail, type Projet } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -68,9 +69,7 @@ export default function ProjectsPage() {
 
       {projets.length === 0 ? (
         <Card>
-          <CardDescription>
-            No project yet. Convert a plan from the Organizer to create one.
-          </CardDescription>
+          <EmptyState>No project yet. Convert a plan from the Organizer to create one.</EmptyState>
         </Card>
       ) : (
         <div className="flex flex-col gap-3">

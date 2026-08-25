@@ -9,6 +9,7 @@ import { ReportTimeline } from '@/components/projects/report-timeline';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getProjetRapport, type RapportProjet } from '@/lib/api';
 
 function formatDate(iso: string | null) {
@@ -173,7 +174,7 @@ export default function ProjectReportPage() {
       <Card>
         <CardTitle>Contribution by member</CardTitle>
         {rapport.contributionMembres.length === 0 ? (
-          <CardDescription className="mt-3">No task assigned yet.</CardDescription>
+          <EmptyState className="mt-3">No task assigned yet.</EmptyState>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">

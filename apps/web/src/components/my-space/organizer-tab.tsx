@@ -3,6 +3,7 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import { StickyNoteIcon } from '@/components/icons/office-icons';
 import { SubjectsChat } from '@/components/organizer/subjects-chat';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -54,7 +55,10 @@ export function OrganizerTab() {
       <SubjectsChat projetId={organizer.id} canManage tasksHref="/my-space?tab=tasks" />
 
       <Card>
-        <CardTitle>Add a task manually</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <StickyNoteIcon className="h-5 w-5 text-brand-blue" />
+          Add a task manually
+        </CardTitle>
         <CardDescription className="mt-1">Skip the AI — add a task directly.</CardDescription>
         <form onSubmit={handleCreateTache} className="mt-4 flex flex-col gap-3">
           <Label>

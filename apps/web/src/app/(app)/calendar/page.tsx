@@ -4,6 +4,7 @@ import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useMemo, useState } from 'react';
 import { TaskCalendarModal } from '@/components/calendar/task-calendar-modal';
+import { AlarmIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -296,7 +297,10 @@ export default function CalendarPage() {
           </div>
 
           <Card>
-            <CardTitle>Upcoming</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <AlarmIcon className="h-5 w-5 text-brand-blue" />
+              Upcoming
+            </CardTitle>
             {upcoming.length === 0 ? (
               <CardDescription className="mt-2">Nothing coming up.</CardDescription>
             ) : (

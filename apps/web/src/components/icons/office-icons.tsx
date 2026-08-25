@@ -90,3 +90,213 @@ export function PersonPlusIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Mallette — les tâches qu'on transporte. */
+export function BriefcaseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="3" y="7.5" width="18" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 12.5h18" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10.7 12.5h2.6v2h-2.6z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Cloche de comptoir — l'accueil du bureau. */
+export function ReceptionIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M5 16a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M3.5 16h17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M11.3 16V13.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="11.3" cy="12.4" r="1.1" fill="currentColor" />
+      <path d="M4 19.5h14.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Immeuble — tous les bureaux de l'organisation. */
+export function BuildingIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="5" y="2.5" width="14" height="19" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9 6.5h1.4M13.6 6.5H15M9 10.5h1.4M13.6 10.5H15M9 14.5h1.4M13.6 14.5H15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M10.2 21.5v-4.2a1.8 1.8 0 0 1 3.6 0v4.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Bureau perso avec écran — My Space. */
+export function DeskIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="8" y="3" width="8" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 9v2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M2.5 15.5h19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M4 15.5V19M20 15.5V19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8.5 11.5h7v4h-7z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Réveil — ce qui demande de l'attention / les prochaines échéances. */
+export function AlarmIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="13" r="7.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 9v4l2.5 1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 4 2.5 6.5M19 4l2.5 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9.5 2.5h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Escalier — on change d'étage/de niveau dans la navigation. */
+export function StairsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M3 20h4v-4h4v-4h4V8h4V4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Graphique en barres — statistiques d'équipe. */
+export function ChartIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M3.5 20.5h17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="5.5" y="13" width="3.2" height="7.5" rx="0.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="10.4" y="8.5" width="3.2" height="12" rx="0.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="15.3" y="3.5" width="3.2" height="17" rx="0.6" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+/** Groupe — l'équipe d'un bureau. */
+export function GroupIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="8.5" cy="7.5" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="16.3" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M2.5 20c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M14.8 14.3c2.6.4 4.7 2.5 4.7 5.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Table de réunion vue du dessus — l'espace de discussion d'équipe. */
+export function MeetingRoomIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <ellipse cx="12" cy="12" rx="6.5" ry="4.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="4.3" r="1.3" fill="currentColor" />
+      <circle cx="12" cy="19.7" r="1.3" fill="currentColor" />
+      <circle cx="3.3" cy="12" r="1.3" fill="currentColor" />
+      <circle cx="20.7" cy="12" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Clé — gérer un espace (paramètres d'un bureau). */
+export function KeyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="7" cy="15" r="4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M10 12 19.5 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M16.5 5.5 19 8M19.5 2.5 22 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Trousseau — la clé maîtresse (gérer toute l'organisation). */
+export function MasterKeyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="8" cy="8" r="4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M11 11l9.5 9.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M16 16l2.2-2.2M19 19l2.2-2.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Badge d'accès — identité personnelle. */
+export function IdBadgeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="4" y="4.5" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9.5 2.5h5v3.5h-5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="9.5" cy="12" r="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M6.8 17.5c.5-1.6 1.6-2.4 2.7-2.4s2.2.8 2.7 2.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M14.5 11h3.5M14.5 14h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Calendrier mural — la section Calendar. */
+export function WallCalendarIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 2.5v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="4" y="4.5" width="16" height="16" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 9.5h16" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="8" cy="13.3" r="1" fill="currentColor" />
+      <circle cx="12" cy="13.3" r="1" fill="currentColor" />
+      <circle cx="16" cy="13.3" r="1" fill="currentColor" />
+      <circle cx="8" cy="17" r="1" fill="currentColor" />
+      <circle cx="12" cy="17" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Entonnoir — filtrer/trier. */
+export function FilterIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M3.5 5h17L14 13v6l-4 2v-8Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Post-it — ajouter une tâche à la main. */
+export function StickyNoteIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M4 4.5h16v10.5l-5.5 5H4Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M14.5 20v-5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M7.5 8.5h9M7.5 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Fenêtre — un espace encore vide. */
+export function WindowIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="4" y="3" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 11h16M12 3v16" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3 21.5h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Engrenage — la salle technique du site (admin plateforme). */
+export function GearIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M17.8 6.2l-1.6 1.6M7.8 16.2l-1.6 1.6M17.8 17.8l-1.6-1.6M7.8 7.8 6.2 6.2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

@@ -4,7 +4,8 @@ import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState } from 'react';
 import { TaskItem } from '@/components/tasks/task-item';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { getMyTasks, type MyTache } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -56,7 +57,7 @@ export function TasksTab() {
   if (taches.length === 0) {
     return (
       <Card>
-        <CardDescription>Nothing assigned to you yet.</CardDescription>
+        <EmptyState>Nothing assigned to you yet.</EmptyState>
       </Card>
     );
   }

@@ -5,6 +5,14 @@ import { Loading } from '@/components/ui/loading';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTaskRow } from '@/components/dashboard/alert-task-row';
+import {
+  AlarmIcon,
+  BriefcaseIcon,
+  BuildingIcon,
+  ChairIcon,
+  DeskIcon,
+  ReceptionIcon,
+} from '@/components/icons/office-icons';
 import { TodayChecklist } from '@/components/rituel/today-checklist';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAlertes, getOrganisationStats, type Alertes, type OrganisationStats } from '@/lib/api';
@@ -29,26 +37,38 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Welcome, {user.nom.split(' ')[0]}</h1>
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-foreground">
+          <ReceptionIcon className="h-6 w-6 text-brand-blue" />
+          Welcome, {user.nom.split(' ')[0]}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Know exactly how your team is progressing on their tasks.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:max-w-sm">
-        <Card>
-          <p className="text-2xl font-bold text-foreground">{stats?.membresCount ?? '—'}</p>
-          <p className="text-sm text-muted-foreground">Members</p>
+        <Card className="flex items-center gap-3">
+          <ChairIcon className="h-7 w-7 shrink-0 text-brand-blue" />
+          <div>
+            <p className="text-2xl font-bold text-foreground">{stats?.membresCount ?? '—'}</p>
+            <p className="text-sm text-muted-foreground">Members</p>
+          </div>
         </Card>
-        <Card>
-          <p className="text-2xl font-bold text-foreground">{stats?.tachesCount ?? '—'}</p>
-          <p className="text-sm text-muted-foreground">Tasks</p>
+        <Card className="flex items-center gap-3">
+          <BriefcaseIcon className="h-7 w-7 shrink-0 text-brand-blue" />
+          <div>
+            <p className="text-2xl font-bold text-foreground">{stats?.tachesCount ?? '—'}</p>
+            <p className="text-sm text-muted-foreground">Tasks</p>
+          </div>
         </Card>
       </div>
 
       <Card>
         <div className="flex items-center justify-between">
-          <CardTitle>Needs your attention</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <AlarmIcon className="h-5 w-5 text-muted-foreground" />
+            Needs your attention
+          </CardTitle>
           {alertes && (
             <span className="text-xs text-muted-foreground">
               {alertes.okCount} task{alertes.okCount === 1 ? '' : 's'} on track
@@ -78,7 +98,10 @@ export default function DashboardPage() {
         <Link href="/offices">
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardHeader>
-              <CardTitle>Offices</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <BuildingIcon className="h-5 w-5 text-brand-blue" />
+                Offices
+              </CardTitle>
               <CardDescription>Manage your teams and their members.</CardDescription>
             </CardHeader>
           </Card>
@@ -86,7 +109,10 @@ export default function DashboardPage() {
         <Link href="/my-space">
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardHeader>
-              <CardTitle>My Space</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <DeskIcon className="h-5 w-5 text-brand-blue" />
+                My Space
+              </CardTitle>
               <CardDescription>Your Organizer and every task assigned to you.</CardDescription>
             </CardHeader>
           </Card>

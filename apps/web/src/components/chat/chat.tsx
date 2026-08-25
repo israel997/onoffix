@@ -2,7 +2,7 @@
 
 import { Loading } from '@/components/ui/loading';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { PaperPlaneIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -92,7 +92,7 @@ export interface ChatProps {
   messageEvent: string;
   fetchHistory: (roomId: string) => Promise<ChatMessage[]>;
   uploadFile: (roomId: string, file: File, contenu?: string, replyToId?: string) => Promise<ChatMessage>;
-  title: string;
+  title: ReactNode;
   description: string;
   /** Personnes qu'on peut @mentionner ici — omis pour un chat sans notion d'équipe (DM, organizer perso). */
   mentionableUsers?: { id: string; nom: string }[];

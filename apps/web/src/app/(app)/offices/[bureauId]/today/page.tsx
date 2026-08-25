@@ -8,7 +8,8 @@ import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   getBureau,
   getBureauRituel,
@@ -202,7 +203,7 @@ export default function TodayRituelPage() {
         <Loading className="text-sm" />
       ) : membres.length === 0 ? (
         <Card>
-          <CardDescription>No task with a target date for today in this office.</CardDescription>
+          <EmptyState>No task with a target date for today in this office.</EmptyState>
         </Card>
       ) : (
         <div className="flex flex-col gap-4">

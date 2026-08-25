@@ -3,11 +3,12 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { ChairIcon, ExitIcon } from '@/components/icons/office-icons';
+import { ChairIcon, ExitIcon, KeyIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Toggle } from '@/components/ui/toggle';
@@ -313,7 +314,10 @@ export default function MembersPage() {
                     </Badge>
                   ))}
                   {m.id === user?.organisation.proprietaireId ? (
-                    <Badge tone="brand">Owner</Badge>
+                    <Badge tone="brand">
+                      <KeyIcon className="mr-1 inline h-3 w-3 -translate-y-px" />
+                      Owner
+                    </Badge>
                   ) : isOwner ? (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Admin</span>
@@ -344,7 +348,7 @@ export default function MembersPage() {
               </div>
             ))}
             {membres.length === 0 && invitations.length === 0 && (
-              <CardDescription>No member yet.</CardDescription>
+              <EmptyState>No member yet.</EmptyState>
             )}
           </div>
         )}

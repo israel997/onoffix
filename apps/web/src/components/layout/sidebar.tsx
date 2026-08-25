@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
-import { DoorControlIcon } from '@/components/icons/office-icons';
+import { DoorControlIcon, WallCalendarIcon } from '@/components/icons/office-icons';
 import { getUnreadNotificationsCount } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/cn';
@@ -24,7 +24,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true, icon: DoorControlIcon },
   { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true },
-  { label: 'Calendar', href: '/calendar', available: true },
+  { label: 'Calendar', href: '/calendar', available: true, icon: WallCalendarIcon },
   { label: 'Notifications', href: '/notifications', available: true, redIfUnread: true },
   { label: 'Chat', href: '/chat', available: true },
   { label: 'Members', href: '/members', available: true },

@@ -5,7 +5,7 @@ import { Loading } from '@/components/ui/loading';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BureauChat } from '@/components/chat/bureau-chat';
-import { ChairIcon, ExitIcon } from '@/components/icons/office-icons';
+import { ChairIcon, ChartIcon, ExitIcon, GroupIcon } from '@/components/icons/office-icons';
 import { MembreStatsModal } from '@/components/offices/membre-stats-modal';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
@@ -163,7 +163,10 @@ export default function OfficeDetailPage() {
 
       {stats && (
         <Card>
-          <CardTitle>Team stats</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ChartIcon className="h-5 w-5 text-brand-blue" />
+            Team stats
+          </CardTitle>
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-5">
             <div>
               <p className="text-lg font-bold text-foreground">
@@ -196,7 +199,10 @@ export default function OfficeDetailPage() {
       <Card>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <CardTitle>Members</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <GroupIcon className="h-5 w-5 text-brand-blue" />
+              Members
+            </CardTitle>
             <CardDescription>{bureau.membres.length} people in this office.</CardDescription>
           </div>
           {isManager && (

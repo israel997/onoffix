@@ -3,10 +3,12 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState } from 'react';
+import { GearIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   adminDeleteAccount,
   adminDeleteOrganisation,
@@ -144,7 +146,10 @@ export default function AdminPage() {
     <div className="flex flex-col gap-6">
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Admin' }]} />
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Platform admin</h1>
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-foreground">
+          <GearIcon className="h-6 w-6 text-brand-blue" />
+          Platform admin
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">All organisations and members across OOffix.</p>
       </div>
 
@@ -179,7 +184,7 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
-            {organisations.length === 0 && <CardDescription>No organisation yet.</CardDescription>}
+            {organisations.length === 0 && <EmptyState>No organisation yet.</EmptyState>}
           </div>
         )}
       </Card>
@@ -189,7 +194,7 @@ export default function AdminPage() {
         {membres === null ? (
           <Loading className="mt-3 text-sm" />
         ) : membres.length === 0 ? (
-          <CardDescription className="mt-3">No member yet.</CardDescription>
+          <EmptyState className="mt-3">No member yet.</EmptyState>
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[960px] text-left text-sm">

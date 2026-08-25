@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, type FormEvent } from 'react';
+import { IdBadgeIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,7 +87,10 @@ export default function ProfilePage() {
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle>Personal information</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <IdBadgeIcon className="h-5 w-5 text-brand-blue" />
+            Personal information
+          </CardTitle>
           <CardDescription>{user.email}</CardDescription>
         </CardHeader>
 

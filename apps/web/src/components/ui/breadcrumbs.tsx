@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { StairsIcon } from '@/components/icons/office-icons';
 
 export interface BreadcrumbItem {
   label: string;
@@ -12,7 +13,7 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
         const isLast = index === items.length - 1;
         return (
           <span key={`${item.label}-${index}`} className="flex items-center gap-1.5">
-            {index > 0 && <span className="text-muted-foreground/60">&gt;</span>}
+            {index > 0 && <StairsIcon className="h-3 w-3 text-muted-foreground/60" aria-hidden />}
             {item.href && !isLast ? (
               <Link href={item.href} className="text-brand-blue hover:underline">
                 {item.label}

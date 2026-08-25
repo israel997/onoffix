@@ -1,5 +1,6 @@
 'use client';
 
+import { MeetingRoomIcon } from '@/components/icons/office-icons';
 import { listMessages, sendBureauFile } from '@/lib/api';
 import { Chat } from './chat';
 
@@ -19,7 +20,12 @@ export function BureauChat({
       messageEvent="bureau:message"
       fetchHistory={listMessages}
       uploadFile={sendBureauFile}
-      title="Team chat"
+      title={
+        <span className="flex items-center gap-2">
+          <MeetingRoomIcon className="h-5 w-5 text-brand-blue" />
+          Team chat
+        </span>
+      }
       description="Real-time discussion for this office."
       mentionableUsers={mentionableUsers}
     />

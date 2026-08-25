@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 import { PersonPlusIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   listDirectConversations,
   listOrganisationMembres,
@@ -98,7 +99,7 @@ export default function ChatListPage() {
           {!members ? (
             <Loading className="text-sm" />
           ) : pickable.length === 0 ? (
-            <CardDescription>No other member in your organisation yet.</CardDescription>
+            <EmptyState>No other member in your organisation yet.</EmptyState>
           ) : (
             <div className="flex flex-col divide-y divide-border">
               {pickable.map((m) => (
@@ -127,7 +128,7 @@ export default function ChatListPage() {
         <Loading className="text-sm" />
       ) : conversations.length === 0 ? (
         <Card>
-          <CardDescription>No conversation yet — start one above.</CardDescription>
+          <EmptyState>No conversation yet — start one above.</EmptyState>
         </Card>
       ) : (
         <Card>

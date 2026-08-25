@@ -8,7 +8,8 @@ import { DoorIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -198,7 +199,7 @@ export default function OfficesPage() {
         <Loading className="text-sm" />
       ) : bureaux.length === 0 ? (
         <Card>
-          <CardDescription>No office yet.</CardDescription>
+          <EmptyState>No office yet.</EmptyState>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
