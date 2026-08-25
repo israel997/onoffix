@@ -74,6 +74,7 @@ export function TaskItem({
   const [dureeEstimeeHeures, setDureeEstimeeHeures] = useState(
     tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
   );
+  const [assigneeId, setAssigneeId] = useState(tache.assigneAId ?? '');
 
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
@@ -100,17 +101,18 @@ export function TaskItem({
 
   async function handleSaveEdit() {
     const heures = parseFloat(dureeEstimeeHeures);
-    await run(
-      () =>
-        updateTache(tache.id, {
-          titre,
-          description: description || undefined,
-          dateCible: dateCible || null,
-          priorite,
-          dureeEstimeeMinutes: dureeEstimeeHeures.trim() && !Number.isNaN(heures) ? Math.round(heures * 60) : null,
-        }),
-      'Task updated',
-    );
+    await run(async () => {
+      await updateTache(tache.id, {
+        titre,
+        description: description || undefined,
+        dateCible: dateCible || null,
+        priorite,
+        dureeEstimeeMinutes: dureeEstimeeHeures.trim() && !Number.isNaN(heures) ? Math.round(heures * 60) : null,
+      });
+      if (assigneeId && assigneeId !== tache.assigneAId) {
+        await assignerTache(tache.id, assigneeId);
+      }
+    }, 'Task updated');
     setEditing(false);
   }
 
@@ -155,6 +157,25 @@ export function TaskItem({
             Target date (daily ritual)
             <Input type="date" value={dateCible} onChange={(e) => setDateCible(e.target.value)} />
           </Label>
+          {!isPersonal && (
+            <Label>
+              Assigned to
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+              >
+                <option value="" disabled>
+                  Unassigned
+                </option>
+                {assignableMembres.map((m) => (
+                  <option key={m.user.id} value={m.user.id}>
+                    {m.user.nom}
+                  </option>
+                ))}
+              </select>
+            </Label>
+          )}
           {error && <p className="text-xs text-status-review">{error}</p>}
           <div className="flex gap-2">
             <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
@@ -170,6 +191,7 @@ export function TaskItem({
                 setDateCible(tache.dateCible ?? '');
                 setPriorite(tache.priorite);
                 setDureeEstimeeHeures(tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '');
+                setAssigneeId(tache.assigneAId ?? '');
                 setEditing(false);
               }}
             >
