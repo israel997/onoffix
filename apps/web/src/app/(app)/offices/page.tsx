@@ -212,11 +212,15 @@ export default function OfficesPage() {
           {bureaux.map((bureau, index) => {
             const photoSrc = resolveAssetUrl(bureau.photoUrl);
             const isDanger = bureau.niveauAlerte !== 'AUCUNE';
-            const dangerBg = bureau.niveauAlerte === 'ROUGE' ? 'bg-status-review' : 'bg-status-declared';
+            // Card applique déjà bg-surface/border-border comme classes de base : à spécificité
+            // égale, un className concurrent ne gagne pas de façon fiable (cn() ne fait pas de
+            // merge façon tailwind-merge) — un style inline force la couleur sans ambiguïté.
+            const dangerColor = bureau.niveauAlerte === 'ROUGE' ? 'var(--status-review)' : 'var(--status-declared)';
             return (
               <Card
                 key={bureau.id}
-                className={`flex flex-col gap-4 py-6 ${isDanger ? `${dangerBg} border-transparent text-white` : ''}`}
+                className={`flex flex-col gap-4 py-6 ${isDanger ? 'text-white' : ''}`}
+                style={isDanger ? { backgroundColor: dangerColor, borderColor: dangerColor } : undefined}
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
