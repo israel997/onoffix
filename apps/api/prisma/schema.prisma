@@ -198,6 +198,12 @@ model User {
   poste          String?
   bio            String?
   photoUrl       String?    @map("photo_url")
+  // Petite fiche perso, visible par toute l'organisation (page Members) — chacun
+  // remplit la sienne depuis son propre profil.
+  hierarchie       String?
+  dateAnniversaire DateTime? @map("date_anniversaire") @db.Date
+  aime             String?
+  naimePas         String?   @map("naime_pas")
 
   createdAt DateTime @default(now()) @map("created_at")
 

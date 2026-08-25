@@ -18,6 +18,10 @@ export class UsersService {
         photoUrl: true,
         roleGlobal: true,
         emailVerifie: true,
+        hierarchie: true,
+        dateAnniversaire: true,
+        aime: true,
+        naimePas: true,
         organisation: { select: { id: true, nom: true, logoUrl: true, proprietaireId: true } },
         bureaux: {
           select: {
@@ -35,9 +39,18 @@ export class UsersService {
   }
 
   async updateMe(userId: string, dto: UpdateProfileDto) {
+    const { dateAnniversaire, ...rest } = dto;
     return this.prisma.user.update({
       where: { id: userId },
-      data: dto,
+      data: {
+        ...rest,
+        dateAnniversaire:
+          dateAnniversaire === undefined
+            ? undefined
+            : dateAnniversaire
+              ? new Date(dateAnniversaire)
+              : null,
+      },
       select: {
         id: true,
         nom: true,
@@ -46,6 +59,10 @@ export class UsersService {
         bio: true,
         photoUrl: true,
         roleGlobal: true,
+        hierarchie: true,
+        dateAnniversaire: true,
+        aime: true,
+        naimePas: true,
       },
     });
   }

@@ -26,6 +26,10 @@ export default function ProfilePage() {
   const [nom, setNom] = useState(user?.nom ?? '');
   const [poste, setPoste] = useState(user?.poste ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
+  const [hierarchie, setHierarchie] = useState(user?.hierarchie ?? '');
+  const [dateAnniversaire, setDateAnniversaire] = useState(user?.dateAnniversaire?.slice(0, 10) ?? '');
+  const [aime, setAime] = useState(user?.aime ?? '');
+  const [naimePas, setNaimePas] = useState(user?.naimePas ?? '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -67,7 +71,15 @@ export default function ProfilePage() {
     setSaved(false);
     setSaving(true);
     try {
-      await updateProfile({ nom, poste, bio });
+      await updateProfile({
+        nom,
+        poste,
+        bio,
+        hierarchie,
+        dateAnniversaire: dateAnniversaire || null,
+        aime,
+        naimePas,
+      });
       await refresh();
       setSaved(true);
     } catch (err) {
@@ -153,6 +165,44 @@ export default function ProfilePage() {
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
             />
           </Label>
+
+          <div className="mt-2 border-t border-border pt-4">
+            <p className="text-sm font-semibold text-foreground">Team profile</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Visible to everyone in your organisation, on your Members card.
+            </p>
+          </div>
+          <Label>
+            Hierarchy / reports to
+            <Input
+              value={hierarchie}
+              onChange={(e) => setHierarchie(e.target.value)}
+              placeholder="e.g. Reports to the CTO"
+            />
+          </Label>
+          <Label>
+            Birthday
+            <Input type="date" value={dateAnniversaire} onChange={(e) => setDateAnniversaire(e.target.value)} />
+          </Label>
+          <Label>
+            What I like
+            <textarea
+              value={aime}
+              onChange={(e) => setAime(e.target.value)}
+              rows={2}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+            />
+          </Label>
+          <Label>
+            What I don&apos;t like
+            <textarea
+              value={naimePas}
+              onChange={(e) => setNaimePas(e.target.value)}
+              rows={2}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+            />
+          </Label>
+
           {error && <p className="text-sm text-status-review">{error}</p>}
           {saved && <p className="text-sm text-status-validated">Profile updated.</p>}
           <Button type="submit" disabled={saving} className="w-fit">

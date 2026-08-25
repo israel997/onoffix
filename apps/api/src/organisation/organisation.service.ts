@@ -25,6 +25,11 @@ const MEMBRE_SELECT = {
   poste: true,
   photoUrl: true,
   roleGlobal: true,
+  createdAt: true,
+  hierarchie: true,
+  dateAnniversaire: true,
+  aime: true,
+  naimePas: true,
   bureaux: {
     select: { roleDansBureau: true, bureau: { select: { id: true, nom: true } } },
   },

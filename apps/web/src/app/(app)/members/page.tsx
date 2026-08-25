@@ -4,6 +4,7 @@ import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { ChairIcon, ExitIcon, KeyIcon } from '@/components/icons/office-icons';
+import { MemberDetailPanel } from '@/components/offices/member-detail-panel';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ export default function MembersPage() {
   const [editingPosteId, setEditingPosteId] = useState<string | null>(null);
   const [posteDraft, setPosteDraft] = useState('');
   const [savingPoste, setSavingPoste] = useState(false);
+  const [detailMembre, setDetailMembre] = useState<OrganisationMembre | null>(null);
 
   async function load() {
     const [membresData, invitationsData] = await Promise.all([
@@ -267,10 +269,18 @@ export default function MembersPage() {
             {membres.map((m) => (
               <div key={m.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <MemberAvatar nom={m.nom} photoUrl={m.photoUrl} />
+                  <button
+                    onClick={() => setDetailMembre(m)}
+                    className="flex items-center gap-3 text-left"
+                    aria-label={`View ${m.nom}'s profile`}
+                  >
+                    <MemberAvatar nom={m.nom} photoUrl={m.photoUrl} />
+                    <div>
+                      <p className="text-sm font-medium text-foreground hover:underline">{m.nom}</p>
+                      <p className="text-xs text-muted-foreground">{m.email}</p>
+                    </div>
+                  </button>
                   <div>
-                  <p className="text-sm font-medium text-foreground">{m.nom}</p>
-                  <p className="text-xs text-muted-foreground">{m.email}</p>
                   {editingPosteId === m.id ? (
                     <div className="mt-1 flex items-center gap-2">
                       <Input
@@ -353,6 +363,8 @@ export default function MembersPage() {
           </div>
         )}
       </Card>
+
+      {detailMembre && <MemberDetailPanel membre={detailMembre} onClose={() => setDetailMembre(null)} />}
     </div>
   );
 }

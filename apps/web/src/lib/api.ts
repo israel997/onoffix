@@ -21,6 +21,10 @@ export interface Me {
   photoUrl: string | null;
   roleGlobal: 'ADMIN' | 'MEMBRE';
   emailVerifie: boolean;
+  hierarchie: string | null;
+  dateAnniversaire: string | null;
+  aime: string | null;
+  naimePas: string | null;
   organisation: { id: string; nom: string; logoUrl: string | null; proprietaireId: string };
   bureaux: {
     roleDansBureau: 'MANAGER' | 'COLLABORATEUR';
@@ -370,6 +374,11 @@ export interface OrganisationMembre {
   poste: string | null;
   photoUrl: string | null;
   roleGlobal: 'ADMIN' | 'MEMBRE';
+  createdAt: string;
+  hierarchie: string | null;
+  dateAnniversaire: string | null;
+  aime: string | null;
+  naimePas: string | null;
   bureaux: { roleDansBureau: 'MANAGER' | 'COLLABORATEUR'; bureau: { id: string; nom: string } }[];
 }
 
@@ -602,7 +611,16 @@ export function cancelOrganisationInvitation(invitationId: string) {
   return authFetch<void>(`/organisation/invitations/${invitationId}`, { method: 'DELETE' });
 }
 
-export function updateProfile(data: { nom?: string; poste?: string; bio?: string; photoUrl?: string }) {
+export function updateProfile(data: {
+  nom?: string;
+  poste?: string;
+  bio?: string;
+  photoUrl?: string;
+  hierarchie?: string;
+  dateAnniversaire?: string | null;
+  aime?: string;
+  naimePas?: string;
+}) {
   return authFetch<Me>('/users/me', { method: 'PATCH', body: data });
 }
 
