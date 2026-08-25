@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType, RoleGlobal } from '@prisma/client';
+import { NiveauAlerte, NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { ChatService } from '../chat/chat.service';
 import { EmailService } from '../email/email.service';
@@ -19,6 +19,7 @@ import { ReorderBureauxDto } from './dto/reorder-bureaux.dto';
 import { UpdateBureauDto } from './dto/update-bureau.dto';
 import { UpdateMembreDto } from './dto/update-membre.dto';
 import { UpdateParametresDto } from './dto/update-parametres.dto';
+import { SetAlerteDto } from './dto/set-alerte.dto';
 
 const MAX_BUREAUX_PAR_ORGANISATION = 10;
 
@@ -82,7 +83,7 @@ export class BureauxService {
 
     return Promise.all(
       bureaux.map(async (bureau) => ({
-        ...bureau,
+        ...(await this.resolveAlerte(bureau)),
         unreadCount: await this.chatService.getBureauUnreadCount(bureau.id, user.userId),
       })),
     );
@@ -94,7 +95,46 @@ export class BureauxService {
       include: { membres: { select: MEMBRE_SELECT } },
     });
     if (!bureau) throw new NotFoundException('Bureau introuvable');
-    return bureau;
+    return this.resolveAlerte(bureau);
+  }
+
+  /**
+   * Une alerte "Set to Orange/Red" expire d'elle-même à alerteJusqua : pas besoin d'un
+   * job planifié, on compare juste à l'heure courante à chaque lecture et on nettoie
+   * en base si elle est dépassée.
+   */
+  private async resolveAlerte<
+    T extends { id: string; niveauAlerte: NiveauAlerte; alerteJusqua: Date | null },
+  >(bureau: T): Promise<T> {
+    if (bureau.niveauAlerte === NiveauAlerte.AUCUNE) return bureau;
+    if (bureau.alerteJusqua && bureau.alerteJusqua > new Date()) return bureau;
+
+    await this.prisma.bureau.update({
+      where: { id: bureau.id },
+      data: { niveauAlerte: NiveauAlerte.AUCUNE, alerteJusqua: null },
+    });
+    return { ...bureau, niveauAlerte: NiveauAlerte.AUCUNE, alerteJusqua: null };
+  }
+
+  async setAlerte(bureauId: string, organisationId: string, dto: SetAlerteDto) {
+    await this.assertInOrganisation(bureauId, organisationId);
+
+    if (dto.niveau === NiveauAlerte.AUCUNE) {
+      return this.prisma.bureau.update({
+        where: { id: bureauId },
+        data: { niveauAlerte: NiveauAlerte.AUCUNE, alerteJusqua: null },
+      });
+    }
+
+    const dureeMs = ((dto.jours ?? 0) * 24 + (dto.heures ?? 0)) * 60 * 60 * 1000;
+    if (dureeMs <= 0) {
+      throw new BadRequestException('Indiquez une durée (jours et/ou heures) supérieure à zéro');
+    }
+
+    return this.prisma.bureau.update({
+      where: { id: bureauId },
+      data: { niveauAlerte: dto.niveau, alerteJusqua: new Date(Date.now() + dureeMs) },
+    });
   }
 
   async update(bureauId: string, organisationId: string, dto: UpdateBureauDto) {
@@ -317,6 +357,7 @@ export class BureauxService {
     );
 
     return {
+      totalTaches: taches.length,
       progression: taches.length === 0 ? null : Math.round((termine / taches.length) * 100),
       tachesTerminees: termine,
       tachesEnCours: enCours,

@@ -159,6 +159,14 @@ export default function OfficeDetailPage() {
         </p>
       </div>
 
+      {bureau.niveauAlerte !== 'AUCUNE' && (
+        <div
+          className={`rounded-xl px-4 py-3 text-center text-sm font-semibold text-white ${bureau.niveauAlerte === 'ROUGE' ? 'bg-status-review' : 'bg-status-declared'}`}
+        >
+          {bureau.niveauAlerte === 'ROUGE' ? 'This Office is on fire' : 'This office is on alert!'}
+        </div>
+      )}
+
       <OfficeNav bureauId={bureauId} showSettings={!!isManager} />
 
       {stats && (
@@ -167,7 +175,11 @@ export default function OfficeDetailPage() {
             <ChartIcon className="h-5 w-5 text-brand-blue" />
             Team stats
           </CardTitle>
-          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-5">
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-6">
+            <div>
+              <p className="text-lg font-bold text-foreground">{stats.totalTaches}</p>
+              <p className="text-xs text-muted-foreground">Tasks</p>
+            </div>
             <div>
               <p className="text-lg font-bold text-foreground">
                 {stats.progression === null ? '—' : `${stats.progression}%`}
@@ -344,6 +356,7 @@ export default function OfficeDetailPage() {
       <BureauChat
         bureauId={bureauId}
         mentionableUsers={bureau.membres.map((m) => ({ id: m.user.id, nom: m.user.nom }))}
+        couleur={bureau.couleur}
       />
 
       {statsMember && (

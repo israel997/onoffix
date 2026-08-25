@@ -87,6 +87,12 @@ enum CouleurBureau {
   SLATE
 }
 
+enum NiveauAlerte {
+  AUCUNE
+  ORANGE
+  ROUGE
+}
+
 model Bureau {
   id             String @id @default(uuid())
   organisationId String @map("organisation_id")
@@ -101,6 +107,12 @@ model Bureau {
   couleur  CouleurBureau @default(BLUE)
   photoUrl String?       @map("photo_url")
   ordre    Int           @default(0)
+
+  // "Set to Orange/Red" — alerte temporaire affichée sur la card et en bannière
+  // dans l'office ; expire d'elle-même une fois alerteJusqua dépassée (pas de job
+  // planifié nécessaire, on compare juste à l'heure courante à la lecture).
+  niveauAlerte  NiveauAlerte @default(AUCUNE) @map("niveau_alerte")
+  alerteJusqua  DateTime?    @map("alerte_jusqua")
 
   createdAt DateTime @default(now()) @map("created_at")
 

@@ -167,6 +167,8 @@ export interface ChatProps {
   description: string;
   /** Personnes qu'on peut @mentionner ici — omis pour un chat sans notion d'équipe (DM, organizer perso). */
   mentionableUsers?: { id: string; nom: string }[];
+  /** Couleur de l'office appliquée aux bulles "mine" — omis pour un bleu générique (DM, organizer perso). */
+  accentColor?: { bubble: string; bubbleDark: string };
 }
 
 export function Chat({
@@ -180,7 +182,10 @@ export function Chat({
   title,
   description,
   mentionableUsers = [],
+  accentColor,
 }: ChatProps) {
+  const bubbleClass = accentColor?.bubble ?? 'bg-brand-blue';
+  const bubbleDarkClass = accentColor?.bubbleDark ?? 'bg-brand-blue-dark';
   const { user } = useAuth();
   const confirmDialog = useConfirm();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
@@ -474,7 +479,7 @@ export function Chat({
                   >
                     {!grouped && initials(m.auteur.nom)}
                   </span>
-                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${mine ? 'bg-brand-blue text-white' : 'bg-surface-muted text-foreground'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${mine ? `${bubbleClass} text-white` : 'bg-surface-muted text-foreground'}`}>
                     {!mine && !grouped && (
                       <p className="mb-0.5 text-xs font-semibold" style={{ color }}>
                         {m.auteur.nom}
@@ -517,7 +522,7 @@ export function Chat({
                           <button
                             onClick={() => jumpToMessage(m.replyTo!.id)}
                             style={{ borderLeftColor: colorForUser(m.replyTo.auteur.id) }}
-                            className={`mb-1.5 block w-full rounded-lg border-l-4 px-2 py-1.5 text-left text-xs ${mine ? 'bg-brand-blue-dark text-white' : 'bg-black/10 text-muted-foreground'}`}
+                            className={`mb-1.5 block w-full rounded-lg border-l-4 px-2 py-1.5 text-left text-xs ${mine ? `${bubbleDarkClass} text-white` : 'bg-black/10 text-muted-foreground'}`}
                           >
                             <span className="block font-semibold" style={{ color: mine ? '#fff' : colorForUser(m.replyTo.auteur.id) }}>
                               {m.replyTo.auteur.nom}

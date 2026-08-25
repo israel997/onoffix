@@ -211,28 +211,42 @@ export default function OfficesPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {bureaux.map((bureau, index) => {
             const photoSrc = resolveAssetUrl(bureau.photoUrl);
+            const isDanger = bureau.niveauAlerte !== 'AUCUNE';
+            const dangerBg = bureau.niveauAlerte === 'ROUGE' ? 'bg-status-review' : 'bg-status-declared';
             return (
-              <Card key={bureau.id} className="flex flex-col gap-4 py-6">
+              <Card
+                key={bureau.id}
+                className={`flex flex-col gap-4 py-6 ${isDanger ? `${dangerBg} border-transparent text-white` : ''}`}
+              >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     {photoSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={photoSrc} alt={bureau.nom} className="h-10 w-10 rounded-lg object-cover" />
                     ) : (
-                      <span className={`h-3 w-3 shrink-0 rounded-full ${BUREAU_COLORS[bureau.couleur].dot}`} />
+                      <span className={`h-3 w-3 shrink-0 rounded-full ${isDanger ? 'bg-white' : BUREAU_COLORS[bureau.couleur].dot}`} />
                     )}
                     {bureau.unreadCount > 0 && (
-                      <span className="flex items-center gap-1 rounded-full bg-status-review/10 px-2 py-1 text-xs font-semibold text-status-review">
+                      <span
+                        className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${isDanger ? 'bg-white/20 text-white' : 'bg-status-review/10 text-status-review'}`}
+                      >
                         <MailIcon className="h-3.5 w-3.5" />
                         {bureau.unreadCount}
                       </span>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{bureau.nom}</p>
-                    <p className="text-xs text-muted-foreground">Daily check-in at {bureau.heureDeclaration}</p>
+                    <p className={`text-sm font-semibold ${isDanger ? 'text-white' : 'text-foreground'}`}>{bureau.nom}</p>
+                    <p className={`text-xs ${isDanger ? 'text-white/80' : 'text-muted-foreground'}`}>
+                      Daily check-in at {bureau.heureDeclaration}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {isDanger && (
+                    <p className="text-sm font-semibold">
+                      {bureau.niveauAlerte === 'ROUGE' ? 'This office is on fire' : 'This office is on alert!'}
+                    </p>
+                  )}
+                  <div className={`flex items-center gap-3 text-xs ${isDanger ? 'text-white/80' : 'text-muted-foreground'}`}>
                     <span>
                       {bureau._count.membres} member{bureau._count.membres === 1 ? '' : 's'}
                     </span>
@@ -244,7 +258,7 @@ export default function OfficesPage() {
                     href={`/offices/${bureau.id}`}
                     aria-label={`Enter ${bureau.nom}`}
                     title={`Enter ${bureau.nom}`}
-                    className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-brand-blue hover:bg-brand-blue-light"
+                    className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium ${isDanger ? 'text-white hover:bg-white/10' : 'text-brand-blue hover:bg-brand-blue-light'}`}
                   >
                     <DoorIcon className="h-5 w-5" />
                     Enter

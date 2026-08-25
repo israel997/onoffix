@@ -16,6 +16,7 @@ import {
   getBureau,
   removeBureauPhoto,
   resolveAssetUrl,
+  setBureauAlerte,
   updateBureau,
   updateBureauParametres,
   uploadBureauPhoto,
@@ -46,6 +47,10 @@ export default function OfficeSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [alerteJours, setAlerteJours] = useState(0);
+  const [alerteHeures, setAlerteHeures] = useState(1);
+  const [settingAlerte, setSettingAlerte] = useState(false);
+  const [alerteError, setAlerteError] = useState<string | null>(null);
 
   async function load() {
     const data = await getBureau(bureauId);
@@ -114,6 +119,19 @@ export default function OfficeSettingsPage() {
       await load();
     } finally {
       setUploadingPhoto(false);
+    }
+  }
+
+  async function handleSetAlerte(niveau: 'ORANGE' | 'ROUGE' | 'AUCUNE') {
+    setAlerteError(null);
+    setSettingAlerte(true);
+    try {
+      await setBureauAlerte(bureauId, { niveau, jours: alerteJours, heures: alerteHeures });
+      await load();
+    } catch (err) {
+      setAlerteError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSettingAlerte(false);
     }
   }
 
@@ -262,6 +280,60 @@ export default function OfficeSettingsPage() {
           </Button>
         </form>
       </Card>
+
+      {user?.roleGlobal === 'ADMIN' && (
+        <Card className="border-status-review/30">
+          <CardTitle className="text-status-review">Alert status</CardTitle>
+          <CardDescription className="mt-1">
+            Flag this office as on alert or on fire — the card turns colored on the Offices page and a
+            banner shows up when entering the office, for a set duration.
+          </CardDescription>
+
+          {bureau.niveauAlerte !== 'AUCUNE' && (
+            <div
+              className={`mt-4 rounded-lg px-3 py-2 text-sm font-medium text-white ${bureau.niveauAlerte === 'ROUGE' ? 'bg-status-review' : 'bg-status-declared'}`}
+            >
+              {bureau.niveauAlerte === 'ROUGE' ? 'This office is on fire' : 'This office is on alert!'}
+              {bureau.alerteJusqua && ` — until ${new Date(bureau.alerteJusqua).toLocaleString()}`}
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <Label>
+              Days
+              <Input
+                type="number"
+                min={0}
+                value={alerteJours}
+                onChange={(e) => setAlerteJours(Number(e.target.value))}
+                className="w-24"
+              />
+            </Label>
+            <Label>
+              Hours
+              <Input
+                type="number"
+                min={0}
+                value={alerteHeures}
+                onChange={(e) => setAlerteHeures(Number(e.target.value))}
+                className="w-24"
+              />
+            </Label>
+            <Button type="button" variant="warning" disabled={settingAlerte} onClick={() => handleSetAlerte('ORANGE')}>
+              Set to Orange
+            </Button>
+            <Button type="button" variant="danger" disabled={settingAlerte} onClick={() => handleSetAlerte('ROUGE')}>
+              Set to Red
+            </Button>
+            {bureau.niveauAlerte !== 'AUCUNE' && (
+              <Button type="button" variant="ghost" disabled={settingAlerte} onClick={() => handleSetAlerte('AUCUNE')}>
+                Clear alert
+              </Button>
+            )}
+          </div>
+          {alerteError && <p className="mt-2 text-sm text-status-review">{alerteError}</p>}
+        </Card>
+      )}
 
       {user?.roleGlobal === 'ADMIN' && (
         <Card className="border-status-review/30">

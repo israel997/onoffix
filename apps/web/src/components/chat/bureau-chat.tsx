@@ -1,15 +1,18 @@
 'use client';
 
 import { MeetingRoomIcon } from '@/components/icons/office-icons';
-import { listMessages, sendBureauFile } from '@/lib/api';
+import { listMessages, sendBureauFile, type CouleurBureau } from '@/lib/api';
+import { BUREAU_COLORS } from '@/lib/bureau-colors';
 import { Chat } from './chat';
 
 export function BureauChat({
   bureauId,
   mentionableUsers,
+  couleur,
 }: {
   bureauId: string;
   mentionableUsers?: { id: string; nom: string }[];
+  couleur?: CouleurBureau;
 }) {
   return (
     <Chat
@@ -28,6 +31,7 @@ export function BureauChat({
       }
       description="Real-time discussion for this office."
       mentionableUsers={mentionableUsers}
+      accentColor={couleur ? { bubble: BUREAU_COLORS[couleur].bubble, bubbleDark: BUREAU_COLORS[couleur].bubbleDark } : undefined}
     />
   );
 }

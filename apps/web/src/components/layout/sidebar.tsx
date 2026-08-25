@@ -221,7 +221,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
     <>
       <aside
         className={cn(
-          'hidden shrink-0 flex-col items-start border-r border-border bg-surface py-6 md:flex',
+          'my-3 ml-3 hidden shrink-0 flex-col items-start rounded-2xl border border-border bg-surface py-6 md:flex',
           collapsed ? 'w-16 items-center' : 'w-60',
         )}
       >

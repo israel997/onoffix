@@ -28,6 +28,7 @@ import { ReorderBureauxDto } from './dto/reorder-bureaux.dto';
 import { UpdateBureauDto } from './dto/update-bureau.dto';
 import { UpdateMembreDto } from './dto/update-membre.dto';
 import { UpdateParametresDto } from './dto/update-parametres.dto';
+import { SetAlerteDto } from './dto/set-alerte.dto';
 
 const ANY_MEMBER = [RoleBureau.MANAGER, RoleBureau.COLLABORATEUR];
 const MAX_PHOTO_SIZE = 2 * 1024 * 1024; // 2 Mo — juste une photo de bureau, pas un fichier lourd
@@ -118,6 +119,16 @@ export class BureauxController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.bureauxService.remove(bureauId, user.organisationId);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Patch(':bureauId/alerte')
+  setAlerte(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SetAlerteDto,
+  ) {
+    return this.bureauxService.setAlerte(bureauId, user.organisationId, dto);
   }
 
   @BureauRole(RoleBureau.MANAGER)

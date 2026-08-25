@@ -237,6 +237,7 @@ export function getMe() {
 }
 
 export type CouleurBureau = 'BLUE' | 'PURPLE' | 'GREEN' | 'AMBER' | 'PINK' | 'SLATE';
+export type NiveauAlerte = 'AUCUNE' | 'ORANGE' | 'ROUGE';
 
 export interface Bureau {
   id: string;
@@ -251,6 +252,8 @@ export interface Bureau {
   createdAt: string;
   _count: { membres: number };
   unreadCount: number;
+  niveauAlerte: NiveauAlerte;
+  alerteJusqua: string | null;
 }
 
 export interface Membre {
@@ -294,6 +297,10 @@ export function updateBureauParametres(
 
 export function deleteBureau(bureauId: string) {
   return authFetch<void>(`/bureaux/${bureauId}`, { method: 'DELETE' });
+}
+
+export function setBureauAlerte(bureauId: string, data: { niveau: NiveauAlerte; jours?: number; heures?: number }) {
+  return authFetch<Bureau>(`/bureaux/${bureauId}/alerte`, { method: 'PATCH', body: data });
 }
 
 export function reorderBureaux(ordre: string[]) {
@@ -488,6 +495,7 @@ export function getMembreStats(userId: string) {
 }
 
 export interface BureauStats {
+  totalTaches: number;
   progression: number | null;
   tachesTerminees: number;
   tachesEnCours: number;
