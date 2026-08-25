@@ -70,7 +70,7 @@ function SidebarNav({
   compact: boolean;
 }) {
   return (
-    <nav className={cn('flex flex-1 flex-col gap-1', compact && 'items-center')}>
+    <nav className={cn('flex flex-1 flex-col gap-1', compact && 'items-start pl-6')}>
       {NAV_ITEMS.filter(
         (item) =>
           (!item.adminOnly || isAdmin) &&
@@ -190,8 +190,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
 
   return (
     <>
-      <aside className="hidden w-48 shrink-0 flex-col items-center border-r border-border bg-surface py-6 md:flex">
-        <Link href="/" className="mb-8">
+      <aside className="hidden w-48 shrink-0 flex-col items-start border-r border-border bg-surface py-6 md:flex">
+        <Link href="/" className="mb-8 pl-4">
           <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-11 w-auto" />
         </Link>
         <SidebarNav
