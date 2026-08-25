@@ -34,6 +34,21 @@ function generateOtp(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, '0');
 }
 
+const DURATION_UNITS_MS: Record<string, number> = {
+  ms: 1,
+  s: 1000,
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
+};
+
+/** Parse une durée style JWT ("5h", "15m", "7d") — même format que expiresIn. */
+function parseDurationMs(value: string): number {
+  const match = /^(\d+)(ms|s|m|h|d)$/.exec(value.trim());
+  if (!match) return 5 * DURATION_UNITS_MS.h; // repli sûr si mal configuré
+  return Number(match[1]) * DURATION_UNITS_MS[match[2]];
+}
+
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -554,17 +569,19 @@ export class AuthService {
       } as JwtSignOptions,
     );
 
+    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '5h');
     const refreshToken = await this.jwtService.signAsync(
       payload as unknown as object,
       {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+        expiresIn: refreshExpiresIn,
       } as JwtSignOptions,
     );
 
     const tokenHash = await bcrypt.hash(refreshToken, REFRESH_TOKEN_SALT_ROUNDS);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    // Doit rester cohérent avec expiresIn ci-dessus — sinon le token JWT expire à un
+    // moment et la ligne en base (utilisée pour la révocation) à un autre.
+    const expiresAt = new Date(Date.now() + parseDurationMs(refreshExpiresIn));
 
     await this.prisma.refreshToken.create({
       data: { userId, tokenHash, expiresAt },

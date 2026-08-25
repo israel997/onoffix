@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { NotificationsBell } from '@/components/layout/notifications-bell';
 import { OrgSwitcher } from '@/components/layout/org-switcher';
 import { Button } from '@/components/ui/button';
+import { resolveAssetUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
 function initials(name: string) {
@@ -14,6 +15,19 @@ function initials(name: string) {
     .slice(0, 2)
     .join('')
     .toUpperCase();
+}
+
+function UserAvatar({ nom, photoUrl }: { nom: string; photoUrl: string | null }) {
+  const src = resolveAssetUrl(photoUrl);
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={nom} className="h-8 w-8 shrink-0 rounded-full object-cover" />;
+  }
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white">
+      {initials(nom)}
+    </span>
+  );
 }
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
@@ -59,10 +73,8 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-surface-muted"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white">
-              {initials(user.nom)}
-            </span>
-            <span className="text-sm font-medium text-foreground">{user.nom}</span>
+            <UserAvatar nom={user.nom} photoUrl={user.photoUrl} />
+            <span className="hidden text-sm font-medium text-foreground sm:inline">{user.nom}</span>
           </button>
 
           {menuOpen && (
