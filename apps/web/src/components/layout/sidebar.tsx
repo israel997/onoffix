@@ -42,7 +42,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Chat', href: '/chat', available: true, unreadSource: 'chat', icon: MailIcon },
   { label: 'Members', href: '/members', available: true, icon: ChairIcon },
   { label: 'My Space', href: '/my-space', available: true, icon: BriefcaseIcon },
-  { label: 'Daily check-in', href: '/check-in', available: false, icon: AlarmIcon },
+  { label: 'Daily check-in', href: '/check-in', available: true, icon: AlarmIcon },
   { label: 'Reporting', href: '/reporting', available: false, icon: ChartIcon },
   { label: 'Performance', href: '/performance', available: false, icon: ChartIcon },
   { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true, icon: MasterKeyIcon },

@@ -13,7 +13,6 @@ import {
   DeskIcon,
   ReceptionIcon,
 } from '@/components/icons/office-icons';
-import { TodayChecklist } from '@/components/rituel/today-checklist';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAlertes, getOrganisationStats, type Alertes, type OrganisationStats } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -91,8 +90,6 @@ export default function DashboardPage() {
           </div>
         )}
       </Card>
-
-      <TodayChecklist />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/offices">
