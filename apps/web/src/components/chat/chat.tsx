@@ -3,7 +3,7 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { PaperPlaneIcon } from '@/components/icons/office-icons';
+import { DownloadIcon, PaperclipIcon, PaperPlaneIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { resolveAssetUrl, type ChatMessage } from '@/lib/api';
@@ -54,33 +54,95 @@ function quotePreview(message: { contenu: string | null; fichierNom: string | nu
   return '…';
 }
 
+/** Fetch-puis-blob pour forcer un vrai téléchargement ; repli sur un nouvel onglet si le bucket refuse le CORS. */
+async function downloadFile(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('download failed');
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    window.open(url, '_blank');
+  }
+}
+
+function ImageLightbox({ url, filename, onClose }: { url: string; filename: string; onClose: () => void }) {
+  return (
+    <div
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={filename} className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" />
+        <div className="absolute right-2 top-2 flex gap-2">
+          <button
+            onClick={() => downloadFile(url, filename)}
+            aria-label="Download image"
+            title="Download image"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+          >
+            <DownloadIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Attachment({ message }: { message: ChatMessage }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const url = resolveAssetUrl(message.fichierUrl);
   if (!url) return null;
   const isImage = message.fichierType?.startsWith('image/');
+  const filename = message.fichierNom ?? 'file';
 
   if (isImage) {
     return (
-      <a href={url} target="_blank" rel="noreferrer" className="mt-1 block">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={message.fichierNom ?? 'attachment'} className="max-h-48 rounded-lg object-cover" />
-      </a>
+      <>
+        <button type="button" onClick={() => setLightboxOpen(true)} className="mt-1 block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={filename} className="max-h-48 rounded-lg object-cover" />
+        </button>
+        {lightboxOpen && (
+          <ImageLightbox url={url} filename={filename} onClose={() => setLightboxOpen(false)} />
+        )}
+      </>
     );
   }
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="mt-1 flex items-center gap-2 rounded-lg border border-current/15 bg-black/5 px-2.5 py-2 text-xs hover:underline"
-    >
-      <span aria-hidden>📎</span>
-      <span className="min-w-0 flex-1 truncate">{message.fichierNom}</span>
+    <div className="mt-1 flex items-center gap-2 rounded-lg border border-current/15 bg-black/5 px-2.5 py-2 text-xs">
+      <PaperclipIcon className="h-4 w-4 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1 truncate">{filename}</span>
       {message.fichierTailleOctets != null && (
         <span className="shrink-0 opacity-70">{formatFileSize(message.fichierTailleOctets)}</span>
       )}
-    </a>
+      <button
+        type="button"
+        onClick={() => downloadFile(url, filename)}
+        aria-label="Download file"
+        title="Download file"
+        className="shrink-0 opacity-80 hover:opacity-100"
+      >
+        <DownloadIcon className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 
@@ -143,7 +205,14 @@ export function Chat({
       const match = nom ? mentionableUsers.find((u) => u.nom === nom) : null;
       if (!match) return part;
       return (
-        <span key={i} className="rounded px-0.5 font-medium" style={{ color: mine ? undefined : colorForUser(match.id) }}>
+        <span
+          key={i}
+          className="rounded px-1 font-semibold"
+          style={{
+            backgroundColor: mine ? 'rgba(255,255,255,0.25)' : `${colorForUser(match.id)}26`,
+            color: mine ? '#fff' : colorForUser(match.id),
+          }}
+        >
           {part}
         </span>
       );
@@ -389,7 +458,7 @@ export function Chat({
                           <button
                             onClick={() => jumpToMessage(m.replyTo!.id)}
                             style={{ borderLeftColor: colorForUser(m.replyTo.auteur.id) }}
-                            className={`mb-1 block w-full rounded-lg border-l-4 px-2 py-1 text-left text-xs ${mine ? 'bg-black/15 text-white' : 'bg-black/5 text-muted-foreground'}`}
+                            className={`mb-1.5 block w-full rounded-lg border-l-4 px-2 py-1.5 text-left text-xs ${mine ? 'bg-brand-blue-dark text-white' : 'bg-black/10 text-muted-foreground'}`}
                           >
                             <span className="block font-semibold" style={{ color: mine ? '#fff' : colorForUser(m.replyTo.auteur.id) }}>
                               {m.replyTo.auteur.nom}
@@ -495,8 +564,9 @@ export function Chat({
           disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
           aria-label="Attach a file"
+          title="Attach a file"
         >
-          {uploading ? '…' : '📎'}
+          {uploading ? '…' : <PaperclipIcon className="h-4 w-4" />}
         </Button>
         <textarea
           ref={textareaRef}

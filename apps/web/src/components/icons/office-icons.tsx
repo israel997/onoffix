@@ -377,3 +377,29 @@ export function FolderIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Trombone — joindre un fichier au message. */
+export function PaperclipIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M17.5 8.5 9.6 16.4a3 3 0 0 1-4.2-4.2l8.4-8.4a2 2 0 0 1 2.8 2.8l-8 8a1 1 0 0 1-1.4-1.4l7.1-7.1"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Flèche vers un plateau — télécharger une pièce jointe. */
+export function DownloadIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 3.5v11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7.5 10.5 12 15l4.5-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

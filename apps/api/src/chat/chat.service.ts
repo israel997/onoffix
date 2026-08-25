@@ -366,7 +366,11 @@ export class ChatService {
         userBId: true,
         lastReadAtA: true,
         lastReadAtB: true,
-        messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { auteurId: true, createdAt: true } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { auteurId: true, createdAt: true },
+        },
       },
     });
     return conversations.some((c) => this.isConversationUnread(c, userId));
@@ -384,7 +388,8 @@ export class ChatService {
   ): boolean {
     const lastMessage = conversation.messages[0];
     if (!lastMessage || lastMessage.auteurId === userId) return false;
-    const lastReadAt = conversation.userAId === userId ? conversation.lastReadAtA : conversation.lastReadAtB;
+    const lastReadAt =
+      conversation.userAId === userId ? conversation.lastReadAtA : conversation.lastReadAtB;
     return !lastReadAt || lastMessage.createdAt > lastReadAt;
   }
 }
