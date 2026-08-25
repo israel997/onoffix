@@ -337,6 +337,36 @@ export class ChatService {
       .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
   }
 
+  /** Marque un chat de groupe (bureau ou Subject d'organizer) comme lu par cet utilisateur. */
+  async markConversationRead(conversationId: string, userId: string) {
+    await this.prisma.conversationRead.upsert({
+      where: { conversationId_userId: { conversationId, userId } },
+      create: { conversationId, userId },
+      update: { lastReadAt: new Date() },
+    });
+  }
+
+  /** Nombre de messages non lus (pas de soi-même) dans le chat d'un bureau, pour cet utilisateur. */
+  async getBureauUnreadCount(bureauId: string, userId: string): Promise<number> {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { bureauId },
+      select: { id: true },
+    });
+    if (!conversation) return 0;
+
+    const read = await this.prisma.conversationRead.findUnique({
+      where: { conversationId_userId: { conversationId: conversation.id, userId } },
+    });
+
+    return this.prisma.message.count({
+      where: {
+        conversationId: conversation.id,
+        auteurId: { not: userId },
+        ...(read ? { createdAt: { gt: read.lastReadAt } } : {}),
+      },
+    });
+  }
+
   /** Marque une conversation directe comme lue par cet utilisateur (à l'ouverture). */
   async markDirectConversationRead(conversationId: string, userId: string) {
     const conversation = await this.prisma.conversation.findUnique({

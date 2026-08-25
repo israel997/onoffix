@@ -4,7 +4,7 @@ import { Loading } from '@/components/ui/loading';
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BuildingIcon, DoorIcon } from '@/components/icons/office-icons';
+import { BuildingIcon, DoorIcon, MailIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -208,18 +208,26 @@ export default function OfficesPage() {
           <EmptyState>No office yet.</EmptyState>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {bureaux.map((bureau, index) => {
             const photoSrc = resolveAssetUrl(bureau.photoUrl);
             return (
-              <Card key={bureau.id} className="flex flex-col gap-3 py-4">
+              <Card key={bureau.id} className="flex flex-col gap-4 py-6">
                 <div className="flex flex-col gap-3">
-                  {photoSrc ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photoSrc} alt={bureau.nom} className="h-10 w-10 rounded-lg object-cover" />
-                  ) : (
-                    <span className={`h-3 w-3 shrink-0 rounded-full ${BUREAU_COLORS[bureau.couleur].dot}`} />
-                  )}
+                  <div className="flex items-center justify-between">
+                    {photoSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photoSrc} alt={bureau.nom} className="h-10 w-10 rounded-lg object-cover" />
+                    ) : (
+                      <span className={`h-3 w-3 shrink-0 rounded-full ${BUREAU_COLORS[bureau.couleur].dot}`} />
+                    )}
+                    {bureau.unreadCount > 0 && (
+                      <span className="flex items-center gap-1 rounded-full bg-status-review/10 px-2 py-1 text-xs font-semibold text-status-review">
+                        <MailIcon className="h-3.5 w-3.5" />
+                        {bureau.unreadCount}
+                      </span>
+                    )}
+                  </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">{bureau.nom}</p>
                     <p className="text-xs text-muted-foreground">Daily check-in at {bureau.heureDeclaration}</p>

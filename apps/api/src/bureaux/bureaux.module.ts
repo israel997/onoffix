@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ChatModule } from '../chat/chat.module';
 import { EmailModule } from '../email/email.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganizerModule } from '../organizer/organizer.module';
@@ -7,7 +8,7 @@ import { BureauxController } from './bureaux.controller';
 import { BureauxService } from './bureaux.service';
 
 @Module({
-  imports: [QueueModule, OrganizerModule, EmailModule, NotificationsModule],
+  imports: [QueueModule, OrganizerModule, EmailModule, NotificationsModule, ChatModule],
   controllers: [BureauxController],
   providers: [BureauxService],
   exports: [BureauxService],

@@ -92,6 +92,8 @@ export class ChatGateway implements OnGatewayConnection {
       user.roleGlobal,
     );
     await client.join(bureauRoom(data.bureauId));
+    const conversation = await this.chatService.ensureConversationForBureau(data.bureauId);
+    await this.chatService.markConversationRead(conversation.id, user.userId);
   }
 
   @SubscribeMessage('bureau:leave')

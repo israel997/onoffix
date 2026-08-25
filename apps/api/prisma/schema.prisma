@@ -134,16 +134,35 @@ model Conversation {
   lastReadAtA DateTime? @map("last_read_at_a")
   lastReadAtB DateTime? @map("last_read_at_b")
 
-  bureau   Bureau?   @relation(fields: [bureauId], references: [id], onDelete: Cascade)
-  projet   Projet?   @relation(fields: [projetId], references: [id], onDelete: Cascade)
-  userA    User?     @relation("ConversationsAsA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB    User?     @relation("ConversationsAsB", fields: [userBId], references: [id], onDelete: Cascade)
+  bureau   Bureau?            @relation(fields: [bureauId], references: [id], onDelete: Cascade)
+  projet   Projet?            @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  userA    User?              @relation("ConversationsAsA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User?              @relation("ConversationsAsB", fields: [userBId], references: [id], onDelete: Cascade)
   messages Message[]
   taches   Tache[]
+  reads    ConversationRead[]
 
   @@unique([userAId, userBId])
   @@index([projetId])
   @@map("conversations")
+}
+
+/**
+ * Marqueur "vu" par utilisateur pour un chat de groupe (bureau ou Subject
+ * d'organizer) — les DM ont leur propre mécanisme (lastReadAtA/B) car ils
+ * n'ont que deux participants.
+ */
+model ConversationRead {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  userId         String   @map("user_id")
+  lastReadAt     DateTime @default(now()) @map("last_read_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_reads")
 }
 
 model Message {
@@ -224,6 +243,7 @@ model User {
   emailVerificationTokens  EmailVerificationToken[]
   conversationsAsA         Conversation[]           @relation("ConversationsAsA")
   conversationsAsB         Conversation[]           @relation("ConversationsAsB")
+  conversationReads        ConversationRead[]
   messages                 Message[]
   projetsPersonnels        Projet[]
   blocagesResponsable      TacheBlocage[]

@@ -32,8 +32,9 @@ export class ChatController {
 
   @BureauRole(...ANY_MEMBER)
   @Get()
-  async list(@Param('bureauId') bureauId: string) {
+  async list(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
     const conversation = await this.chatService.ensureConversationForBureau(bureauId);
+    await this.chatService.markConversationRead(conversation.id, user.userId);
     return this.chatService.listMessages(conversation.id);
   }
 

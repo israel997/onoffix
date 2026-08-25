@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { ChatService } from '../chat/chat.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OrganizerService } from '../organizer/organizer.service';
@@ -43,6 +44,7 @@ export class BureauxService {
     private readonly organizerService: OrganizerService,
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
+    private readonly chatService: ChatService,
   ) {}
 
   async create(organisationId: string, dto: CreateBureauDto) {
@@ -63,19 +65,27 @@ export class BureauxService {
   }
 
   async findAllForUser(user: AuthenticatedUser) {
-    if (user.roleGlobal === RoleGlobal.ADMIN) {
-      return this.prisma.bureau.findMany({
-        where: { organisationId: user.organisationId },
-        orderBy: [{ ordre: 'asc' }, { createdAt: 'asc' }],
-        include: { _count: { select: { membres: true } } },
-      });
-    }
-    const memberships = await this.prisma.userBureau.findMany({
-      where: { userId: user.userId },
-      select: { bureau: { include: { _count: { select: { membres: true } } } } },
-      orderBy: { bureau: { ordre: 'asc' } },
-    });
-    return memberships.map((m) => m.bureau);
+    const bureaux =
+      user.roleGlobal === RoleGlobal.ADMIN
+        ? await this.prisma.bureau.findMany({
+            where: { organisationId: user.organisationId },
+            orderBy: [{ ordre: 'asc' }, { createdAt: 'asc' }],
+            include: { _count: { select: { membres: true } } },
+          })
+        : (
+            await this.prisma.userBureau.findMany({
+              where: { userId: user.userId },
+              select: { bureau: { include: { _count: { select: { membres: true } } } } },
+              orderBy: { bureau: { ordre: 'asc' } },
+            })
+          ).map((m) => m.bureau);
+
+    return Promise.all(
+      bureaux.map(async (bureau) => ({
+        ...bureau,
+        unreadCount: await this.chatService.getBureauUnreadCount(bureau.id, user.userId),
+      })),
+    );
   }
 
   async findOne(bureauId: string, user: AuthenticatedUser) {

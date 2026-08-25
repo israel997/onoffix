@@ -222,7 +222,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
       <aside
         className={cn(
           'hidden shrink-0 flex-col items-start border-r border-border bg-surface py-6 md:flex',
-          collapsed ? 'w-16 items-center' : 'w-48',
+          collapsed ? 'w-16 items-center' : 'w-60',
         )}
       >
         <Link href="/" className={collapsed ? 'mb-8' : 'mb-8 pl-4'}>

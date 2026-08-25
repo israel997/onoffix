@@ -407,7 +407,7 @@ export function Chat({
                 <div
                   key={m.id}
                   id={`msg-${m.id}`}
-                  className={`group flex items-start gap-2 rounded-lg transition-colors ${mine ? 'flex-row-reverse text-right' : ''} ${grouped ? 'mt-0.5' : 'mt-3'} ${highlighted ? 'bg-brand-blue/10' : ''}`}
+                  className={`group flex items-start gap-2 rounded-lg text-left transition-colors ${mine ? 'flex-row-reverse' : ''} ${grouped ? 'mt-0.5' : 'mt-3'} ${highlighted ? 'bg-brand-blue/10' : ''}`}
                 >
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"

@@ -250,6 +250,7 @@ export interface Bureau {
   ordre: number;
   createdAt: string;
   _count: { membres: number };
+  unreadCount: number;
 }
 
 export interface Membre {
