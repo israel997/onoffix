@@ -164,7 +164,7 @@ export default function AdminPage() {
                 <div>
                   <p className="text-sm font-medium text-foreground">{org.nom}</p>
                   <p className="text-xs text-muted-foreground">
-                    Owner: {org.proprietaire ? `${org.proprietaire.nom} (${org.proprietaire.email})` : '—'}
+                    Owner: {org.proprietaire ? `${org.proprietaire.nom} (${org.proprietaire.email})` : '-'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -224,7 +224,7 @@ export default function AdminPage() {
                     <td className="py-3 pr-4 whitespace-nowrap text-muted-foreground">
                       {formatDate(m.dateInscription)}
                     </td>
-                    <td className="py-3 pr-4 text-muted-foreground">{m.pays ?? '—'}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{m.pays ?? '-'}</td>
                     <td className="py-3 pr-4">
                       <div className="flex flex-wrap gap-1">
                         {m.banned && <Badge tone="review">Banned</Badge>}

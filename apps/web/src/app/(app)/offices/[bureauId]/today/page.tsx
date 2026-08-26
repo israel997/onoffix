@@ -24,7 +24,7 @@ function DailyBriefCard({ brief }: { brief: DailyBrief }) {
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-foreground">Daily Team Brief — {brief.date}</h2>
+        <h2 className="text-sm font-semibold text-foreground">Daily Team Brief: {brief.date}</h2>
         {brief.pourcentageRituel !== null && (
           <Badge tone={brief.pourcentageRituel === 100 ? 'validated' : 'brand'}>
             {brief.pourcentageRituel}% of today&apos;s tasks done
@@ -49,7 +49,7 @@ function DailyBriefCard({ brief }: { brief: DailyBrief }) {
           {brief.blocagesActifs.map((b) => (
             <p key={b.id} className="text-sm text-foreground">
               {b.tache.titre}
-              {b.responsable && <> — waiting on {b.responsable.nom}</>}
+              {b.responsable && <>: waiting on {b.responsable.nom}</>}
               {b.cause && <span className="text-muted-foreground"> ({b.cause})</span>}
             </p>
           ))}

@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { getProjetRapport, type RapportProjet } from '@/lib/api';
 
 function formatDate(iso: string | null) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -26,7 +26,7 @@ function formatMinutes(minutes: number) {
 }
 
 function formatDays(days: number | null) {
-  if (days === null) return '—';
+  if (days === null) return '-';
   return `${days} day${Math.abs(days) === 1 ? '' : 's'}`;
 }
 
@@ -85,7 +85,7 @@ export default function ProjectReportPage() {
         ]}
       />
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{projet.nom} — Report</h1>
+        <h1 className="text-2xl font-bold text-foreground">{projet.nom}: Report</h1>
         {projet.description && <p className="mt-1 text-sm text-muted-foreground">{projet.description}</p>}
       </div>
 
@@ -96,7 +96,7 @@ export default function ProjectReportPage() {
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4 text-sm sm:grid-cols-4">
           <div>
             <p className="text-lg font-bold text-foreground">
-              {s.progression === null ? '—' : `${s.progression}%`}
+              {s.progression === null ? '-' : `${s.progression}%`}
             </p>
             <p className="text-xs text-muted-foreground">Progress</p>
           </div>
@@ -215,7 +215,7 @@ export default function ProjectReportPage() {
                   <p className="text-sm font-medium text-foreground">{b.tache.titre}</p>
                   <p className="text-xs text-muted-foreground">
                     {BLOCAGE_TYPE_LABEL[b.type] ?? b.type}
-                    {b.cause && ` — ${b.cause}`}
+                    {b.cause && ` (${b.cause})`}
                     {b.responsable && ` · ${b.responsable.nom}`}
                   </p>
                 </div>

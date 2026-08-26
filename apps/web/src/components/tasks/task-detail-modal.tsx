@@ -19,7 +19,7 @@ import {
 import { useToast } from '@/lib/toast-context';
 
 function formatDate(iso: string | null) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
@@ -118,7 +118,7 @@ export function TaskDetailModal({
       <div className="mt-4 border-t border-border pt-4">
         <p className="text-sm font-semibold text-foreground">Time tracking</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {chrono ? formatMinutes(chrono.dureeReelleMinutes) : '—'} logged
+          {chrono ? formatMinutes(chrono.dureeReelleMinutes) : '-'} logged
           {tache.dureeEstimeeMinutes ? ` / ${formatMinutes(tache.dureeEstimeeMinutes)} estimated` : ''}
           {chrono?.enCours && ' · running now'}
         </p>

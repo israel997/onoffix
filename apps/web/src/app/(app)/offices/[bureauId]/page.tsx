@@ -118,7 +118,7 @@ export default function OfficeDetailPage() {
         roleDansBureau,
         roleInterne: roleInterne || undefined,
       });
-      toast('Invitation sent — they need to accept before joining.');
+      toast('Invitation sent: they need to accept before joining.');
       setSelectedEmail('');
       setRoleInterne('');
       setShowForm(false);
@@ -182,7 +182,7 @@ export default function OfficeDetailPage() {
             </div>
             <div>
               <p className="text-lg font-bold text-foreground">
-                {stats.progression === null ? '—' : `${stats.progression}%`}
+                {stats.progression === null ? '-' : `${stats.progression}%`}
               </p>
               <p className="text-xs text-muted-foreground">Progress</p>
             </div>
@@ -200,7 +200,7 @@ export default function OfficeDetailPage() {
             </div>
             <div>
               <p className="text-lg font-bold text-foreground">
-                {stats.respectDeadlines === null ? '—' : `${stats.respectDeadlines}%`}
+                {stats.respectDeadlines === null ? '-' : `${stats.respectDeadlines}%`}
               </p>
               <p className="text-xs text-muted-foreground">Deadlines met</p>
             </div>

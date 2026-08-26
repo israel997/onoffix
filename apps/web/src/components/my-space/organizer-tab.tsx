@@ -59,7 +59,7 @@ export function OrganizerTab() {
           <StickyNoteIcon className="h-5 w-5 text-brand-blue" />
           Add a task manually
         </CardTitle>
-        <CardDescription className="mt-1">Skip the AI — add a task directly.</CardDescription>
+        <CardDescription className="mt-1">Skip the AI - add a task directly.</CardDescription>
         <form onSubmit={handleCreateTache} className="mt-4 flex flex-col gap-3">
           <Label>
             Title

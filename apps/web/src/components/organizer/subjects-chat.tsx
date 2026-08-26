@@ -166,7 +166,7 @@ export function SubjectsChat({
           description={
             active.derniereGenerationTaches
               ? `Last processed ${new Date(active.derniereGenerationTaches).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`
-              : 'Not processed yet — tasks are generated automatically.'
+              : 'Not processed yet: tasks are generated automatically.'
           }
         />
       ) : (

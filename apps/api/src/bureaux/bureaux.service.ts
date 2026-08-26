@@ -194,7 +194,7 @@ export class BureauxService {
     });
     if (!membre) {
       throw new NotFoundException(
-        "Ce collaborateur n'existe pas encore dans l'organisation — ajoutez-le d'abord depuis Membres.",
+        "Ce collaborateur n'existe pas encore dans l'organisation : ajoutez-le d'abord depuis Membres.",
       );
     }
 

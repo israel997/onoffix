@@ -451,7 +451,7 @@ export function Chat({
         {messages === null ? (
           <Loading className="text-sm" />
         ) : messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No messages yet — say hello.</p>
+          <p className="text-sm text-muted-foreground">No messages yet - say hello.</p>
         ) : (
           <div className="flex flex-col">
             {messages.map((m, index) => {

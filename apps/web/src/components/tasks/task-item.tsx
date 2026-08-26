@@ -301,7 +301,7 @@ export function TaskItem({
             running <LiveTimer since={tache.dateDebut} />
           </span>
         )}
-        {tache.description && <span className="truncate">— {tache.description}</span>}
+        {tache.description && <span className="truncate">- {tache.description}</span>}
       </div>
 
       {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}

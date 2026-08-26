@@ -51,12 +51,12 @@ export function MemberDetailPanel({ membre, onClose }: { membre: OrganisationMem
       <div className="mt-5 flex flex-col gap-4 text-sm">
         <div>
           <p className="text-xs font-medium text-muted-foreground">Job title</p>
-          <p className="text-foreground">{membre.poste ?? '—'}</p>
+          <p className="text-foreground">{membre.poste ?? '-'}</p>
         </div>
 
         <div>
           <p className="text-xs font-medium text-muted-foreground">Hierarchy</p>
-          <p className="text-foreground">{membre.hierarchie ?? '—'}</p>
+          <p className="text-foreground">{membre.hierarchie ?? '-'}</p>
         </div>
 
         <div>
@@ -66,13 +66,13 @@ export function MemberDetailPanel({ membre, onClose }: { membre: OrganisationMem
 
         <div>
           <p className="text-xs font-medium text-muted-foreground">Birthday</p>
-          <p className="text-foreground">{formatBirthday(membre.dateAnniversaire) ?? '—'}</p>
+          <p className="text-foreground">{formatBirthday(membre.dateAnniversaire) ?? '-'}</p>
         </div>
 
         <div>
           <p className="text-xs font-medium text-muted-foreground">Offices</p>
           {membre.bureaux.length === 0 ? (
-            <p className="text-foreground">—</p>
+            <p className="text-foreground">-</p>
           ) : (
             <div className="mt-1 flex flex-wrap gap-1.5">
               {membre.bureaux.map((b) => (
@@ -86,12 +86,12 @@ export function MemberDetailPanel({ membre, onClose }: { membre: OrganisationMem
 
         <div>
           <p className="text-xs font-medium text-muted-foreground">What they like</p>
-          <p className="whitespace-pre-wrap text-foreground">{membre.aime ?? '—'}</p>
+          <p className="whitespace-pre-wrap text-foreground">{membre.aime ?? '-'}</p>
         </div>
 
         <div>
           <p className="text-xs font-medium text-muted-foreground">What they don&apos;t like</p>
-          <p className="whitespace-pre-wrap text-foreground">{membre.naimePas ?? '—'}</p>
+          <p className="whitespace-pre-wrap text-foreground">{membre.naimePas ?? '-'}</p>
         </div>
       </div>
     </Drawer>

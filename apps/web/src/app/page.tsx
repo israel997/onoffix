@@ -77,14 +77,14 @@ export default function LandingPage() {
               </a>
             </div>
             <div className="hero-note">
-              <span className="dot"></span> In internal testing — not yet open to other companies
+              <span className="dot"></span> In internal testing (not yet open to other companies)
             </div>
           </div>
 
           <div className="hero-image">
             <Image
               src="/1.png"
-              alt="OOffix office view — desks light up as collaborators declare their progress"
+              alt="OOffix office view: desks light up as collaborators declare their progress"
               width={1536}
               height={1024}
               priority
@@ -99,8 +99,8 @@ export default function LandingPage() {
             <h2>Scattered thoughts become a plan.</h2>
             <p>
               Write down what needs doing, in any order, as it comes to you. It gets broken down
-              into tasks, with an owner suggested based on office roles — yours to confirm or
-              adjust.
+              into tasks, with an owner suggested based on office roles (yours to confirm or
+              adjust).
             </p>
           </div>
 
@@ -172,7 +172,7 @@ export default function LandingPage() {
             <div className="step">
               <div className="step-n">01</div>
               <h3>Create an office</h3>
-              <p>One team, one space. Marketing, engineering, sales — each gets its own.</p>
+              <p>One team, one space. Marketing, engineering, sales: each gets its own.</p>
             </div>
             <div className="step">
               <div className="step-n">02</div>
@@ -182,7 +182,7 @@ export default function LandingPage() {
             <div className="step">
               <div className="step-n">03</div>
               <h3>Describe the work</h3>
-              <p>Rough or detailed — OOffix structures and pre-assigns the tasks.</p>
+              <p>Rough or detailed - OOffix structures and pre-assigns the tasks.</p>
             </div>
             <div className="step">
               <div className="step-n">04</div>
@@ -199,7 +199,7 @@ export default function LandingPage() {
             <h2>Every evening, you know who made progress.</h2>
             <p>
               The declaration time is set by each manager for their office. What&apos;s declared
-              isn&apos;t official until it&apos;s verified — the next day, in person.
+              isn&apos;t official until it&apos;s verified (the next day, in person).
             </p>
           </div>
 
@@ -333,7 +333,7 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3>Progress bars</h3>
-              <p>Based only on validated tasks — not on what was simply checked off.</p>
+              <p>Based only on validated tasks - not on what was simply checked off.</p>
             </div>
             <div className="feat">
               <div className="feat-icon">
@@ -357,7 +357,7 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3>Reliability score</h3>
-              <p>Punctuality and consistency of declarations — not just the volume of tasks checked off.</p>
+              <p>Punctuality and consistency of declarations - not just the volume of tasks checked off.</p>
             </div>
           </div>
         </div>
@@ -414,7 +414,7 @@ export default function LandingPage() {
             <Link href={authed ? '/dashboard' : '/register'} className="btn btn-primary">
               {authed ? 'Go to dashboard' : 'Try OOffix'}
             </Link>
-            <div className="cta-honest">No pricing plan yet — currently in internal testing</div>
+            <div className="cta-honest">No pricing plan yet: currently in internal testing</div>
           </div>
         </div>
       </section>
@@ -430,7 +430,7 @@ export default function LandingPage() {
               <a href="#ritual">The ritual</a>
               <a href="#features">Features</a>
             </div>
-            <div className="footer-copy">© 2026 OOffix — digital office, still in testing</div>
+            <div className="footer-copy">© 2026 OOffix - digital office, still in testing</div>
           </div>
         </div>
       </footer>

@@ -49,14 +49,14 @@ export default function DashboardPage() {
         <Card className="flex items-center gap-3">
           <ChairIcon className="h-7 w-7 shrink-0 text-brand-blue" />
           <div>
-            <p className="text-2xl font-bold text-foreground">{stats?.membresCount ?? '—'}</p>
+            <p className="text-2xl font-bold text-foreground">{stats?.membresCount ?? '-'}</p>
             <p className="text-sm text-muted-foreground">Members</p>
           </div>
         </Card>
         <Card className="flex items-center gap-3">
           <BriefcaseIcon className="h-7 w-7 shrink-0 text-brand-blue" />
           <div>
-            <p className="text-2xl font-bold text-foreground">{stats?.tachesCount ?? '—'}</p>
+            <p className="text-2xl font-bold text-foreground">{stats?.tachesCount ?? '-'}</p>
             <p className="text-sm text-muted-foreground">Tasks</p>
           </div>
         </Card>
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         ) : alertes.attention.length === 0 ? (
           <p className="mt-3 text-sm text-status-validated">
             {alertes.totalCount === 0
-              ? 'No open tasks to watch — nothing to show yet.'
+              ? 'No open tasks to watch - nothing to show yet.'
               : "Everything's on track. Nothing needs your attention."}
           </p>
         ) : (

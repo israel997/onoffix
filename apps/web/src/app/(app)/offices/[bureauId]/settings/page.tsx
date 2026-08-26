@@ -285,7 +285,7 @@ export default function OfficeSettingsPage() {
         <Card className="border-status-review/30">
           <CardTitle className="text-status-review">Alert status</CardTitle>
           <CardDescription className="mt-1">
-            Flag this office as on alert or on fire — the card turns colored on the Offices page and a
+            Flag this office as on alert or on fire: the card turns colored on the Offices page and a
             banner shows up when entering the office, for a set duration.
           </CardDescription>
 
@@ -294,7 +294,7 @@ export default function OfficeSettingsPage() {
               className={`mt-4 rounded-lg px-3 py-2 text-sm font-medium text-white ${bureau.niveauAlerte === 'ROUGE' ? 'bg-status-review' : 'bg-status-declared'}`}
             >
               {bureau.niveauAlerte === 'ROUGE' ? 'This office is on fire' : 'This office is on alert!'}
-              {bureau.alerteJusqua && ` — until ${new Date(bureau.alerteJusqua).toLocaleString()}`}
+              {bureau.alerteJusqua && ` (until ${new Date(bureau.alerteJusqua).toLocaleString()})`}
             </div>
           )}
 

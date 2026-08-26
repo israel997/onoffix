@@ -129,7 +129,7 @@ export default function ChatListPage() {
         <Loading className="text-sm" />
       ) : conversations.length === 0 ? (
         <Card>
-          <EmptyState>No conversation yet — start one above.</EmptyState>
+          <EmptyState>No conversation yet - start one above.</EmptyState>
         </Card>
       ) : (
         <Card>

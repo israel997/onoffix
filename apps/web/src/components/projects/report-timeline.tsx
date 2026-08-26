@@ -107,7 +107,7 @@ export function ReportTimeline({ rapport, bureauId }: { rapport: RapportProjet; 
             className="flex flex-col gap-0.5 py-2 text-sm hover:bg-surface-muted sm:flex-row sm:items-center sm:justify-between"
           >
             <span className="text-foreground">
-              {EVENT_LABEL[e.type] ?? e.type} — {e.titre}
+              {EVENT_LABEL[e.type] ?? e.type} - {e.titre}
             </span>
             {e.detail && <span className="text-xs text-muted-foreground">{e.detail}</span>}
           </Link>

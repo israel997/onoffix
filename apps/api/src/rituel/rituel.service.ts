@@ -129,7 +129,7 @@ export class RituelService {
         this.notifications.create(
           managerId,
           NotificationType.VALIDATION_A_FAIRE,
-          `${membre?.nom ?? 'Un collaborateur'} a déclaré sa journée — validation à faire`,
+          `${membre?.nom ?? 'Un collaborateur'} a déclaré sa journée (validation à faire)`,
           '/offices',
         ),
       ),
