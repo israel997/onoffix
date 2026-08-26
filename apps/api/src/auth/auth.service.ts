@@ -462,10 +462,21 @@ export class AuthService {
       data: { revoked: true },
     });
 
+    // Le payload du refresh token peut être périmé (rôle changé, transfert d'organisation
+    // depuis l'émission) : on relit l'état actuel plutôt que de le reconduire tel quel,
+    // sinon une promotion ADMIN ne prend effet qu'après une déconnexion complète.
+    const current = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { roleGlobal: true, organisationId: true },
+    });
+    if (!current) {
+      throw new UnauthorizedException('Utilisateur introuvable');
+    }
+
     return this.issueTokens(
       payload.sub,
-      payload.organisationId,
-      payload.roleGlobal,
+      current.organisationId,
+      current.roleGlobal,
       payload.accountId,
     );
   }
