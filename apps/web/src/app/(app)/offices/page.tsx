@@ -95,6 +95,10 @@ export default function OfficesPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    // Un collaborateur qui accepte une invitation ailleurs ne déclenche rien ici — on
+    // repasse périodiquement pour refléter les changements sans recharger la page.
+    const interval = setInterval(load, 20_000);
+    return () => clearInterval(interval);
   }, []);
 
   async function handleCreate(event: FormEvent) {
