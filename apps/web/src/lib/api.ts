@@ -172,7 +172,7 @@ async function refreshAccessToken(refreshToken: string): Promise<AuthTokens> {
 /** At most one refresh in flight — several requests hitting 401 at once share the same retry. */
 let refreshPromise: Promise<AuthTokens> | null = null;
 
-function refreshOnce(refreshToken: string): Promise<AuthTokens> {
+export function refreshOnce(refreshToken: string): Promise<AuthTokens> {
   if (!refreshPromise) {
     refreshPromise = refreshAccessToken(refreshToken).finally(() => {
       refreshPromise = null;
