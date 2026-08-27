@@ -10,7 +10,15 @@ import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { getBureau, listBureauTaches, type BureauDetail, type StatutTache, type Tache } from '@/lib/api';
+import {
+  getBureau,
+  getBureauOrganizer,
+  listBureauTaches,
+  type BureauDetail,
+  type OrganizerDetail,
+  type StatutTache,
+  type Tache,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
 interface Group {
@@ -71,13 +79,19 @@ export default function TasksPage() {
 
   const [taches, setTaches] = useState<Tache[] | null>(null);
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
+  const [organizer, setOrganizer] = useState<OrganizerDetail | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   async function load() {
-    const [t, bur] = await Promise.all([listBureauTaches(bureauId), getBureau(bureauId)]);
+    const [t, bur, org] = await Promise.all([
+      listBureauTaches(bureauId),
+      getBureau(bureauId),
+      getBureauOrganizer(bureauId),
+    ]);
     setTaches(t);
     setBureau(bur);
+    setOrganizer(org);
   }
 
   useEffect(() => {
@@ -104,11 +118,16 @@ export default function TasksPage() {
   const isManager =
     isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
 
-  if (!taches || !bureau) return <Loading className="text-sm" />;
+  if (!taches || !bureau || !organizer) return <Loading className="text-sm" />;
 
   const filtered = applyFilter(taches, statusFilter);
   const groups = groupBySubject(filtered);
-  const moveTargets = groupBySubject(taches).map((g) => ({ conversationId: g.conversationId, nom: g.nom }));
+  // Toutes les subjects du projet, pas seulement celles qui ont déjà une tâche —
+  // sinon impossible de déplacer une tâche vers une subject encore vide.
+  const moveTargets = [
+    { conversationId: null as string | null, nom: 'No subject' },
+    ...organizer.conversations.map((c) => ({ conversationId: c.id as string | null, nom: c.nom })),
+  ];
 
   return (
     <div className="flex flex-col gap-6">

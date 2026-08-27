@@ -22,6 +22,8 @@ tâches mentionnées au fil de l'eau) en une liste de tâches claires et actionn
 
 Règles :
 - Une tâche = une action concrète, formulée à l'infinitif, courte (moins de 12 mots).
+- Reformule proprement : ne recopie jamais le texte brut tel quel. Corrige l'orthographe
+  et la grammaire, mets une majuscule en début de phrase.
 - Ignore le bavardage, les salutations, ce qui n'est pas une action à faire.
 - Ne déduis pas de tâches qui ne sont pas clairement suggérées par le texte.
 - Réponds uniquement avec un tableau JSON, sans texte autour, au format :
@@ -35,6 +37,8 @@ projet structuré et actionnable.
 Règles :
 - Trouve un nom de projet court (moins de 8 mots) qui résume l'objectif global.
 - Découpe le travail en tâches concrètes, formulées à l'infinitif, courtes (moins de 12 mots).
+- Reformule proprement : ne recopie jamais le texte brut tel quel. Corrige l'orthographe
+  et la grammaire, mets une majuscule en début de phrase.
 - Attribue à chaque tâche une priorité parmi BASSE, NORMALE, HAUTE, URGENTE selon l'urgence/l'impact
   perçus dans le texte (par défaut NORMALE si rien ne l'indique).
 - Ignore le bavardage, les salutations, ce qui n'est pas une action à faire.

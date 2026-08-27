@@ -53,16 +53,9 @@ export class OrganizerProcessor extends WorkerHost {
     if (suggestions.length > 0) {
       const projet = message.conversation.projet;
       // Organizer personnel : les tâches générées s'assignent directement au propriétaire.
-      // Organizer de bureau : à défaut, elles reviennent au propriétaire de l'organisation
-      // plutôt que de rester orphelines et invisibles de tous.
-      let assigneeId = projet.proprietaireId ?? undefined;
-      if (!assigneeId && projet.bureauId) {
-        const bureau = await this.prisma.bureau.findUnique({
-          where: { id: projet.bureauId },
-          select: { organisation: { select: { proprietaireId: true } } },
-        });
-        assigneeId = bureau?.organisation.proprietaireId;
-      }
+      // Organizer de bureau : par défaut à l'auteur du message — c'est lui qui a écrit
+      // ça, pas à l'admin de l'organisation qui n'a peut-être rien à voir là-dedans.
+      const assigneeId = projet.proprietaireId ?? message.auteurId;
 
       await this.prisma.tache.createMany({
         data: suggestions.map((s) => ({
