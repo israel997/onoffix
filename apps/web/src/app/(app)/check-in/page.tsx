@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AlarmIcon } from '@/components/icons/office-icons';
+import { TasksTab } from '@/components/my-space/tasks-tab';
 import { TodayChecklist } from '@/components/rituel/today-checklist';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -57,6 +58,12 @@ export default function CheckInPage() {
           </div>
         </Card>
       )}
+
+      <div>
+        <h2 className="text-lg font-bold text-foreground">All your tasks</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Every task assigned to you, across every office.</p>
+      </div>
+      <TasksTab />
     </div>
   );
 }

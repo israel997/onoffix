@@ -95,6 +95,7 @@ export default function OrganizerPage() {
           canManage={isManager}
           tasksHref={`/offices/${bureauId}/tasks`}
           mentionableUsers={bureau.membres.map((m) => ({ id: m.user.id, nom: m.user.nom }))}
+          couleur={bureau.couleur}
         />
 
         {isManager && (

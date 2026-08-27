@@ -85,6 +85,12 @@ enum CouleurBureau {
   AMBER
   PINK
   SLATE
+  RED
+  ORANGE
+  TEAL
+  CYAN
+  INDIGO
+  ROSE
 }
 
 enum NiveauAlerte {

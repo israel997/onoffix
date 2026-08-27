@@ -13,8 +13,10 @@ import {
   listOrganizerSubjects,
   renameOrganizerSubject,
   sendOrganizerFile,
+  type CouleurBureau,
   type Subject,
 } from '@/lib/api';
+import { BUREAU_COLORS } from '@/lib/bureau-colors';
 import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
@@ -23,11 +25,13 @@ export function SubjectsChat({
   canManage,
   tasksHref,
   mentionableUsers,
+  couleur,
 }: {
   projetId: string;
   canManage: boolean;
   tasksHref?: string;
   mentionableUsers?: { id: string; nom: string }[];
+  couleur?: CouleurBureau;
 }) {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -162,6 +166,7 @@ export function SubjectsChat({
             sendOrganizerFile(projetId, subjectId, file, contenu, replyToId)
           }
           mentionableUsers={mentionableUsers}
+          accentColor={couleur ? { bubble: BUREAU_COLORS[couleur].bubble, bubbleDark: BUREAU_COLORS[couleur].bubbleDark } : undefined}
           title={active.nom}
           description={
             active.derniereGenerationTaches

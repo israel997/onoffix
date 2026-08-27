@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -8,11 +7,8 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createOrganisation, storeTokens } from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
 
 export default function NewOrganisationPage() {
-  const router = useRouter();
-  const { refresh } = useAuth();
   const [nom, setNom] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -24,8 +20,10 @@ export default function NewOrganisationPage() {
     try {
       const tokens = await createOrganisation(nom);
       storeTokens(tokens);
-      await refresh();
-      router.push('/dashboard');
+      // Rechargement complet plutôt qu'une navigation client : la socket temps réel et
+      // l'état local de plusieurs composants restent autrement accrochés à l'ancienne
+      // organisation (elle n'est jamais reconnectée quand le token change sous elle).
+      window.location.assign('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setCreating(false);

@@ -236,7 +236,19 @@ export function getMe() {
   return authFetch<Me>('/users/me');
 }
 
-export type CouleurBureau = 'BLUE' | 'PURPLE' | 'GREEN' | 'AMBER' | 'PINK' | 'SLATE';
+export type CouleurBureau =
+  | 'BLUE'
+  | 'PURPLE'
+  | 'GREEN'
+  | 'AMBER'
+  | 'PINK'
+  | 'SLATE'
+  | 'RED'
+  | 'ORANGE'
+  | 'TEAL'
+  | 'CYAN'
+  | 'INDIGO'
+  | 'ROSE';
 export type NiveauAlerte = 'AUCUNE' | 'ORANGE' | 'ROUGE';
 
 export interface Bureau {

@@ -11,7 +11,6 @@ import {
   switchOrganisation,
   type MyOrganisation,
 } from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
 
 function OrgLogo({ nom, logoUrl }: { nom: string; logoUrl: string | null }) {
   const src = resolveAssetUrl(logoUrl);
@@ -33,7 +32,6 @@ export function OrgSwitcher({
   organisationNom: string;
   logoUrl: string | null;
 }) {
-  const { refresh } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [organisations, setOrganisations] = useState<MyOrganisation[] | null>(null);
@@ -59,9 +57,10 @@ export function OrgSwitcher({
     try {
       const tokens = await switchOrganisation(org.id);
       storeTokens(tokens);
-      await refresh();
-      setOpen(false);
-      router.push('/dashboard');
+      // Rechargement complet plutôt qu'une navigation client : la socket temps réel et
+      // l'état local de plusieurs composants restent autrement accrochés à l'ancienne
+      // organisation (elle n'est jamais reconnectée quand le token change sous elle).
+      window.location.assign('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
