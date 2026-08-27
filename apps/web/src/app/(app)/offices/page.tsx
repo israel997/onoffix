@@ -246,7 +246,7 @@ export default function OfficesPage() {
                   <div>
                     <p className={`text-sm font-semibold ${isDanger ? 'text-white' : 'text-foreground'}`}>{bureau.nom}</p>
                     <p className={`text-xs ${isDanger ? 'text-white/80' : 'text-muted-foreground'}`}>
-                      Daily check-in at {bureau.heureDeclaration}
+                      {bureau.tachesCount} task{bureau.tachesCount === 1 ? '' : 's'} · Daily check-in at {bureau.heureDeclaration}
                     </p>
                   </div>
                   {isDanger && (

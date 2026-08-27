@@ -85,6 +85,7 @@ export class BureauxService {
       bureaux.map(async (bureau) => ({
         ...(await this.resolveAlerte(bureau)),
         unreadCount: await this.chatService.getBureauUnreadCount(bureau.id, user.userId),
+        tachesCount: await this.prisma.tache.count({ where: { projet: { bureauId: bureau.id } } }),
       })),
     );
   }

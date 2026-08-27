@@ -266,6 +266,7 @@ export interface Bureau {
   unreadCount: number;
   niveauAlerte: NiveauAlerte;
   alerteJusqua: string | null;
+  tachesCount: number;
 }
 
 export interface Membre {
