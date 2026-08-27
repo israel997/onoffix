@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BureauChat } from '@/components/chat/bureau-chat';
 import { ChairIcon, ChartIcon, ExitIcon, GroupIcon } from '@/components/icons/office-icons';
+import { MemberDetailPanel } from '@/components/offices/member-detail-panel';
 import { MembreStatsModal } from '@/components/offices/membre-stats-modal';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +43,7 @@ export default function OfficeDetailPage() {
   const [invitations, setInvitations] = useState<BureauInvitation[]>([]);
   const [stats, setStats] = useState<BureauStats | null>(null);
   const [statsMember, setStatsMember] = useState<{ id: string; nom: string } | null>(null);
+  const [detailMembre, setDetailMembre] = useState<OrganisationMembre | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState('');
   const [roleInterne, setRoleInterne] = useState('');
@@ -187,15 +189,15 @@ export default function OfficeDetailPage() {
               <p className="text-xs text-muted-foreground">Progress</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground">{stats.tachesEnCours}</p>
+              <p className="text-lg font-bold text-status-declared">{stats.tachesEnCours}</p>
               <p className="text-xs text-muted-foreground">In progress</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground">{stats.tachesTerminees}</p>
+              <p className="text-lg font-bold text-status-validated">{stats.tachesTerminees}</p>
               <p className="text-xs text-muted-foreground">Done</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground">{stats.tachesBloquees}</p>
+              <p className="text-lg font-bold text-status-review">{stats.tachesBloquees}</p>
               <p className="text-xs text-muted-foreground">Blocked</p>
             </div>
             <div>
@@ -289,13 +291,26 @@ export default function OfficeDetailPage() {
         <div className="flex flex-col divide-y divide-border">
           {bureau.membres.map((m) => (
             <div key={m.user.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                className="text-left"
-                onClick={() => setStatsMember({ id: m.user.id, nom: m.user.nom })}
-              >
-                <p className="text-sm font-medium text-foreground hover:underline">{m.user.nom}</p>
-                <p className="text-xs text-muted-foreground">{m.user.email}</p>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="text-left"
+                  onClick={() => {
+                    const full = orgMembres?.find((om) => om.id === m.user.id);
+                    if (full) setDetailMembre(full);
+                  }}
+                >
+                  <p className="text-sm font-medium text-foreground hover:underline">{m.user.nom}</p>
+                  <p className="text-xs text-muted-foreground">{m.user.email}</p>
+                </button>
+                <button
+                  onClick={() => setStatsMember({ id: m.user.id, nom: m.user.nom })}
+                  aria-label={`View ${m.user.nom}'s task stats`}
+                  title="Task stats"
+                  className="rounded p-1 text-muted-foreground hover:text-brand-blue"
+                >
+                  <ChartIcon className="h-4 w-4" />
+                </button>
+              </div>
               <div className="flex flex-wrap items-center gap-3">
                 {m.roleInterne && <Badge tone="brand">{m.roleInterne}</Badge>}
                 {isManager ? (
@@ -366,6 +381,8 @@ export default function OfficeDetailPage() {
           onClose={() => setStatsMember(null)}
         />
       )}
+
+      {detailMembre && <MemberDetailPanel membre={detailMembre} onClose={() => setDetailMembre(null)} />}
     </div>
   );
 }

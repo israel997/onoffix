@@ -116,7 +116,6 @@ export default function MembersPage() {
   }
 
   const isAdmin = user?.roleGlobal === 'ADMIN';
-  const isOwner = !!user && user.organisation.proprietaireId === user.id;
 
   async function handleRoleChange(membre: OrganisationMembre, roleGlobal: 'ADMIN' | 'MEMBRE') {
     setUpdatingRoleId(membre.id);
@@ -272,7 +271,7 @@ export default function MembersPage() {
             ))}
             {membres.map((m) => (
               <div key={m.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                   <button
                     onClick={() => setDetailMembre(m)}
                     className="flex items-center gap-3 text-left"
@@ -284,7 +283,7 @@ export default function MembersPage() {
                       <p className="text-xs text-muted-foreground">{m.email}</p>
                     </div>
                   </button>
-                  <div>
+                  <div className="pl-12 sm:pl-0">
                   {editingPosteId === m.id ? (
                     <div className="mt-1 flex items-center gap-2">
                       <Input
@@ -320,44 +319,48 @@ export default function MembersPage() {
                   {!isAdmin && m.poste && <p className="mt-0.5 text-xs text-muted-foreground">{m.poste}</p>}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge tone="validated">Joined</Badge>
-                  {m.bureaux.map((b) => (
-                    <Badge key={b.bureau.id} tone="neutral">
-                      {b.bureau.nom}
-                    </Badge>
-                  ))}
-                  {m.id === user?.organisation.proprietaireId ? (
-                    <Badge tone="brand">
-                      <KeyIcon className="mr-1 inline h-3 w-3 -translate-y-px" />
-                      Owner
-                    </Badge>
-                  ) : isOwner ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Admin</span>
-                      <Toggle
-                        checked={m.roleGlobal === 'ADMIN'}
-                        disabled={updatingRoleId === m.id}
-                        label={`Toggle admin for ${m.nom}`}
-                        onChange={() => handleRoleChange(m, m.roleGlobal === 'ADMIN' ? 'MEMBRE' : 'ADMIN')}
-                      />
-                    </div>
-                  ) : (
-                    <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
-                      {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
-                    </Badge>
-                  )}
-                  {isAdmin && m.id !== user?.organisation.proprietaireId && m.id !== user?.id && (
-                    <button
-                      disabled={removingId === m.id}
-                      onClick={() => handleRemove(m)}
-                      aria-label={`Remove ${m.nom}`}
-                      title={`Remove ${m.nom}`}
-                      className="rounded p-1 text-muted-foreground hover:text-status-review disabled:opacity-50"
-                    >
-                      <ExitIcon className="h-[18px] w-[18px]" />
-                    </button>
-                  )}
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone="validated">Joined</Badge>
+                    {m.bureaux.map((b) => (
+                      <Badge key={b.bureau.id} tone="neutral">
+                        {b.bureau.nom}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {m.id === user?.organisation.proprietaireId ? (
+                      <Badge tone="brand">
+                        <KeyIcon className="mr-1 inline h-3 w-3 -translate-y-px" />
+                        Owner
+                      </Badge>
+                    ) : isAdmin ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Admin</span>
+                        <Toggle
+                          checked={m.roleGlobal === 'ADMIN'}
+                          disabled={updatingRoleId === m.id}
+                          label={`Toggle admin for ${m.nom}`}
+                          onChange={() => handleRoleChange(m, m.roleGlobal === 'ADMIN' ? 'MEMBRE' : 'ADMIN')}
+                        />
+                      </div>
+                    ) : (
+                      <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
+                        {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
+                      </Badge>
+                    )}
+                    {isAdmin && m.id !== user?.organisation.proprietaireId && m.id !== user?.id && (
+                      <button
+                        disabled={removingId === m.id}
+                        onClick={() => handleRemove(m)}
+                        aria-label={`Remove ${m.nom}`}
+                        title={`Remove ${m.nom}`}
+                        className="rounded p-1 text-muted-foreground hover:text-status-review disabled:opacity-50"
+                      >
+                        <ExitIcon className="h-[18px] w-[18px]" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
