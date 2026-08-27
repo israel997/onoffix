@@ -4,7 +4,9 @@ import { Loading } from '@/components/ui/loading';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
+import { CheckinReminder } from '@/components/layout/checkin-reminder';
 import { Sidebar } from '@/components/layout/sidebar';
+import { TaskTimeWatcher } from '@/components/layout/task-time-watcher';
 import { Topbar } from '@/components/layout/topbar';
 import { useAuth } from '@/lib/auth-context';
 
@@ -65,13 +67,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-6 sm:p-8">
-          <div className={isFullWidthPage ? 'w-full' : 'mx-auto w-full max-w-5xl'}>{children}</div>
-        </main>
+    <div className="flex min-h-screen flex-col bg-background">
+      <CheckinReminder />
+      <TaskTimeWatcher />
+      <div className="flex min-h-0 flex-1">
+        <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 overflow-y-auto p-6 sm:p-8">
+            <div className={isFullWidthPage ? 'w-full' : 'mx-auto w-full max-w-5xl'}>{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -233,26 +233,17 @@ export function TaskItem({
   return (
     <div className="rounded-lg border border-border p-2.5">
       <div className="flex items-start gap-2">
-        {(checkboxInteractive || isChecked) && (
+        {isPersonal && (checkboxInteractive || isChecked) && (
           <input
             type="checkbox"
             checked={isChecked}
             disabled={busy || (!checkboxInteractive && !isChecked)}
             onChange={() => {
-              if (isPersonal) {
-                if (isChecked) run(() => reouvrirTache(tache.id), 'Task reopened');
-                else completePersonalTask();
-                return;
-              }
-              if (canValidate) {
-                run(() => validerTache(tache.id, 'ok'), 'Task approved');
-                return;
-              }
-              if (isChecked) return;
-              if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
+              if (isChecked) run(() => reouvrirTache(tache.id), 'Task reopened');
+              else completePersonalTask();
             }}
-            aria-label={canValidate ? 'Approve task' : 'Mark task as done'}
-            className={`mt-0.5 h-4 w-4 shrink-0 rounded ${isPersonal ? 'accent-brand-blue' : 'accent-status-validated'}`}
+            aria-label="Mark task as done"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded accent-brand-blue"
           />
         )}
         <button
@@ -338,14 +329,20 @@ export function TaskItem({
         )}
 
         {isAssignee && tache.statut === 'ACCEPTEE' && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
+          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
             Start
           </Button>
         )}
 
         {isAssignee && tache.statut === 'A_REVOIR' && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}>
+          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}>
             Resubmit
+          </Button>
+        )}
+
+        {canCheckDone && (
+          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => declarerTache(tache.id), 'Marked as done')}>
+            Done
           </Button>
         )}
 
@@ -362,7 +359,7 @@ export function TaskItem({
 
         {(isAssignee || isManager) &&
           (tache.statut === 'ACCEPTEE' || tache.statut === 'EN_COURS' || tache.statut === 'A_REVOIR') && (
-            <Button size="sm" variant="secondary" onClick={() => setShowDetail(true)}>
+            <Button size="sm" variant="danger" onClick={() => setShowDetail(true)}>
               Report a problem
             </Button>
           )}

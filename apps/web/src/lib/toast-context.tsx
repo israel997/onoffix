@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-type ToastTone = 'success' | 'error';
+type ToastTone = 'success' | 'error' | 'warning';
 
 interface ToastItem {
   id: number;
@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={`animate-fade-in-up pointer-events-auto rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ${
-              t.tone === 'success' ? 'bg-status-validated' : 'bg-status-review'
+              t.tone === 'success' ? 'bg-status-validated' : t.tone === 'warning' ? 'bg-status-declared' : 'bg-status-review'
             }`}
           >
             {t.message}

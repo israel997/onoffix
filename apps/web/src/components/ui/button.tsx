@@ -1,7 +1,7 @@
 import { type ButtonHTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'warning';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'warning' | 'success';
 type Size = 'default' | 'sm' | 'lg';
 
 const variantClasses: Record<Variant, string> = {
@@ -12,6 +12,7 @@ const variantClasses: Record<Variant, string> = {
   ghost: 'bg-transparent text-foreground hover:bg-surface-muted',
   danger: 'bg-status-review text-white hover:opacity-90',
   warning: 'bg-status-declared text-white hover:opacity-90',
+  success: 'bg-status-validated text-white hover:opacity-90',
 };
 
 const sizeClasses: Record<Size, string> = {
