@@ -662,19 +662,23 @@ export function Chat({
         <Button
           type="button"
           variant="secondary"
+          size="sm"
           disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
           aria-label="Attach a file"
           title="Attach a file"
+          className="shrink-0 !px-2.5"
         >
           <PaperclipIcon className="h-4 w-4" />
         </Button>
         <Button
           type="button"
           variant="secondary"
+          size="sm"
           onClick={() => setShowEmojiPicker((v) => !v)}
           aria-label="Insert an emoji"
           title="Insert an emoji"
+          className="shrink-0 !px-2.5"
         >
           <SmileyIcon className="h-4 w-4" />
         </Button>
@@ -684,15 +688,17 @@ export function Chat({
           onChange={(e) => handleDraftChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => setShowEmojiPicker(false)}
-          placeholder={mentionableUsers.length > 0 ? 'Write a message… (@ to mention someone)' : 'Write a message… (Shift+Enter for a new line)'}
+          placeholder={mentionableUsers.length > 0 ? 'Write a message… (@ to mention)' : 'Write a message…'}
           rows={1}
-          className="max-h-56 min-h-10 flex-1 resize-none overflow-y-auto rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
+          className="max-h-56 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
         />
         <Button
           type="submit"
+          size="sm"
           disabled={uploading || (!draft.trim() && !pendingFile)}
           aria-label="Send message"
           title="Send message"
+          className="shrink-0 !px-2.5"
         >
           {uploading ? '…' : <PaperPlaneIcon className="h-4 w-4" />}
         </Button>
