@@ -244,9 +244,12 @@ export function TaskItem({
                 else completePersonalTask();
                 return;
               }
+              if (canValidate) {
+                run(() => validerTache(tache.id, 'ok'), 'Task approved');
+                return;
+              }
               if (isChecked) return;
               if (canCheckDone) run(() => declarerTache(tache.id), 'Marked as done');
-              else if (canValidate) run(() => validerTache(tache.id, 'ok'), 'Task approved');
             }}
             aria-label={canValidate ? 'Approve task' : 'Mark task as done'}
             className={`mt-0.5 h-4 w-4 shrink-0 rounded ${isPersonal ? 'accent-brand-blue' : 'accent-status-validated'}`}
@@ -363,6 +366,12 @@ export function TaskItem({
               Report a problem
             </Button>
           )}
+
+        {canValidate && (
+          <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'), 'Task approved')}>
+            Approve
+          </Button>
+        )}
 
         {canValidate && (
           <Button
