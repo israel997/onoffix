@@ -59,7 +59,7 @@ export class BureauxController {
   }
 
   @Post('invitations/:invitationId/accept')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   acceptInvitation(
     @Param('invitationId') invitationId: string,
     @CurrentUser() user: AuthenticatedUser,
