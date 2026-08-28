@@ -18,4 +18,9 @@ export class CreateTacheDto {
   @IsOptional()
   @IsDateString()
   dateEcheance?: string;
+
+  /** Subject sous lequel ranger la tâche ; omis = bucket "No subject". */
+  @IsOptional()
+  @IsString()
+  conversationId?: string;
 }

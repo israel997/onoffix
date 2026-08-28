@@ -781,6 +781,10 @@ export function declarerTache(tacheId: string) {
   return authFetch<Tache>(`/taches/${tacheId}/declarer`, { method: 'POST' });
 }
 
+export function annulerDeclarationTache(tacheId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/annuler-declaration`, { method: 'POST' });
+}
+
 export function validerTache(tacheId: string, decision: 'ok' | 'litige') {
   return authFetch<Tache>(`/taches/${tacheId}/valider`, { method: 'POST', body: { decision } });
 }
@@ -1046,7 +1050,13 @@ export function sendDirectFile(conversationId: string, file: File, contenu?: str
 
 export function createTache(
   projetId: string,
-  data: { titre: string; description?: string; priorite?: PrioriteTache; dateEcheance?: string },
+  data: {
+    titre: string;
+    description?: string;
+    priorite?: PrioriteTache;
+    dateEcheance?: string;
+    conversationId?: string;
+  },
 ) {
   return authFetch<Tache>(`/organizers/${projetId}/taches`, { method: 'POST', body: data });
 }

@@ -104,6 +104,10 @@ export class OrganizerService {
   async createTache(projetId: string, user: AuthenticatedUser, dto: CreateTacheDto) {
     const projet = await this.prisma.projet.findUniqueOrThrow({ where: { id: projetId } });
 
+    if (dto.conversationId) {
+      await this.chatService.assertSubjectBelongsToProjet(dto.conversationId, projetId);
+    }
+
     if (projet.proprietaireId) {
       // Organizer personnel : la tâche s'assigne directement au propriétaire.
       return this.prisma.tache.create({
@@ -113,6 +117,7 @@ export class OrganizerService {
           description: dto.description,
           priorite: dto.priorite,
           dateEcheance: dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
+          conversationId: dto.conversationId,
           assigneAId: projet.proprietaireId,
           assigneParId: projet.proprietaireId,
         },
@@ -136,6 +141,7 @@ export class OrganizerService {
         titre: dto.titre,
         description: dto.description,
         priorite: dto.priorite,
+        conversationId: dto.conversationId,
         assigneAId: proprietaireId,
         assigneParId: user.userId,
       },

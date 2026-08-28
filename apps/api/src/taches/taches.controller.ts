@@ -90,6 +90,11 @@ export class TachesController {
     return this.tachesService.declarer(tacheId, user);
   }
 
+  @Post('annuler-declaration')
+  annulerDeclaration(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.annulerDeclaration(tacheId, user);
+  }
+
   @Post('valider')
   valider(
     @Param('tacheId') tacheId: string,

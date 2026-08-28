@@ -30,6 +30,7 @@ export default function OrganizerPage() {
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
   const [titre, setTitre] = useState('');
   const [description, setDescription] = useState('');
+  const [subjectId, setSubjectId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -56,9 +57,14 @@ export default function OrganizerPage() {
     setError(null);
     setCreating(true);
     try {
-      await createTache(organizer.id, { titre, description: description || undefined });
+      await createTache(organizer.id, {
+        titre,
+        description: description || undefined,
+        conversationId: subjectId || undefined,
+      });
       setTitre('');
       setDescription('');
+      setSubjectId('');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -113,6 +119,21 @@ export default function OrganizerPage() {
               <Label>
                 Description (optional)
                 <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+              </Label>
+              <Label>
+                Subject
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+                >
+                  <option value="">No subject</option>
+                  {organizer.conversations.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nom}
+                    </option>
+                  ))}
+                </select>
               </Label>
               {error && <p className="text-xs text-status-review">{error}</p>}
               <Button type="submit" size="sm" disabled={creating} className="w-fit">

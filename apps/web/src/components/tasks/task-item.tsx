@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import {
   accepterTache,
+  annulerDeclarationTache,
   assignerTache,
   declarerTache,
   deleteTache,
@@ -79,7 +80,7 @@ export function TaskItem({
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
   const canValidate = tache.statut === 'DECLARE' && (isAssigner || isManager);
-  const canDeleteTask = isAdmin || (isPersonal && isAssignee);
+  const canDeleteTask = isAdmin || isManager || (isPersonal && isAssignee);
   const toast = useToast();
   const confirmDialog = useConfirm();
 
@@ -343,6 +344,17 @@ export function TaskItem({
         {canCheckDone && (
           <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => declarerTache(tache.id), 'Marked as done')}>
             Done
+          </Button>
+        )}
+
+        {isAssignee && tache.statut === 'DECLARE' && (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => run(() => annulerDeclarationTache(tache.id), 'Undone - back to in progress')}
+          >
+            Undone
           </Button>
         )}
 

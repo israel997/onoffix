@@ -284,6 +284,37 @@ export class TachesService {
     return updated;
   }
 
+  /**
+   * Annule un "Done" cliqué par erreur — remet la tâche en cours, tant qu'elle
+   * n'a pas encore été validée (au-delà, seul le manager peut agir via "Send back").
+   */
+  async annulerDeclaration(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    await this.assertBureauMember(tache.projet.bureauId, user);
+
+    if (tache.assigneAId !== user.userId) {
+      throw new ForbiddenException('Seule la personne assignée peut annuler cette déclaration');
+    }
+    if (tache.statut !== StatutTache.DECLARE) {
+      throw new BadRequestException("Cette tâche n'est pas en attente de validation");
+    }
+
+    const updated = await this.prisma.tache.update({
+      where: { id: tacheId },
+      data: { statut: StatutTache.EN_COURS, dateDeclaration: null },
+      include: TACHE_INCLUDE,
+    });
+
+    const activeSession = await this.prisma.tacheSession.findFirst({
+      where: { tacheId, userId: user.userId, fin: null },
+    });
+    if (!activeSession) {
+      await this.prisma.tacheSession.create({ data: { tacheId, userId: user.userId } });
+    }
+
+    return updated;
+  }
+
   async valider(tacheId: string, user: AuthenticatedUser, decision: 'ok' | 'litige') {
     const tache = await this.loadWithBureau(tacheId, user);
 
@@ -513,8 +544,9 @@ export class TachesService {
 
   async supprimer(tacheId: string, user: AuthenticatedUser) {
     const tache = await this.loadWithBureau(tacheId, user);
-    if (tache.projet.bureauId && user.roleGlobal !== RoleGlobal.ADMIN) {
-      throw new ForbiddenException('Seul un admin peut supprimer une tâche de bureau');
+    const manager = await this.isManager(tache.projet.bureauId, user);
+    if (!manager) {
+      throw new ForbiddenException('Seul un manager du bureau peut supprimer cette tâche');
     }
     await this.prisma.tache.delete({ where: { id: tacheId } });
   }
