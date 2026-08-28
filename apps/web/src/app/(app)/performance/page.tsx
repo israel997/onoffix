@@ -197,13 +197,13 @@ export default function PerformancePage() {
 
       {officeOptions && officeOptions.length > 0 && (
         <Card>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>Reliability leaderboard</CardTitle>
             {officeOptions.length > 1 && (
               <select
                 value={bureauId ?? ''}
                 onChange={(e) => setBureauId(e.target.value)}
-                className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+                className="h-9 w-fit rounded-lg border border-border bg-surface px-2 text-sm"
               >
                 {officeOptions.map((o) => (
                   <option key={o.id} value={o.id}>

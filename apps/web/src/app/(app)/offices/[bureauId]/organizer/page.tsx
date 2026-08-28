@@ -99,7 +99,7 @@ export default function OrganizerPage() {
         />
 
         {isManager && (
-          <Card>
+          <Card id="manual-task-form">
             <CardTitle className="flex items-center gap-2">
               <StickyNoteIcon className="h-5 w-5 text-brand-blue" />
               Add a task manually
@@ -108,7 +108,7 @@ export default function OrganizerPage() {
             <form onSubmit={handleCreateTache} className="mt-4 flex flex-col gap-3">
               <Label>
                 Title
-                <Input required value={titre} onChange={(e) => setTitre(e.target.value)} />
+                <Input id="manual-task-title" required value={titre} onChange={(e) => setTitre(e.target.value)} />
               </Label>
               <Label>
                 Description (optional)

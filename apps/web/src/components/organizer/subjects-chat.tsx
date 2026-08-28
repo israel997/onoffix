@@ -118,6 +118,11 @@ export function SubjectsChat({
     }
   }
 
+  function focusManualTaskForm() {
+    document.getElementById('manual-task-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('manual-task-title')?.focus();
+  }
+
   const active = subjects?.find((s) => s.id === activeId) ?? null;
 
   return (
@@ -181,11 +186,18 @@ export function SubjectsChat({
       </div>
 
       {active && hasFailedProcessing(active) && (
-        <div className="flex items-center justify-between gap-2 rounded-lg bg-status-review/10 px-3 py-2 text-xs text-status-review">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-status-review/10 px-3 py-2 text-xs text-status-review">
           <span>Task generation failed for this subject (temporary AI outage) — your messages are safe.</span>
-          <Button size="sm" variant="danger" disabled={retrying} onClick={() => handleRetry(active)}>
-            {retrying ? 'Retrying…' : 'Retry'}
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            {canManage && (
+              <Button size="sm" variant="secondary" onClick={focusManualTaskForm}>
+                Add task manually (to save time)
+              </Button>
+            )}
+            <Button size="sm" variant="danger" disabled={retrying} onClick={() => handleRetry(active)}>
+              {retrying ? 'Retrying…' : 'Retry'}
+            </Button>
+          </div>
         </div>
       )}
 
