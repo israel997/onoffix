@@ -15,6 +15,12 @@ export class RituelController {
     return this.rituelService.getAujourdhui(user);
   }
 
+  /** Qui a validé quoi aujourd'hui — un membre voit ses bureaux, un admin voit tout. */
+  @Get('validations-aujourdhui')
+  validationsAujourdhui(@CurrentUser() user: AuthenticatedUser) {
+    return this.rituelService.getValidationsAujourdhui(user);
+  }
+
   @Post('declarer')
   declarer(@CurrentUser() user: AuthenticatedUser, @Body() dto: DeclarerRituelDto) {
     return this.rituelService.declarer(user, dto.tacheIds);

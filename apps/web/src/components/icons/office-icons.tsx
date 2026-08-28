@@ -415,3 +415,12 @@ export function SmileyIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Chevron plein — indicateur d'accordéon (remplace le triangle Unicode "▶", qui se rend en style emoji sur mobile). */
+export function ChevronIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M9 6l7 6-7 6z" fill="currentColor" />
+    </svg>
+  );
+}

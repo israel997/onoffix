@@ -13,6 +13,7 @@ import {
   DeskIcon,
   ReceptionIcon,
 } from '@/components/icons/office-icons';
+import { TasksTab } from '@/components/my-space/tasks-tab';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAlertes, getOrganisationStats, type Alertes, type OrganisationStats } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -110,11 +111,17 @@ export default function DashboardPage() {
                 <DeskIcon className="h-5 w-5 text-brand-blue" />
                 My Space
               </CardTitle>
-              <CardDescription>Your Organizer and every task assigned to you.</CardDescription>
+              <CardDescription>Your private Organizer.</CardDescription>
             </CardHeader>
           </Card>
         </Link>
       </div>
+
+      <div>
+        <h2 className="text-lg font-bold text-foreground">All your tasks</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Every task assigned to you, across every office.</p>
+      </div>
+      <TasksTab />
     </div>
   );
 }

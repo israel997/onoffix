@@ -2,9 +2,9 @@
 
 import { Loading } from '@/components/ui/loading';
 
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { FilterIcon } from '@/components/icons/office-icons';
+import { useParams, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { ChevronIcon, FilterIcon } from '@/components/icons/office-icons';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -45,7 +45,7 @@ function breakdown(taches: Tache[]) {
   return { termine, enCours, nonCommence };
 }
 
-type StatusFilter = 'ALL' | 'IN_PROGRESS' | 'UNASSIGNED' | 'DECLARE' | 'VALIDE';
+type StatusFilter = 'ALL' | 'IN_PROGRESS' | 'UNASSIGNED' | 'DECLARE' | 'VALIDE' | 'BLOCKED';
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'ALL', label: 'All' },
@@ -53,6 +53,7 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'UNASSIGNED', label: 'Unassigned' },
   { value: 'DECLARE', label: 'Waiting for validation' },
   { value: 'VALIDE', label: 'Done' },
+  { value: 'BLOCKED', label: 'Blocked' },
 ];
 
 const IN_PROGRESS_STATUSES: StatutTache[] = ['ACCEPTEE', 'EN_COURS', 'A_REVOIR'];
@@ -67,20 +68,30 @@ function applyFilter(taches: Tache[], filter: StatusFilter) {
       return taches.filter((t) => t.statut === 'DECLARE');
     case 'VALIDE':
       return taches.filter((t) => t.statut === 'VALIDE');
+    case 'BLOCKED':
+      return taches.filter((t) => t.sante === 'BLOQUEE');
     default:
       return taches;
   }
 }
 
-export default function TasksPage() {
+function isStatusFilter(value: string | null): value is StatusFilter {
+  return !!value && STATUS_FILTERS.some((f) => f.value === value);
+}
+
+function TasksPageContent() {
   const params = useParams<{ bureauId: string }>();
   const bureauId = params.bureauId;
+  const searchParams = useSearchParams();
   const { user } = useAuth();
 
   const [taches, setTaches] = useState<Tache[] | null>(null);
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
   const [organizer, setOrganizer] = useState<OrganizerDetail | null>(null);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const initialStatus = searchParams.get('status');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    isStatusFilter(initialStatus) ? initialStatus : 'ALL',
+  );
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   async function load() {
@@ -182,9 +193,9 @@ export default function TasksPage() {
                 className="flex w-full items-center justify-between gap-3 text-left"
               >
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}>
-                    ▶
-                  </span>
+                  <ChevronIcon
+                    className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
+                  />
                   <h2 className="text-sm font-semibold text-foreground">
                     {g.nom} ({g.taches.length} task{g.taches.length > 1 ? 's' : ''})
                   </h2>
@@ -215,5 +226,13 @@ export default function TasksPage() {
         })
       )}
     </div>
+  );
+}
+
+export default function TasksPage() {
+  return (
+    <Suspense fallback={<Loading className="text-sm" />}>
+      <TasksPageContent />
+    </Suspense>
   );
 }

@@ -13,7 +13,7 @@ type Tab = 'organizer' | 'tasks';
 
 const TABS: { key: Tab; label: string; description: string }[] = [
   { key: 'organizer', label: 'Organizer', description: 'Your private brain dump.' },
-  { key: 'tasks', label: 'Tasks', description: 'Everything assigned to you, everywhere.' },
+  { key: 'tasks', label: 'Tasks', description: 'Tasks from your personal Organizer.' },
 ];
 
 function MySpaceContent() {
@@ -46,7 +46,7 @@ function MySpaceContent() {
         ))}
       </div>
 
-      {tab === 'organizer' ? <OrganizerTab /> : <TasksTab />}
+      {tab === 'organizer' ? <OrganizerTab /> : <TasksTab scope="personal" />}
     </div>
   );
 }

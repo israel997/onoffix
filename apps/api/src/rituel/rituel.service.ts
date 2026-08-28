@@ -1,5 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationType, RoleBureau, StatutValidationDeclaration } from '@prisma/client';
+import {
+  NotificationType,
+  RoleBureau,
+  RoleGlobal,
+  StatutValidationDeclaration,
+} from '@prisma/client';
 import { todayDate } from '../common/date.util';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -22,10 +27,15 @@ export class RituelService {
   ) {}
 
   private async todayTasksForUser(userId: string, bureauId?: string) {
+    const debut = todayDate();
+    const fin = new Date(debut.getTime() + 24 * 60 * 60 * 1000);
     return this.prisma.tache.findMany({
       where: {
         assigneAId: userId,
-        dateCible: todayDate(),
+        // dateCible = explicitement planifiée pour aujourd'hui ; on inclut aussi une
+        // tâche validée aujourd'hui même sans dateCible, sinon elle disparaît des vues
+        // "Today" alors qu'elle a bien été faite dans la journée.
+        OR: [{ dateCible: debut }, { statut: 'VALIDE', dateValidation: { gte: debut, lt: fin } }],
         ...(bureauId ? { projet: { bureauId } } : {}),
       },
       orderBy: { createdAt: 'asc' },
@@ -250,5 +260,56 @@ export class RituelService {
       })),
       pourcentageRituel: totalItems === 0 ? null : Math.round((totalDone / totalItems) * 100),
     };
+  }
+
+  /**
+   * Qui a validé quoi aujourd'hui, groupé par personne — vue purement informative
+   * pour Daily check-in. Un admin voit tous les bureaux de l'organisation, un membre
+   * simple seulement ceux dont il fait partie (jamais les autres).
+   */
+  async getValidationsAujourdhui(user: AuthenticatedUser) {
+    const debut = todayDate();
+    const fin = new Date(debut.getTime() + 24 * 60 * 60 * 1000);
+
+    const bureauIds =
+      user.roleGlobal === RoleGlobal.ADMIN
+        ? (
+            await this.prisma.bureau.findMany({
+              where: { organisationId: user.organisationId },
+              select: { id: true },
+            })
+          ).map((b) => b.id)
+        : (
+            await this.prisma.userBureau.findMany({
+              where: { userId: user.userId },
+              select: { bureauId: true },
+            })
+          ).map((m) => m.bureauId);
+
+    if (bureauIds.length === 0) return [];
+
+    const taches = await this.prisma.tache.findMany({
+      where: {
+        statut: 'VALIDE',
+        dateValidation: { gte: debut, lt: fin },
+        projet: { bureauId: { in: bureauIds } },
+        assigneAId: { not: null },
+      },
+      select: { id: true, titre: true, assigneA: { select: { id: true, nom: true } } },
+      orderBy: { dateValidation: 'desc' },
+    });
+
+    const parPersonne = new Map<
+      string,
+      { user: { id: string; nom: string }; taches: { id: string; titre: string }[] }
+    >();
+    for (const t of taches) {
+      if (!t.assigneA) continue;
+      if (!parPersonne.has(t.assigneA.id)) {
+        parPersonne.set(t.assigneA.id, { user: t.assigneA, taches: [] });
+      }
+      parPersonne.get(t.assigneA.id)!.taches.push({ id: t.id, titre: t.titre });
+    }
+    return Array.from(parPersonne.values());
   }
 }

@@ -93,26 +93,60 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** DeepSeek (sans mode JSON forcé) enveloppe parfois sa réponse dans ```json ... ``` malgré la consigne. */
+function stripJsonFence(raw: string): string {
+  const match = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(raw.trim());
+  return match ? match[1] : raw;
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly client: GoogleGenerativeAI | null;
   private readonly model: string;
+  private readonly deepseekKey: string | null;
+  private readonly deepseekModel: string;
 
   constructor(private readonly config: ConfigService) {
     const apiKey = this.config.get<string>('GOOGLE_AI_API_KEY');
     this.client = apiKey ? new GoogleGenerativeAI(apiKey) : null;
     this.model = this.config.get<string>('GOOGLE_AI_MODEL', 'gemini-flash-latest');
+    this.deepseekKey = this.config.get<string>('DEEPSEEK_API_KEY') ?? null;
+    this.deepseekModel = this.config.get<string>('DEEPSEEK_MODEL', 'deepseek-chat');
 
-    if (!this.client) {
+    if (!this.client && !this.deepseekKey) {
       this.logger.warn(
-        'GOOGLE_AI_API_KEY non configurée — la génération de tâches par IA est désactivée.',
+        'Aucune clé IA configurée (GOOGLE_AI_API_KEY / DEEPSEEK_API_KEY) — la génération de tâches par IA est désactivée.',
       );
     }
   }
 
-  /** Appelle Gemini avec quelques tentatives (backoff) sur les erreurs transitoires (503/429). */
+  private hasProvider(): boolean {
+    return !!this.client || !!this.deepseekKey;
+  }
+
+  /**
+   * Gemini est tenté en premier (avec ses propres tentatives/backoff sur 503/429) ;
+   * s'il échoue après épuisement et qu'une clé DeepSeek est configurée, on bascule
+   * dessus plutôt que d'abandonner — deux fournisseurs indépendants tombent rarement
+   * en panne en même temps (cf. la panne Gemini "high demand" prolongée en prod).
+   */
   private async generateWithRetry(prompt: string): Promise<string> {
+    if (this.client) {
+      try {
+        return await this.callGemini(prompt);
+      } catch (error) {
+        if (!this.deepseekKey) throw error;
+        this.logger.warn(
+          `Gemini indisponible après ${MAX_ATTEMPTS} tentatives, repli sur DeepSeek — ${error}`,
+        );
+      }
+    }
+    if (this.deepseekKey) return this.callDeepSeek(prompt);
+    throw new Error('Aucun fournisseur IA configuré');
+  }
+
+  private async callGemini(prompt: string): Promise<string> {
     const model = this.client!.getGenerativeModel({
       model: this.model,
       generationConfig: { responseMimeType: 'application/json' },
@@ -127,7 +161,7 @@ export class AiService {
         lastError = error;
         if (attempt < MAX_ATTEMPTS && isRetryable(error)) {
           this.logger.warn(
-            `Appel IA échoué (tentative ${attempt}/${MAX_ATTEMPTS}), nouvel essai: ${error}`,
+            `Appel Gemini échoué (tentative ${attempt}/${MAX_ATTEMPTS}), nouvel essai: ${error}`,
           );
           await sleep(RETRY_DELAY_MS * attempt);
           continue;
@@ -139,6 +173,35 @@ export class AiService {
   }
 
   /**
+   * API DeepSeek (compatible OpenAI) via fetch brut — pas de mode JSON forcé ici
+   * (leur "json_object" attend un objet, pas le tableau que nos prompts demandent
+   * en top-level) : on s'appuie sur la consigne du prompt, comme pour Gemini avant
+   * l'ajout de responseMimeType.
+   */
+  private async callDeepSeek(prompt: string): Promise<string> {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.deepseekKey}`,
+      },
+      body: JSON.stringify({
+        model: this.deepseekModel,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`Appel DeepSeek échoué: ${res.status} ${await res.text()}`);
+    }
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const content = data.choices?.[0]?.message?.content;
+    if (typeof content !== 'string') throw new Error('Réponse DeepSeek invalide');
+    return content;
+  }
+
+  /**
    * Génère des tâches depuis un Subject. Contrairement aux autres méthodes de ce
    * service, ceci relance l'erreur après épuisement des tentatives (au lieu de
    * rendre un tableau vide) : l'appelant (OrganizerProcessor) doit distinguer
@@ -146,11 +209,11 @@ export class AiService {
    * marquer des messages comme traités alors qu'ils ne l'ont pas vraiment été.
    */
   async suggestTasks(texte: string): Promise<SuggestedTask[]> {
-    if (!this.client) return [];
+    if (!this.hasProvider()) return [];
     if (!texte.trim()) return [];
 
     const raw = await this.generateWithRetry(`${SYSTEM_PROMPT}\n\nTexte :\n${texte}`);
-    const parsed: unknown = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(stripJsonFence(raw));
     if (!Array.isArray(parsed)) return [];
 
     return (parsed as unknown[])
@@ -170,14 +233,14 @@ export class AiService {
 
   async suggestPlan(texte: string): Promise<SuggestedPlan> {
     const empty: SuggestedPlan = { projetNom: '', taches: [] };
-    if (!this.client) return empty;
+    if (!this.hasProvider()) return empty;
     if (!texte.trim()) return empty;
 
     const priorites = new Set(Object.values(PrioriteTache));
 
     try {
       const raw = await this.generateWithRetry(`${PLAN_PROMPT}\n\nTexte :\n${texte}`);
-      const parsed: unknown = JSON.parse(raw);
+      const parsed: unknown = JSON.parse(stripJsonFence(raw));
       if (typeof parsed !== 'object' || parsed === null) return empty;
 
       const projetNom =
@@ -212,13 +275,13 @@ export class AiService {
   }
 
   async genererAnalyseRapport(data: RapportAnalyseInput): Promise<RapportAnalyse | null> {
-    if (!this.client) return null;
+    if (!this.hasProvider()) return null;
 
     try {
       const raw = await this.generateWithRetry(
         `${RAPPORT_PROMPT}\n\nDonnées :\n${JSON.stringify(data)}`,
       );
-      const parsed: unknown = JSON.parse(raw);
+      const parsed: unknown = JSON.parse(stripJsonFence(raw));
       if (typeof parsed !== 'object' || parsed === null) return null;
 
       const obj = parsed as Record<string, unknown>;

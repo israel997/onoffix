@@ -3,6 +3,7 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState } from 'react';
+import { ChevronIcon } from '@/components/icons/office-icons';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -30,7 +31,12 @@ function groupByOffice(taches: MyTache[]): Group[] {
   return Array.from(groups.values());
 }
 
-export function TasksTab() {
+/**
+ * `scope="personal"` ne garde que les tâches de l'Organizer personnel (sans bureau) —
+ * les tâches des offices sont déjà visibles ailleurs (Dashboard, Daily check-in).
+ * `scope="all"` (par défaut) garde le comportement historique : tout, partout.
+ */
+export function TasksTab({ scope = 'all' }: { scope?: 'all' | 'personal' }) {
   const { user } = useAuth();
   const [taches, setTaches] = useState<MyTache[] | null>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
@@ -54,7 +60,10 @@ export function TasksTab() {
   }
 
   if (taches === null) return <Loading className="text-sm" />;
-  if (taches.length === 0) {
+
+  const scoped = scope === 'personal' ? taches.filter((t) => t.projet.bureau === null) : taches;
+
+  if (scoped.length === 0) {
     return (
       <Card>
         <EmptyState>Nothing assigned to you yet.</EmptyState>
@@ -62,7 +71,7 @@ export function TasksTab() {
     );
   }
 
-  const groups = groupByOffice(taches);
+  const groups = groupByOffice(scoped);
 
   return (
     <div className="flex flex-col gap-4">
@@ -75,9 +84,9 @@ export function TasksTab() {
                 onClick={() => toggleGroup(g.key)}
                 className="flex w-full items-center gap-2 text-left"
               >
-                <span className={`text-xs text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}>
-                  ▶
-                </span>
+                <ChevronIcon
+                  className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
+                />
                 <h2 className="text-sm font-semibold text-foreground">
                   {g.nom} ({g.taches.length})
                 </h2>

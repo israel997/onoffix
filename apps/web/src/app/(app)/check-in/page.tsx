@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AlarmIcon } from '@/components/icons/office-icons';
-import { TasksTab } from '@/components/my-space/tasks-tab';
 import { TodayChecklist } from '@/components/rituel/today-checklist';
+import { ValidationsToday } from '@/components/rituel/validations-today';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { listBureaux, type Bureau } from '@/lib/api';
@@ -60,10 +60,10 @@ export default function CheckInPage() {
       )}
 
       <div>
-        <h2 className="text-lg font-bold text-foreground">All your tasks</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Every task assigned to you, across every office.</p>
+        <h2 className="text-lg font-bold text-foreground">Validated today</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Who got a task done today, across your offices.</p>
       </div>
-      <TasksTab />
+      <ValidationsToday />
     </div>
   );
 }

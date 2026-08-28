@@ -3,21 +3,27 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useEffect, useState } from 'react';
-import { ChartIcon } from '@/components/icons/office-icons';
+import { ChevronIcon, ChartIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   getBureauClassement,
+  getMembreJournal,
   getMembreStats,
   listBureaux,
   listOrganisationMembres,
   type ClassementEntry,
+  type JournalJour,
   type MembreStats,
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+
+function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString([], { weekday: 'short', day: '2-digit', month: 'short' });
+}
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -45,6 +51,9 @@ export default function PerformancePage() {
   const [classement, setClassement] = useState<ClassementEntry[] | null>(null);
   const [classementError, setClassementError] = useState<string | null>(null);
 
+  const [journal, setJournal] = useState<JournalJour[] | null>(null);
+  const [openDay, setOpenDay] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -69,6 +78,7 @@ export default function PerformancePage() {
   useEffect(() => {
     if (!targetUserId) return;
     getMembreStats(targetUserId, { from, to }).then(setStats);
+    getMembreJournal(targetUserId, from, to).then(setJournal);
   }, [targetUserId, from, to]);
 
   useEffect(() => {
@@ -194,6 +204,52 @@ export default function PerformancePage() {
           </div>
         </Card>
       )}
+
+      <Card>
+        <CardTitle>Daily activity</CardTitle>
+        {journal === null ? (
+          <Loading className="mt-3 text-sm" />
+        ) : (
+          <div className="mt-3 flex flex-col divide-y divide-border">
+            {journal.map((jour) => {
+              const open = openDay === jour.date;
+              return (
+                <div key={jour.date}>
+                  <button
+                    onClick={() => setOpenDay((prev) => (prev === jour.date ? null : jour.date))}
+                    className="flex w-full items-center justify-between gap-3 py-2.5 text-left text-sm"
+                  >
+                    <span className="flex items-center gap-2">
+                      <ChevronIcon
+                        className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
+                      />
+                      <span className="text-foreground">{formatDay(jour.date)}</span>
+                    </span>
+                    <span
+                      className={jour.taches.length > 0 ? 'font-semibold text-status-validated' : 'text-muted-foreground'}
+                    >
+                      {jour.taches.length} task{jour.taches.length === 1 ? '' : 's'}
+                    </span>
+                  </button>
+                  {open && (
+                    <div className="flex flex-col gap-1 pb-3 pl-5">
+                      {jour.taches.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Nothing completed this day.</p>
+                      ) : (
+                        jour.taches.map((t) => (
+                          <p key={t.id} className="text-sm text-foreground">
+                            {t.titre}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {officeOptions && officeOptions.length > 0 && (
         <Card>

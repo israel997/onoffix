@@ -2,6 +2,7 @@
 
 import { Loading } from '@/components/ui/loading';
 
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { BureauChat } from '@/components/chat/bureau-chat';
@@ -178,28 +179,28 @@ export default function OfficeDetailPage() {
             Team stats
           </CardTitle>
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-6">
-            <div>
+            <Link href={`/offices/${bureauId}/tasks`} className="hover:underline">
               <p className="text-lg font-bold text-foreground">{stats.totalTaches}</p>
               <p className="text-xs text-muted-foreground">Tasks</p>
-            </div>
+            </Link>
             <div>
               <p className="text-lg font-bold text-foreground">
                 {stats.progression === null ? '-' : `${stats.progression}%`}
               </p>
               <p className="text-xs text-muted-foreground">Progress</p>
             </div>
-            <div>
+            <Link href={`/offices/${bureauId}/tasks?status=IN_PROGRESS`} className="hover:underline">
               <p className="text-lg font-bold text-status-declared">{stats.tachesEnCours}</p>
               <p className="text-xs text-muted-foreground">In progress</p>
-            </div>
-            <div>
+            </Link>
+            <Link href={`/offices/${bureauId}/tasks?status=VALIDE`} className="hover:underline">
               <p className="text-lg font-bold text-status-validated">{stats.tachesTerminees}</p>
               <p className="text-xs text-muted-foreground">Done</p>
-            </div>
-            <div>
+            </Link>
+            <Link href={`/offices/${bureauId}/tasks?status=BLOCKED`} className="hover:underline">
               <p className="text-lg font-bold text-status-review">{stats.tachesBloquees}</p>
               <p className="text-xs text-muted-foreground">Blocked</p>
-            </div>
+            </Link>
             <div>
               <p className="text-lg font-bold text-foreground">
                 {stats.respectDeadlines === null ? '-' : `${stats.respectDeadlines}%`}

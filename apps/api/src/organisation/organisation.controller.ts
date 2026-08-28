@@ -73,6 +73,24 @@ export class OrganisationController {
     return this.organisationService.getMembreStats(user.organisationId, userId, range);
   }
 
+  @Get('membres/:userId/journal')
+  getMembreJournal(
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    if (userId !== user.userId && user.roleGlobal !== RoleGlobal.ADMIN) {
+      throw new ForbiddenException('Vous ne pouvez consulter que votre propre journal');
+    }
+    return this.organisationService.getMembreJournal(
+      user.organisationId,
+      userId,
+      new Date(from),
+      new Date(to),
+    );
+  }
+
   @Roles(RoleGlobal.ADMIN)
   @Post('membres')
   addMembre(@CurrentUser() user: AuthenticatedUser, @Body() dto: AddOrganisationMembreDto) {

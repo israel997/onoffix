@@ -185,6 +185,41 @@ export class OrganisationService {
   }
 
   /**
+   * Journal jour par jour des tâches validées sur la période — permet à chacun de
+   * revoir son parcours (hier, avant-hier...) plutôt qu'un seul total agrégé.
+   * Un jour sans rien de validé apparaît quand même, avec une liste vide.
+   */
+  async getMembreJournal(organisationId: string, userId: string, from: Date, to: Date) {
+    const membre = await this.prisma.user.findFirst({ where: { id: userId, organisationId } });
+    if (!membre) throw new NotFoundException('Membre introuvable');
+
+    const taches = await this.prisma.tache.findMany({
+      where: {
+        assigneAId: userId,
+        projet: { bureau: { organisationId } },
+        statut: 'VALIDE',
+        dateValidation: { gte: from, lte: to },
+      },
+      select: { id: true, titre: true, dateValidation: true },
+      orderBy: { dateValidation: 'asc' },
+    });
+
+    const parJour = new Map<string, { id: string; titre: string }[]>();
+    for (const t of taches) {
+      const key = t.dateValidation!.toISOString().slice(0, 10);
+      if (!parJour.has(key)) parJour.set(key, []);
+      parJour.get(key)!.push({ id: t.id, titre: t.titre });
+    }
+
+    const jours: { date: string; taches: { id: string; titre: string }[] }[] = [];
+    for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      jours.push({ date: key, taches: parJour.get(key) ?? [] });
+    }
+    return jours.reverse();
+  }
+
+  /**
    * Si un compte existe déjà pour cet email, il est rattaché immédiatement à l'organisation.
    * Sinon, une invitation est envoyée par email et l'adhésion n'est créée qu'à son acceptation.
    */

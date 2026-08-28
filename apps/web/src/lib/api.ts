@@ -508,6 +508,15 @@ export function getMembreStats(userId: string, range?: { from: string; to: strin
   return authFetch<MembreStats>(`/organisation/membres/${userId}/stats${query}`);
 }
 
+export interface JournalJour {
+  date: string;
+  taches: { id: string; titre: string }[];
+}
+
+export function getMembreJournal(userId: string, from: string, to: string) {
+  return authFetch<JournalJour[]>(`/organisation/membres/${userId}/journal?from=${from}&to=${to}`);
+}
+
 export interface ClassementEntry {
   user: { id: string; nom: string };
   tauxDeclarationsATemps: number | null;
@@ -942,6 +951,15 @@ export interface Aujourdhui extends Journee {
 
 export function getAujourdhui() {
   return authFetch<Aujourdhui>('/rituel/aujourdhui');
+}
+
+export interface ValidationAujourdhui {
+  user: { id: string; nom: string };
+  taches: { id: string; titre: string }[];
+}
+
+export function getValidationsAujourdhui() {
+  return authFetch<ValidationAujourdhui[]>('/rituel/validations-aujourdhui');
 }
 
 export function declarerRituel(tacheIds: string[]) {
