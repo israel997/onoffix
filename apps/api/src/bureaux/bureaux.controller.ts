@@ -3,12 +3,14 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -92,6 +94,28 @@ export class BureauxController {
   @Get(':bureauId/stats')
   getStats(@Param('bureauId') bureauId: string) {
     return this.bureauxService.getStats(bureauId);
+  }
+
+  @BureauRole(...ANY_MEMBER)
+  @Get(':bureauId/classement')
+  async getClassement(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    const bureau = await this.bureauxService.findOne(bureauId, user);
+    const isManagerHere = bureau.membres.some(
+      (m) => m.user.id === user.userId && m.roleDansBureau === RoleBureau.MANAGER,
+    );
+    if (
+      !bureau.classementFiabiliteVisible &&
+      user.roleGlobal !== RoleGlobal.ADMIN &&
+      !isManagerHere
+    ) {
+      throw new ForbiddenException('Le classement est masqué pour ce bureau');
+    }
+    return this.bureauxService.getClassementFiabilite(bureauId, new Date(from), new Date(to));
   }
 
   @BureauRole(RoleBureau.MANAGER)

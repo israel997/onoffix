@@ -44,7 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Space', href: '/my-space', available: true, icon: BriefcaseIcon },
   { label: 'Daily check-in', href: '/check-in', available: true, icon: AlarmIcon },
   { label: 'Reporting', href: '/reporting', available: false, icon: ChartIcon },
-  { label: 'Performance', href: '/performance', available: false, icon: ChartIcon },
+  { label: 'Performance', href: '/performance', available: true, icon: ChartIcon },
   { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true, icon: MasterKeyIcon },
   { label: 'Profile', href: '/profile', available: true, icon: IdBadgeIcon },
   { label: 'Platform admin', href: '/admin', available: true, superAdminOnly: true, icon: DeskLampIcon },

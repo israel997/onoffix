@@ -371,6 +371,52 @@ export class BureauxService {
     };
   }
 
+  /**
+   * Classement de fiabilité de l'équipe sur une période : % de déclarations
+   * quotidiennes faites à temps, tâches validées en secondaire. Visible à toute
+   * l'équipe si classementFiabiliteVisible, sinon réservé aux managers/admin
+   * (vérifié par l'appelant, cf. controller).
+   */
+  async getClassementFiabilite(bureauId: string, from: Date, to: Date) {
+    const membres = await this.prisma.userBureau.findMany({
+      where: { bureauId },
+      select: { user: { select: { id: true, nom: true } } },
+    });
+
+    const results = await Promise.all(
+      membres.map(async ({ user }) => {
+        const taches = await this.prisma.tache.findMany({
+          where: { assigneAId: user.id, projet: { bureauId }, dateCible: { gte: from, lte: to } },
+          select: { statut: true, dateCible: true },
+        });
+        const joursAvecTache = new Set(
+          taches.filter((t) => t.dateCible).map((t) => t.dateCible!.toISOString().slice(0, 10)),
+        );
+        const declarations = await this.prisma.declarationJournaliere.findMany({
+          where: { userId: user.id, date: { gte: from, lte: to } },
+          select: { date: true },
+        });
+        const joursDeclares = new Set(declarations.map((d) => d.date.toISOString().slice(0, 10)));
+        const joursDeclaresATemps = [...joursAvecTache].filter((d) => joursDeclares.has(d)).length;
+
+        return {
+          user,
+          tauxDeclarationsATemps:
+            joursAvecTache.size === 0
+              ? null
+              : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
+          tachesValidees: taches.filter((t) => t.statut === 'VALIDE').length,
+        };
+      }),
+    );
+
+    return results.sort(
+      (a, b) =>
+        (b.tauxDeclarationsATemps ?? -1) - (a.tauxDeclarationsATemps ?? -1) ||
+        b.tachesValidees - a.tachesValidees,
+    );
+  }
+
   private async assertInOrganisation(bureauId: string, organisationId: string) {
     const bureau = await this.prisma.bureau.findFirst({
       where: { id: bureauId, organisationId },

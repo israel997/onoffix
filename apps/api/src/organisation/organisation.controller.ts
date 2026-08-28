@@ -3,12 +3,14 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -56,8 +58,19 @@ export class OrganisationController {
   }
 
   @Get('membres/:userId/stats')
-  getMembreStats(@Param('userId') userId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.organisationService.getMembreStats(user.organisationId, userId);
+  getMembreStats(
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    // Voir les stats de quelqu'un d'autre est réservé aux admins — sinon n'importe
+    // quel membre pourrait consulter la performance de n'importe qui d'autre.
+    if (userId !== user.userId && user.roleGlobal !== RoleGlobal.ADMIN) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres statistiques');
+    }
+    const range = from && to ? { from: new Date(from), to: new Date(to) } : undefined;
+    return this.organisationService.getMembreStats(user.organisationId, userId, range);
   }
 
   @Roles(RoleGlobal.ADMIN)

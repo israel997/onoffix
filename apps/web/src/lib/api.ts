@@ -503,8 +503,19 @@ export interface MembreStats {
   respectDeadlines: number | null;
 }
 
-export function getMembreStats(userId: string) {
-  return authFetch<MembreStats>(`/organisation/membres/${userId}/stats`);
+export function getMembreStats(userId: string, range?: { from: string; to: string }) {
+  const query = range ? `?from=${range.from}&to=${range.to}` : '';
+  return authFetch<MembreStats>(`/organisation/membres/${userId}/stats${query}`);
+}
+
+export interface ClassementEntry {
+  user: { id: string; nom: string };
+  tauxDeclarationsATemps: number | null;
+  tachesValidees: number;
+}
+
+export function getBureauClassement(bureauId: string, from: string, to: string) {
+  return authFetch<ClassementEntry[]>(`/bureaux/${bureauId}/classement?from=${from}&to=${to}`);
 }
 
 export interface BureauStats {

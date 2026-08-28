@@ -72,12 +72,21 @@ export class OrganisationService {
   }
 
   /** Statistiques individuelles d'un membre : contribution, temps, fiabilité. */
-  async getMembreStats(organisationId: string, userId: string) {
+  /**
+   * `range` borne les métriques sur dateCible (charge de travail prévue ce jour-là) et
+   * sur la période elle-même pour les heures/déclarations — omis, on garde le cumul
+   * depuis toujours (comportement historique, utilisé par le modal de stats existant).
+   */
+  async getMembreStats(organisationId: string, userId: string, range?: { from: Date; to: Date }) {
     const membre = await this.prisma.user.findFirst({ where: { id: userId, organisationId } });
     if (!membre) throw new NotFoundException('Membre introuvable');
 
     const taches = await this.prisma.tache.findMany({
-      where: { assigneAId: userId, projet: { bureau: { organisationId } } },
+      where: {
+        assigneAId: userId,
+        projet: { bureau: { organisationId } },
+        ...(range ? { dateCible: { gte: range.from, lte: range.to } } : {}),
+      },
       select: {
         id: true,
         statut: true,
@@ -103,11 +112,14 @@ export class OrganisationService {
 
     const [sessions, declarations] = await Promise.all([
       this.prisma.tacheSession.findMany({
-        where: { userId, fin: { not: null } },
+        where: {
+          userId,
+          fin: range ? { not: null, gte: range.from, lte: range.to } : { not: null },
+        },
         select: { debut: true, fin: true },
       }),
       this.prisma.declarationJournaliere.findMany({
-        where: { userId },
+        where: { userId, ...(range ? { date: { gte: range.from, lte: range.to } } : {}) },
         select: { date: true },
       }),
     ]);
