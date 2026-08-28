@@ -385,17 +385,32 @@ export class BureauxService {
 
     const results = await Promise.all(
       membres.map(async ({ user }) => {
-        const taches = await this.prisma.tache.findMany({
-          where: { assigneAId: user.id, projet: { bureauId }, dateCible: { gte: from, lte: to } },
-          select: { statut: true, dateCible: true },
-        });
+        // "Complété" se compte sur dateValidation (quand le travail a réellement été
+        // fini), pas sur dateCible — sinon une tâche sans dateCible sur cette période
+        // disparaît du compteur alors qu'elle a bien été validée dans la fenêtre.
+        const [tachesCible, tachesValidees, declarations] = await Promise.all([
+          this.prisma.tache.findMany({
+            where: { assigneAId: user.id, projet: { bureauId }, dateCible: { gte: from, lte: to } },
+            select: { dateCible: true },
+          }),
+          this.prisma.tache.count({
+            where: {
+              assigneAId: user.id,
+              projet: { bureauId },
+              statut: 'VALIDE',
+              dateValidation: { gte: from, lte: to },
+            },
+          }),
+          this.prisma.declarationJournaliere.findMany({
+            where: { userId: user.id, date: { gte: from, lte: to } },
+            select: { date: true },
+          }),
+        ]);
         const joursAvecTache = new Set(
-          taches.filter((t) => t.dateCible).map((t) => t.dateCible!.toISOString().slice(0, 10)),
+          tachesCible
+            .filter((t) => t.dateCible)
+            .map((t) => t.dateCible!.toISOString().slice(0, 10)),
         );
-        const declarations = await this.prisma.declarationJournaliere.findMany({
-          where: { userId: user.id, date: { gte: from, lte: to } },
-          select: { date: true },
-        });
         const joursDeclares = new Set(declarations.map((d) => d.date.toISOString().slice(0, 10)));
         const joursDeclaresATemps = [...joursAvecTache].filter((d) => joursDeclares.has(d)).length;
 
@@ -405,7 +420,7 @@ export class BureauxService {
             joursAvecTache.size === 0
               ? null
               : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
-          tachesValidees: taches.filter((t) => t.statut === 'VALIDE').length,
+          tachesValidees,
         };
       }),
     );

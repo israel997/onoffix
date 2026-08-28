@@ -71,46 +71,70 @@ export class OrganisationService {
     return { membresCount, tachesCount };
   }
 
-  /** Statistiques individuelles d'un membre : contribution, temps, fiabilité. */
   /**
-   * `range` borne les métriques sur dateCible (charge de travail prévue ce jour-là) et
-   * sur la période elle-même pour les heures/déclarations — omis, on garde le cumul
-   * depuis toujours (comportement historique, utilisé par le modal de stats existant).
+   * Statistiques individuelles d'un membre : contribution, temps, fiabilité.
+   *
+   * Chaque métrique est bornée par la date qui lui correspond réellement — pas toutes
+   * par la même colonne, sinon une tâche validée aujourd'hui mais sans dateCible (ou
+   * avec une dateCible différente) disparaît à tort du compteur "Completed" de la
+   * période. `range` omis = cumul depuis toujours (comportement historique du modal).
    */
   async getMembreStats(organisationId: string, userId: string, range?: { from: Date; to: Date }) {
     const membre = await this.prisma.user.findFirst({ where: { id: userId, organisationId } });
     if (!membre) throw new NotFoundException('Membre introuvable');
 
-    const taches = await this.prisma.tache.findMany({
-      where: {
-        assigneAId: userId,
-        projet: { bureau: { organisationId } },
-        ...(range ? { dateCible: { gte: range.from, lte: range.to } } : {}),
-      },
-      select: {
-        id: true,
-        statut: true,
-        dateEcheance: true,
-        dateValidation: true,
-        dateCible: true,
-        blocages: { select: { id: true } },
-      },
-    });
+    const baseWhere = { assigneAId: userId, projet: { bureau: { organisationId } } };
 
-    const tachesValidees = taches.filter((t) => t.statut === 'VALIDE').length;
-    const tachesARevoir = taches.filter((t) => t.statut === 'A_REVOIR').length;
-    const blocagesRencontres = taches.reduce((sum, t) => sum + t.blocages.length, 0);
-
-    const avecEcheance = taches.filter((t) => t.dateEcheance);
-    const respecteesDeadline = avecEcheance.filter(
-      (t) => t.dateValidation && t.dateEcheance && t.dateValidation <= t.dateEcheance,
-    );
-
-    const joursAvecTache = new Set(
-      taches.filter((t) => t.dateCible).map((t) => t.dateCible!.toISOString().slice(0, 10)),
-    );
-
-    const [sessions, declarations] = await Promise.all([
+    const [
+      tachesAssignees,
+      tachesValidees,
+      tachesARevoir,
+      avecEcheance,
+      blocagesRencontres,
+      tachesAvecCible,
+      sessions,
+      declarations,
+    ] = await Promise.all([
+      this.prisma.tache.count({
+        where: {
+          ...baseWhere,
+          ...(range ? { createdAt: { gte: range.from, lte: range.to } } : {}),
+        },
+      }),
+      this.prisma.tache.count({
+        where: {
+          ...baseWhere,
+          statut: 'VALIDE',
+          dateValidation: range ? { gte: range.from, lte: range.to } : { not: null },
+        },
+      }),
+      this.prisma.tache.count({
+        where: {
+          ...baseWhere,
+          statut: 'A_REVOIR',
+          ...(range ? { createdAt: { gte: range.from, lte: range.to } } : {}),
+        },
+      }),
+      this.prisma.tache.findMany({
+        where: {
+          ...baseWhere,
+          dateEcheance: range ? { gte: range.from, lte: range.to } : { not: null },
+        },
+        select: { dateEcheance: true, dateValidation: true },
+      }),
+      this.prisma.tacheBlocage.count({
+        where: {
+          tache: baseWhere,
+          ...(range ? { dateDebut: { gte: range.from, lte: range.to } } : {}),
+        },
+      }),
+      this.prisma.tache.findMany({
+        where: {
+          ...baseWhere,
+          dateCible: range ? { gte: range.from, lte: range.to } : { not: null },
+        },
+        select: { dateCible: true },
+      }),
       this.prisma.tacheSession.findMany({
         where: {
           userId,
@@ -124,6 +148,16 @@ export class OrganisationService {
       }),
     ]);
 
+    const respecteesDeadline = avecEcheance.filter(
+      (t) => t.dateValidation && t.dateEcheance && t.dateValidation <= t.dateEcheance,
+    );
+
+    const joursAvecTache = new Set(
+      tachesAvecCible
+        .filter((t) => t.dateCible)
+        .map((t) => t.dateCible!.toISOString().slice(0, 10)),
+    );
+
     const heuresTravaillees =
       Math.round(
         (sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0) / 3600000) *
@@ -134,7 +168,7 @@ export class OrganisationService {
     const joursDeclaresATemps = [...joursAvecTache].filter((d) => joursDeclares.has(d)).length;
 
     return {
-      tachesAssignees: taches.length,
+      tachesAssignees,
       tachesValidees,
       tachesARevoir,
       heuresTravaillees,
