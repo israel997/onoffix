@@ -94,20 +94,31 @@ export class OrganizerProcessor extends WorkerHost {
    * event à chaque échec, y compris ceux qui seront encore réessayés) — sans ça,
    * un Subject reste bloqué sur "Not processed yet" indéfiniment sans que personne
    * ne le sache (cf. panne Gemini "503 high demand" prolongée déjà observée en prod).
+   *
+   * BullMQ n'attend ni ne rattrape jamais la promesse renvoyée par un listener
+   * d'event — une erreur ici deviendrait une unhandled rejection capable de faire
+   * planter tout le process. Tout est donc protégé par un try/catch : au pire on
+   * perd juste l'affichage de l'échec, jamais le process lui-même. `job` peut aussi
+   * être `undefined` d'après la signature BullMQ de l'event 'failed'.
    */
   @OnWorkerEvent('failed')
-  async onFailed(job: Job<{ messageId: string }>) {
-    if (job.attemptsMade < (job.opts.attempts ?? 1)) return;
+  async onFailed(job: Job<{ messageId: string }> | undefined) {
+    try {
+      const messageId = job?.data?.messageId;
+      if (!job || !messageId || job.attemptsMade < (job.opts.attempts ?? 1)) return;
 
-    const message = await this.prisma.message.findUnique({
-      where: { id: job.data.messageId },
-      select: { conversationId: true },
-    });
-    if (!message) return;
+      const message = await this.prisma.message.findUnique({
+        where: { id: messageId },
+        select: { conversationId: true },
+      });
+      if (!message) return;
 
-    await this.prisma.conversation.update({
-      where: { id: message.conversationId },
-      data: { dernierEchecTraitement: new Date() },
-    });
+      await this.prisma.conversation.update({
+        where: { id: message.conversationId },
+        data: { dernierEchecTraitement: new Date() },
+      });
+    } catch (error) {
+      this.logger.error(`onFailed: échec de la mise à jour du statut d'erreur — ${error}`);
+    }
   }
 }
