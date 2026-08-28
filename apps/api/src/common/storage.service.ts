@@ -1,7 +1,9 @@
 import { randomUUID } from 'crypto';
-import { Injectable } from '@nestjs/common';
+import { Readable } from 'stream';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import type { Response } from 'express';
 
 /** Upload de fichiers vers un stockage objet S3-compatible (DigitalOcean Spaces). */
 @Injectable()
@@ -40,5 +42,30 @@ export class StorageService {
       }),
     );
     return `${this.publicUrl}/${key}`;
+  }
+
+  /**
+   * Relaie un fichier du bucket avec Content-Disposition: attachment, pour forcer
+   * un vrai téléchargement même quand le bucket n'a pas de CORS pour le domaine front.
+   */
+  async pipeDownload(fileUrl: string, filename: string, res: Response) {
+    if (!this.publicUrl || !fileUrl.startsWith(this.publicUrl)) {
+      throw new ForbiddenException('URL non autorisée');
+    }
+
+    const upstream = await fetch(fileUrl);
+    if (!upstream.ok || !upstream.body) {
+      throw new NotFoundException('Fichier introuvable');
+    }
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    );
+    res.setHeader(
+      'Content-Type',
+      upstream.headers.get('content-type') ?? 'application/octet-stream',
+    );
+    Readable.fromWeb(upstream.body as import('stream/web').ReadableStream).pipe(res);
   }
 }

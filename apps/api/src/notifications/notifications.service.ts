@@ -1,15 +1,27 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 
 const NOTIFICATIONS_LIMIT = 50;
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: PushService,
+  ) {}
 
-  create(userId: string, type: NotificationType, message: string, lien?: string) {
-    return this.prisma.notification.create({ data: { userId, type, message, lien } });
+  async create(userId: string, type: NotificationType, message: string, lien?: string) {
+    const notification = await this.prisma.notification.create({
+      data: { userId, type, message, lien },
+    });
+    // Le push part en fire-and-forget : un échec d'envoi (abonnement expiré, réseau)
+    // ne doit jamais faire échouer l'action métier qui a déclenché la notification.
+    this.push
+      .notifyUser(userId, { title: 'OOffix', body: message, url: lien })
+      .catch(() => undefined);
+    return notification;
   }
 
   findAllForUser(userId: string) {

@@ -16,6 +16,59 @@ import {
   type AppNotification,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushSubscriptionState,
+} from '@/lib/push-notifications';
+import { useToast } from '@/lib/toast-context';
+
+function PushToggle() {
+  const toast = useToast();
+  const [state, setState] = useState<'unsupported' | 'subscribed' | 'not-subscribed' | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    getPushSubscriptionState().then(setState);
+  }, []);
+
+  if (state === null || state === 'unsupported') return null;
+
+  async function toggle() {
+    setBusy(true);
+    try {
+      if (state === 'subscribed') {
+        await disablePushNotifications();
+        setState('not-subscribed');
+        toast('Push notifications disabled');
+      } else {
+        await enablePushNotifications();
+        setState('subscribed');
+        toast('Push notifications enabled');
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-medium text-foreground">Push notifications</p>
+        <CardDescription>
+          {state === 'subscribed'
+            ? 'Enabled on this device - you get notified even when OOffix is closed.'
+            : 'Get notified on this device even when OOffix is closed.'}
+        </CardDescription>
+      </div>
+      <Button size="sm" variant={state === 'subscribed' ? 'secondary' : 'primary'} disabled={busy} onClick={toggle}>
+        {state === 'subscribed' ? 'Disable' : 'Enable'}
+      </Button>
+    </Card>
+  );
+}
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString([], {
@@ -73,6 +126,8 @@ export default function NotificationsPage() {
           </Button>
         )}
       </div>
+
+      <PushToggle />
 
       {notifications === null ? (
         <Loading className="text-sm" />

@@ -210,6 +210,40 @@ async function authorizedFetch(path: string, init: RequestInit): Promise<Respons
   return res;
 }
 
+/**
+ * Force un vrai téléchargement d'un fichier stocké sur le bucket, en passant par l'API
+ * (le bucket n'a pas de CORS pour le domaine front, donc un fetch direct échoue).
+ */
+export async function downloadFileViaApi(fileUrl: string, filename: string) {
+  const res = await authorizedFetch(
+    `/files/download?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(filename)}`,
+    { method: 'GET' },
+  );
+  if (!res.ok) throw new ApiError(await parseErrorMessage(res), res.status);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
+export function savePushSubscription(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}) {
+  return authFetch<void>('/me/push-subscriptions', { method: 'POST', body: subscription });
+}
+
+export function deletePushSubscription(endpoint: string) {
+  return authFetch<void>(`/me/push-subscriptions?endpoint=${encodeURIComponent(endpoint)}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function authFetch<T>(
   path: string,
   options: { method?: string; body?: unknown } = {},

@@ -207,7 +207,10 @@ function TasksPageContent() {
               {open && (
                 <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {user &&
-                    g.taches.map((t) => (
+                    // Les tâches validées descendent en bas de liste.
+                    [...g.taches]
+                      .sort((a, b) => Number(a.statut === 'VALIDE') - Number(b.statut === 'VALIDE'))
+                      .map((t) => (
                       <TaskItem
                         key={t.id}
                         tache={t}

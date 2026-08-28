@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { DownloadIcon, PaperclipIcon, PaperPlaneIcon, SmileyIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
-import { resolveAssetUrl, type ChatMessage } from '@/lib/api';
+import { downloadFileViaApi, resolveAssetUrl, type ChatMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
 import { getSocket } from '@/lib/socket';
@@ -63,20 +63,9 @@ function quotePreview(message: { contenu: string | null; fichierNom: string | nu
   return '…';
 }
 
-/** Fetch-puis-blob pour forcer un vrai téléchargement ; repli sur un nouvel onglet si le bucket refuse le CORS. */
 async function downloadFile(url: string, filename: string) {
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('download failed');
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(blobUrl);
+    await downloadFileViaApi(url, filename);
   } catch {
     window.open(url, '_blank');
   }
