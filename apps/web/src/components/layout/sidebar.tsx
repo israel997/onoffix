@@ -73,7 +73,7 @@ function SidebarNav({
   compact: boolean;
 }) {
   return (
-    <nav className={cn('flex flex-1 flex-col gap-1', compact && 'items-start pl-6')}>
+    <nav className={cn('flex flex-1 flex-col gap-1', compact ? 'items-start pl-6' : 'px-3')}>
       {NAV_ITEMS.filter(
         (item) =>
           (!item.adminOnly || isAdmin) &&
@@ -221,7 +221,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
     <>
       <aside
         className={cn(
-          'my-3 ml-3 hidden shrink-0 flex-col items-start rounded-2xl border border-border bg-surface py-6 md:flex',
+          'hidden shrink-0 flex-col items-start border-r border-border bg-surface py-6 md:flex',
           collapsed ? 'w-16 items-center' : 'w-60',
         )}
       >

@@ -11,15 +11,18 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
+  createOrganizerSubject,
   getBureau,
   getBureauOrganizer,
   listBureauTaches,
+  updateTache,
   type BureauDetail,
   type OrganizerDetail,
   type StatutTache,
   type Tache,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/lib/toast-context';
 
 interface Group {
   conversationId: string | null;
@@ -84,6 +87,7 @@ function TasksPageContent() {
   const bureauId = params.bureauId;
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const toast = useToast();
 
   const [taches, setTaches] = useState<Tache[] | null>(null);
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
@@ -115,6 +119,23 @@ function TasksPageContent() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bureauId]);
+
+  // "No subject" n'est pas une vraie catégorie en base — juste l'étiquette affichée
+  // pour les tâches sans conversationId. La "renommer" crée une vraie catégorie et
+  // y déplace ces tâches, pour qu'elle devienne renommable/gérable comme les autres.
+  async function handleRenameNoSubject(g: Group) {
+    if (!organizer) return;
+    const nom = window.prompt('Name this subject', '')?.trim();
+    if (!nom) return;
+    try {
+      const subject = await createOrganizerSubject(organizer.id, nom);
+      await Promise.all(g.taches.map((t) => updateTache(t.id, { conversationId: subject.id })));
+      await load();
+      toast('Subject created');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    }
+  }
 
   function toggleGroup(key: string) {
     setOpenGroups((prev) => {
@@ -199,6 +220,20 @@ function TasksPageContent() {
                   <h2 className="text-sm font-semibold text-foreground">
                     {g.nom} ({g.taches.length} task{g.taches.length > 1 ? 's' : ''})
                   </h2>
+                  {isManager && g.conversationId === null && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRenameNoSubject(g);
+                      }}
+                      aria-label="Name this subject"
+                      title="Name this subject"
+                      className="rounded px-1 text-muted-foreground hover:text-foreground"
+                    >
+                      ✎
+                    </button>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {enCours} in progress · {termine} done · {nonCommence} not started
