@@ -142,6 +142,9 @@ model Conversation {
   nom                      String    @default("General")
   // Dernière génération de tâches par l'IA pour ce Subject (cf. organizer.processor).
   derniereGenerationTaches DateTime? @map("derniere_generation_taches")
+  // Dernier échec définitif (toutes tentatives épuisées) — permet d'afficher un état
+  // d'erreur au lieu de rester bloqué sur "Not processed yet" en silence pour toujours.
+  dernierEchecTraitement   DateTime? @map("dernier_echec_traitement")
   createdAt                DateTime  @default(now()) @map("created_at")
 
   // Message direct 1:1 (ni bureau ni organizer). userAId < userBId par convention

@@ -7,6 +7,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConvertPlanDto } from './dto/convert-plan.dto';
 import { CreateTacheDto } from './dto/create-tache.dto';
+import { OrganizerScheduler } from './organizer.scheduler';
 
 const TACHE_INCLUDE = {
   assigneA: { select: { id: true, nom: true } },
@@ -22,6 +23,7 @@ export class OrganizerService {
     private readonly chatService: ChatService,
     private readonly aiService: AiService,
     private readonly notifications: NotificationsService,
+    private readonly organizerScheduler: OrganizerScheduler,
   ) {}
 
   /** Crée l'Organizer unique d'un bureau (chat en vrac + génération de tâches). */
@@ -87,6 +89,16 @@ export class OrganizerService {
       throw new ForbiddenException('Un organizer doit garder au moins un Subject');
     }
     await this.chatService.deleteSubject(subjectId);
+  }
+
+  /** Relance le traitement IA des messages de ce Subject restés en échec définitif. */
+  async retryProcessing(projetId: string, subjectId: string) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+    const messages = await this.prisma.message.findMany({
+      where: { conversationId: subjectId },
+      select: { id: true },
+    });
+    await this.organizerScheduler.retryFailedProcessing(messages.map((m) => m.id));
   }
 
   async createTache(projetId: string, user: AuthenticatedUser, dto: CreateTacheDto) {

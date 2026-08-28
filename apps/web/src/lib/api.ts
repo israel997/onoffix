@@ -811,6 +811,7 @@ export interface Subject {
   projetId: string | null;
   nom: string;
   derniereGenerationTaches: string | null;
+  dernierEchecTraitement: string | null;
   createdAt: string;
 }
 
@@ -842,6 +843,10 @@ export function renameOrganizerSubject(projetId: string, subjectId: string, nom:
 
 export function deleteOrganizerSubject(projetId: string, subjectId: string) {
   return authFetch<void>(`/organizers/${projetId}/subjects/${subjectId}`, { method: 'DELETE' });
+}
+
+export function retryOrganizerProcessing(projetId: string, subjectId: string) {
+  return authFetch<void>(`/organizers/${projetId}/subjects/${subjectId}/retry`, { method: 'POST' });
 }
 
 /** Chaque bureau a exactement un Organizer, créé automatiquement à la création du bureau. */

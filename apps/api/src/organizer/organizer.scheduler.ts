@@ -24,4 +24,18 @@ export class OrganizerScheduler {
       },
     );
   }
+
+  /**
+   * Relance les messages de ce Subject dont le traitement a définitivement échoué
+   * (ex. panne Gemini prolongée) — jobId = messageId, donc un job déjà réussi ou
+   * encore en cours n'est jamais retouché.
+   */
+  async retryFailedProcessing(messageIds: string[]) {
+    for (const messageId of messageIds) {
+      const job = await this.queue.getJob(messageId);
+      if (job && (await job.isFailed())) {
+        await job.retry();
+      }
+    }
+  }
 }

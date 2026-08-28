@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { NotificationType } from '@prisma/client';
@@ -82,9 +82,32 @@ export class OrganizerProcessor extends WorkerHost {
 
     await this.prisma.conversation.update({
       where: { id: message.conversationId },
-      data: { derniereGenerationTaches: new Date() },
+      // Un succès efface un éventuel échec précédent affiché à l'utilisateur.
+      data: { derniereGenerationTaches: new Date(), dernierEchecTraitement: null },
     });
 
     this.logger.log(`Message ${messageId}: ${suggestions.length} tâche(s) générée(s)`);
+  }
+
+  /**
+   * Ne se déclenche qu'une fois toutes les tentatives épuisées (BullMQ appelle cet
+   * event à chaque échec, y compris ceux qui seront encore réessayés) — sans ça,
+   * un Subject reste bloqué sur "Not processed yet" indéfiniment sans que personne
+   * ne le sache (cf. panne Gemini "503 high demand" prolongée déjà observée en prod).
+   */
+  @OnWorkerEvent('failed')
+  async onFailed(job: Job<{ messageId: string }>) {
+    if (job.attemptsMade < (job.opts.attempts ?? 1)) return;
+
+    const message = await this.prisma.message.findUnique({
+      where: { id: job.data.messageId },
+      select: { conversationId: true },
+    });
+    if (!message) return;
+
+    await this.prisma.conversation.update({
+      where: { id: message.conversationId },
+      data: { dernierEchecTraitement: new Date() },
+    });
   }
 }

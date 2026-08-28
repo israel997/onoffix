@@ -12,6 +12,7 @@ import {
   listOrganizerMessages,
   listOrganizerSubjects,
   renameOrganizerSubject,
+  retryOrganizerProcessing,
   sendOrganizerFile,
   type CouleurBureau,
   type Subject,
@@ -19,6 +20,13 @@ import {
 import { BUREAU_COLORS } from '@/lib/bureau-colors';
 import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
+
+/** Le dernier événement pour ce Subject est-il un échec (pas encore résolu par un succès depuis) ? */
+function hasFailedProcessing(subject: Subject) {
+  if (!subject.dernierEchecTraitement) return false;
+  if (!subject.derniereGenerationTaches) return true;
+  return new Date(subject.dernierEchecTraitement) > new Date(subject.derniereGenerationTaches);
+}
 
 export function SubjectsChat({
   projetId,
@@ -37,6 +45,7 @@ export function SubjectsChat({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const toast = useToast();
   const confirmDialog = useConfirm();
 
@@ -51,6 +60,11 @@ export function SubjectsChat({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(false);
+    // Le traitement IA se termine en tâche de fond (parfois après plusieurs relances
+    // en cas de panne) — sans ça, "Not processed yet" resterait affiché jusqu'à un
+    // rechargement manuel même une fois le traitement effectivement terminé.
+    const interval = setInterval(() => load(), 20_000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projetId]);
 
@@ -89,6 +103,19 @@ export function SubjectsChat({
     await deleteOrganizerSubject(projetId, subject.id);
     await load(false);
     toast('Subject deleted');
+  }
+
+  async function handleRetry(subject: Subject) {
+    setRetrying(true);
+    try {
+      await retryOrganizerProcessing(projetId, subject.id);
+      toast('Retrying task generation…');
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    } finally {
+      setRetrying(false);
+    }
   }
 
   const active = subjects?.find((s) => s.id === activeId) ?? null;
@@ -152,6 +179,15 @@ export function SubjectsChat({
           </Link>
         )}
       </div>
+
+      {active && hasFailedProcessing(active) && (
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-status-review/10 px-3 py-2 text-xs text-status-review">
+          <span>Task generation failed for this subject (temporary AI outage) — your messages are safe.</span>
+          <Button size="sm" variant="danger" disabled={retrying} onClick={() => handleRetry(active)}>
+            {retrying ? 'Retrying…' : 'Retry'}
+          </Button>
+        </div>
+      )}
 
       {active ? (
         <Chat

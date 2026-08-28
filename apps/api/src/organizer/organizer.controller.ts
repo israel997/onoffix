@@ -88,6 +88,15 @@ export class OrganizerController {
     await this.organizerService.deleteSubject(projetId, subjectId);
   }
 
+  @Post('subjects/:subjectId/retry')
+  @HttpCode(204)
+  async retryProcessing(
+    @Param('projetId') projetId: string,
+    @Param('subjectId') subjectId: string,
+  ) {
+    await this.organizerService.retryProcessing(projetId, subjectId);
+  }
+
   @Get('subjects/:subjectId/messages')
   async messages(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
     await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
