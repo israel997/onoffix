@@ -186,6 +186,9 @@ export function Chat({
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  // Ids choisis explicitement dans le menu d'autocomplétion — plus fiable qu'un re-scan
+  // du texte, qui ratait la notif si le nom tapé n'était pas EXACTEMENT le nom complet.
+  const [pickedMentionIds, setPickedMentionIds] = useState<Map<string, string>>(new Map());
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -218,7 +221,14 @@ export function Chat({
       : mentionableUsers.filter((u) => u.nom.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6);
 
   function mentionedUserIdsIn(text: string) {
-    return mentionableUsers.filter((u) => text.includes(`@${u.nom}`)).map((u) => u.id);
+    const lower = text.toLowerCase();
+    const scanned = mentionableUsers.filter((u) => lower.includes(`@${u.nom}`.toLowerCase())).map((u) => u.id);
+    // On ajoute les mentions choisies via le menu tant que leur nom est toujours dans
+    // le texte (pour ne pas notifier quelqu'un dont le @nom a été effacé après coup).
+    const picked = [...pickedMentionIds.entries()]
+      .filter(([, nom]) => lower.includes(`@${nom}`.toLowerCase()))
+      .map(([id]) => id);
+    return [...new Set([...scanned, ...picked])];
   }
 
   function renderWithMentions(text: string, mine: boolean) {
@@ -330,6 +340,7 @@ export function Chat({
     });
     setDraft('');
     setReplyingTo(null);
+    setPickedMentionIds(new Map());
   }
 
   function handleSend(event: FormEvent) {
@@ -344,8 +355,11 @@ export function Chat({
     setMentionQuery(match && mentionableUsers.length > 0 ? match[1] : null);
   }
 
-  function selectMention(nom: string) {
-    setDraft((prev) => prev.replace(/(?:^|\s)@(\w*)$/, (whole) => `${whole[0] === '@' ? '' : whole[0]}@${nom} `));
+  function selectMention(user: { id: string; nom: string }) {
+    setDraft((prev) =>
+      prev.replace(/(?:^|\s)@(\w*)$/, (whole) => `${whole[0] === '@' ? '' : whole[0]}@${user.nom} `),
+    );
+    setPickedMentionIds((prev) => new Map(prev).set(user.id, user.nom));
     setMentionQuery(null);
     textareaRef.current?.focus();
   }
@@ -353,7 +367,7 @@ export function Chat({
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (mentionQuery !== null && mentionMatches.length > 0 && (event.key === 'Enter' || event.key === 'Tab')) {
       event.preventDefault();
-      selectMention(mentionMatches[0].nom);
+      selectMention(mentionMatches[0]);
       return;
     }
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -617,7 +631,7 @@ export function Chat({
               <button
                 key={u.id}
                 type="button"
-                onClick={() => selectMention(u.nom)}
+                onClick={() => selectMention(u)}
                 className="px-3 py-1.5 text-left text-sm hover:bg-surface-muted"
               >
                 <span className="font-medium" style={{ color: colorForUser(u.id) }}>
