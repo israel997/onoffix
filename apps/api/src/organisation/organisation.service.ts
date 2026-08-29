@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RoleGlobal } from '@prisma/client';
+import { RoleBureau, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { createHash, randomBytes } from 'crypto';
 import { EmailService } from '../email/email.service';
@@ -355,11 +355,33 @@ export class OrganisationService {
     if (!membre)
       throw new NotFoundException("Ce collaborateur ne fait pas partie de l'organisation");
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: targetUserId },
       data: { roleGlobal: dto.roleGlobal },
       select: MEMBRE_SELECT,
     });
+
+    // Un admin a accès à tous les bureaux de l'organisation — sans cette ligne il
+    // resterait invisible dans les listes de membres (impossible à mentionner ou
+    // à assigner comme n'importe qui).
+    if (dto.roleGlobal === RoleGlobal.ADMIN) {
+      const bureaux = await this.prisma.bureau.findMany({
+        where: { organisationId },
+        select: { id: true },
+      });
+      if (bureaux.length > 0) {
+        await this.prisma.userBureau.createMany({
+          data: bureaux.map((bureau) => ({
+            userId: targetUserId,
+            bureauId: bureau.id,
+            roleDansBureau: RoleBureau.MANAGER,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return updated;
   }
 
   /** Poste/titre affiché (ex. "Chief Technical Officer") — modifiable par un admin, y compris après coup. */

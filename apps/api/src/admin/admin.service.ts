@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { RoleGlobal } from '@prisma/client';
+import { RoleBureau, RoleGlobal } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Friction supplémentaire avant une action destructrice (ban, suppression d'organisation) —
@@ -66,10 +66,30 @@ export class AdminService {
   async promote(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Membre introuvable');
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: { roleGlobal: RoleGlobal.ADMIN },
     });
+
+    // Un admin a accès à tous les bureaux de l'organisation — sans cette ligne il
+    // resterait invisible dans les listes de membres (impossible à mentionner ou
+    // à assigner comme n'importe qui).
+    const bureaux = await this.prisma.bureau.findMany({
+      where: { organisationId: user.organisationId },
+      select: { id: true },
+    });
+    if (bureaux.length > 0) {
+      await this.prisma.userBureau.createMany({
+        data: bureaux.map((bureau) => ({
+          userId,
+          bureauId: bureau.id,
+          roleDansBureau: RoleBureau.MANAGER,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return updated;
   }
 
   async setBanned(accountId: string, banned: boolean, password?: string) {

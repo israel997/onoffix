@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NiveauAlerte, NotificationType, RoleGlobal } from '@prisma/client';
+import { NiveauAlerte, NotificationType, RoleBureau, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { ChatService } from '../chat/chat.service';
 import { EmailService } from '../email/email.service';
@@ -58,6 +58,25 @@ export class BureauxService {
     const bureau = await this.prisma.bureau.create({
       data: { organisationId, nom: dto.nom, ordre },
     });
+
+    // Un admin a déjà accès à tous les bureaux de son organisation (bypass des
+    // permissions) — sans cette ligne il resterait invisible dans les listes de
+    // membres, donc impossible à mentionner ou à assigner comme n'importe qui.
+    const admins = await this.prisma.user.findMany({
+      where: { organisationId, roleGlobal: RoleGlobal.ADMIN },
+      select: { id: true },
+    });
+    if (admins.length > 0) {
+      await this.prisma.userBureau.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          bureauId: bureau.id,
+          roleDansBureau: RoleBureau.MANAGER,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     await this.rituelsScheduler.syncBureau(bureau);
 
     await this.organizerService.createDefaultForBureau(bureau.id);
