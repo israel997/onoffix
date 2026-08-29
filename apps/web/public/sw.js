@@ -4,7 +4,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'OOffix', {
       body: payload.body,
-      icon: '/favicon.png',
+      icon: '/favicon2.png',
       data: { url: payload.url || '/' },
     }),
   );

@@ -235,6 +235,27 @@ export class ChatService {
       ),
     );
 
+    // Message direct 1:1 : l'autre personne est notifiée de tout nouveau message
+    // (pas seulement des mentions, qui n'ont de sens que dans un groupe).
+    const direct = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { userAId: true, userBId: true },
+    });
+    const otherUserId =
+      direct?.userAId || direct?.userBId
+        ? direct.userAId === auteurId
+          ? direct.userBId
+          : direct.userAId
+        : null;
+    if (otherUserId && !notifiedIds.includes(otherUserId)) {
+      await this.notifications.create(
+        otherUserId,
+        NotificationType.NOUVEAU_MESSAGE,
+        `${message.auteur.nom} vous a envoyé un message : « ${(contenu?.trim() ?? fichier?.nom ?? '').slice(0, 80)} »`,
+        lien ?? `/chat/${conversationId}`,
+      );
+    }
+
     return message;
   }
 

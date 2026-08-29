@@ -721,7 +721,8 @@ export type NotificationType =
   | 'RESUME_QUOTIDIEN'
   | 'RAPPORT_HEBDOMADAIRE'
   | 'INVITATION_BUREAU'
-  | 'MENTION';
+  | 'MENTION'
+  | 'NOUVEAU_MESSAGE';
 
 export interface AppNotification {
   id: string;

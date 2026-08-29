@@ -491,6 +491,7 @@ enum NotificationType {
   RAPPORT_HEBDOMADAIRE
   INVITATION_BUREAU
   MENTION
+  NOUVEAU_MESSAGE
 }
 
 model Notification {

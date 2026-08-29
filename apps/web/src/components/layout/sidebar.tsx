@@ -227,7 +227,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
       >
         <Link href="/" className={collapsed ? 'mb-8' : 'mb-8 pl-4'}>
           {collapsed ? (
-            <Image src="/favicon.png" alt="OOffix" width={32} height={32} priority className="h-8 w-8 rounded-lg" />
+            <Image src="/favicon2.png" alt="OOffix" width={32} height={32} priority className="h-8 w-8 rounded-lg" />
           ) : (
             <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-11 w-auto" />
           )}
