@@ -296,13 +296,32 @@ export function TaskItem({
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
           {expanded && !isPersonal && (
-            <button
-              onClick={() => setShowDetail(true)}
-              aria-label="View task details"
-              className="rounded px-1 text-status-review hover:opacity-75"
-            >
-              <InfoIcon className="h-4 w-4" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowDetail(true)}
+                aria-label="View task details"
+                className="rounded px-1 text-status-review hover:opacity-75"
+              >
+                <InfoIcon className="h-4 w-4" />
+              </button>
+              {showInfoTip && (
+                <div className="absolute right-0 top-full z-20 mt-2 w-48">
+                  <div className="relative rounded-lg bg-brand-blue px-3 py-2 text-xs font-medium text-white shadow-lg">
+                    <div className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 bg-brand-blue" />
+                    <div className="flex items-start gap-2">
+                      <span>Click here to see the full task details.</span>
+                      <button
+                        onClick={() => setShowInfoTip(false)}
+                        aria-label="Dismiss"
+                        className="shrink-0 leading-none text-white/80 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           {expanded && isManager && (
             <button
@@ -332,22 +351,6 @@ export function TaskItem({
           )}
         </div>
       </div>
-
-      {!isPersonal && open && showInfoTip && (
-        <div className="mt-1.5 ml-6 flex items-center justify-between gap-2 rounded-lg bg-status-review/10 px-2 py-1.5 text-xs text-status-review">
-          <span className="flex items-center gap-1.5">
-            <InfoIcon className="h-3.5 w-3.5 shrink-0" />
-            Click the red info icon to see the full task details.
-          </span>
-          <button
-            onClick={() => setShowInfoTip(false)}
-            aria-label="Dismiss"
-            className="shrink-0 hover:opacity-70"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {expanded && (
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
