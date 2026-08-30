@@ -353,6 +353,9 @@ export class ChatService {
           lastMessage,
           lastActivity: lastMessage?.createdAt ?? c.createdAt,
           unread: this.isConversationUnread(c, userId),
+          // Dernière lecture de l'autre personne — sert à afficher "Seen" sous ton
+          // dernier message dès qu'elle a ouvert la conversation après son envoi.
+          otherLastReadAt: c.userAId === userId ? c.lastReadAtB : c.lastReadAtA,
         };
       })
       .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());

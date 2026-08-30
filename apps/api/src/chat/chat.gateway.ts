@@ -189,6 +189,11 @@ export class ChatGateway implements OnGatewayConnection {
     await this.chatService.assertDirectAccess(data.conversationId, user.userId);
     await client.join(dmRoom(data.conversationId));
     await this.chatService.markDirectConversationRead(data.conversationId, user.userId);
+    this.server.to(dmRoom(data.conversationId)).emit('dm:read', {
+      conversationId: data.conversationId,
+      userId: user.userId,
+      at: new Date(),
+    });
   }
 
   @SubscribeMessage('dm:leave')
@@ -197,6 +202,22 @@ export class ChatGateway implements OnGatewayConnection {
     @ConnectedSocket() client: Socket,
   ) {
     await client.leave(dmRoom(data.conversationId));
+  }
+
+  /** Le destinataire a la conversation ouverte et vient de voir un nouveau message. */
+  @SubscribeMessage('dm:mark-read')
+  async handleDmMarkRead(
+    @MessageBody() data: { conversationId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = getUser(client);
+    await this.chatService.assertDirectAccess(data.conversationId, user.userId);
+    await this.chatService.markDirectConversationRead(data.conversationId, user.userId);
+    this.server.to(dmRoom(data.conversationId)).emit('dm:read', {
+      conversationId: data.conversationId,
+      userId: user.userId,
+      at: new Date(),
+    });
   }
 
   @SubscribeMessage('dm:message')

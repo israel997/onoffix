@@ -2,7 +2,7 @@
 
 import { Loading } from '@/components/ui/loading';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { DownloadIcon, PaperclipIcon, PaperPlaneIcon, SmileyIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -158,6 +158,8 @@ export interface ChatProps {
   mentionableUsers?: { id: string; nom: string }[];
   /** Couleur de l'office appliquée aux bulles "mine" — omis pour un bleu générique (DM, organizer perso). */
   accentColor?: { bubble: string; bubbleDark: string };
+  /** Dernière lecture connue de l'autre personne — active l'indicateur "Seen" (DM uniquement). */
+  otherLastReadAt?: string | null;
 }
 
 export function Chat({
@@ -172,7 +174,9 @@ export function Chat({
   description,
   mentionableUsers = [],
   accentColor,
+  otherLastReadAt = null,
 }: ChatProps) {
+  const isDirect = messageEvent === 'dm:message';
   const bubbleClass = accentColor?.bubble ?? 'bg-brand-blue';
   const bubbleDarkClass = accentColor?.bubbleDark ?? 'bg-brand-blue-dark';
   const { user } = useAuth();
@@ -191,6 +195,9 @@ export function Chat({
   const [pickedMentionIds, setPickedMentionIds] = useState<Map<string, string>>(new Map());
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [otherReadAt, setOtherReadAt] = useState<Date | null>(
+    otherLastReadAt ? new Date(otherLastReadAt) : null,
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -231,14 +238,48 @@ export function Chat({
     return [...new Set([...scanned, ...picked])];
   }
 
+  const URL_PATTERN = /((?:https?:\/\/|www\.)[^\s]+)/g;
+
+  /** Découpe un morceau de texte "normal" (sans mention) pour rendre ses liens cliquables. */
+  function linkify(text: string, keyPrefix: string, mine: boolean) {
+    const nodes: ReactNode[] = [];
+    text.split(URL_PATTERN).forEach((seg, i) => {
+      if (i % 2 === 0) {
+        if (seg) nodes.push(seg);
+        return;
+      }
+      // La ponctuation de fin de phrase ("...voir ça.", "(voir ici)") ne fait pas partie du lien.
+      const trailingMatch = seg.match(/[.,!?;:)\]}]+$/);
+      const trailing = trailingMatch ? trailingMatch[0] : '';
+      const url = trailing ? seg.slice(0, -trailing.length) : seg;
+      const href = url.startsWith('http') ? url : `https://${url}`;
+      nodes.push(
+        <a
+          key={`${keyPrefix}-url-${i}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className={mine ? 'underline decoration-white/70 hover:decoration-white' : 'text-brand-blue underline hover:no-underline'}
+        >
+          {url}
+        </a>,
+      );
+      if (trailing) nodes.push(trailing);
+    });
+    return nodes;
+  }
+
   function renderWithMentions(text: string, mine: boolean) {
     const names = mentionableUsers.map((u) => u.nom).filter(Boolean);
-    if (names.length === 0) return text;
-    const pattern = new RegExp(`(@(?:${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}))`, 'g');
-    return text.split(pattern).map((part, i) => {
+    const pattern = names.length
+      ? new RegExp(`(@(?:${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}))`, 'g')
+      : null;
+    const parts = pattern ? text.split(pattern) : [text];
+    return parts.map((part, i) => {
       const nom = part.startsWith('@') ? part.slice(1) : null;
       const match = nom ? mentionableUsers.find((u) => u.nom === nom) : null;
-      if (!match) return part;
+      if (!match) return <span key={i}>{linkify(part, `m${i}`, mine)}</span>;
       return (
         <span
           key={i}
@@ -280,9 +321,21 @@ export function Chat({
     function onMessage(message: ChatMessage) {
       if (message.conversationId && active) {
         setMessages((prev) => (prev ? [...prev, message] : [message]));
+        // La fenêtre est ouverte sur cette conversation : le nouveau message est vu
+        // immédiatement, pas seulement à la prochaine ouverture de l'onglet.
+        if (isDirect && message.auteurId !== user?.id) {
+          socket.emit('dm:mark-read', { conversationId: roomId });
+        }
       }
     }
     socket.on(messageEvent, onMessage);
+
+    function onRead(data: { conversationId: string; userId: string; at: string }) {
+      if (active && isDirect && data.conversationId === roomId && data.userId !== user?.id) {
+        setOtherReadAt(new Date(data.at));
+      }
+    }
+    if (isDirect) socket.on('dm:read', onRead);
 
     function onMessageUpdated(message: ChatMessage) {
       if (active) {
@@ -305,6 +358,7 @@ export function Chat({
       socket.off(messageEvent, onMessage);
       socket.off('message:updated', onMessageUpdated);
       socket.off('message:deleted', onMessageDeleted);
+      if (isDirect) socket.off('dm:read', onRead);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
@@ -447,6 +501,8 @@ export function Chat({
     });
   }
 
+  const lastMineIndex = messages?.reduce((acc, m, i) => (m.auteurId === user?.id ? i : acc), -1) ?? -1;
+
   return (
     <Card className="flex h-[520px] flex-col">
       <div className="mb-4">
@@ -475,8 +531,8 @@ export function Chat({
               const highlighted = highlightedId === m.id;
 
               return (
+                <Fragment key={m.id}>
                 <div
-                  key={m.id}
                   id={`msg-${m.id}`}
                   className={`group flex items-start gap-2 rounded-lg text-left transition-colors ${mine ? 'flex-row-reverse' : ''} ${grouped ? 'mt-0.5' : 'mt-3'} ${highlighted ? 'bg-brand-blue/10' : ''}`}
                 >
@@ -578,6 +634,16 @@ export function Chat({
                     </div>
                   )}
                 </div>
+                {isDirect &&
+                  mine &&
+                  index === lastMineIndex &&
+                  otherReadAt &&
+                  otherReadAt >= new Date(m.createdAt) && (
+                    <p className="mr-1 text-right text-[10px] text-muted-foreground">
+                      Seen {formatTime(otherReadAt.toISOString())}
+                    </p>
+                  )}
+                </Fragment>
               );
             })}
             <div ref={bottomRef} />

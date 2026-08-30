@@ -1065,6 +1065,7 @@ export interface DirectConversation {
   lastMessage: { contenu: string | null; fichierNom: string | null; auteurId: string; createdAt: string } | null;
   lastActivity: string;
   unread: boolean;
+  otherLastReadAt: string | null;
 }
 
 export function getUnreadDirectMessagesCount() {

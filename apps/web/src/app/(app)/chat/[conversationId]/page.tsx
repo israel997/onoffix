@@ -71,6 +71,7 @@ export default function DirectConversationPage() {
             uploadFile={sendDirectFile}
             title={conversation?.otherUser.nom ?? 'Conversation'}
             description="Direct message."
+            otherLastReadAt={conversation?.otherLastReadAt ?? null}
           />
         </div>
       </div>
