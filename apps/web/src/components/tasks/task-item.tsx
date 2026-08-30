@@ -291,13 +291,11 @@ export function TaskItem({
         {tache.priorite !== 'NORMALE' && (
           <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
         )}
-        {tache.conversation && <Badge tone="brand">{tache.conversation.nom}</Badge>}
         {tache.statut === 'EN_COURS' && tache.dateDebut && (
           <span>
             running <LiveTimer since={tache.dateDebut} />
           </span>
         )}
-        {tache.description && <span className="truncate">- {tache.description}</span>}
         {tache.commentaireDeclaration && (
           <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
         )}
