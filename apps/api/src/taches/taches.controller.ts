@@ -86,8 +86,12 @@ export class TachesController {
   }
 
   @Post('declarer')
-  declarer(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.tachesService.declarer(tacheId, user);
+  declarer(
+    @Param('tacheId') tacheId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('commentaire') commentaire?: string,
+  ) {
+    return this.tachesService.declarer(tacheId, user, commentaire);
   }
 
   @Post('annuler-declaration')

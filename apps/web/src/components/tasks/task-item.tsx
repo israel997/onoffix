@@ -76,6 +76,7 @@ export function TaskItem({
     tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
   );
   const [assigneeId, setAssigneeId] = useState(tache.assigneAId ?? '');
+  const [doneComment, setDoneComment] = useState('');
 
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
@@ -297,6 +298,9 @@ export function TaskItem({
           </span>
         )}
         {tache.description && <span className="truncate">- {tache.description}</span>}
+        {tache.commentaireDeclaration && (
+          <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
+        )}
       </div>
 
       {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
@@ -342,9 +346,27 @@ export function TaskItem({
         )}
 
         {canCheckDone && (
-          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => declarerTache(tache.id), 'Marked as done')}>
-            Done
-          </Button>
+          <>
+            <input
+              value={doneComment}
+              onChange={(e) => setDoneComment(e.target.value)}
+              placeholder="Comment (optional)"
+              className="h-7 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="success"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  await declarerTache(tache.id, doneComment);
+                  setDoneComment('');
+                }, 'Marked as done')
+              }
+            >
+              Done
+            </Button>
+          </>
         )}
 
         {isAssignee && tache.statut === 'DECLARE' && (

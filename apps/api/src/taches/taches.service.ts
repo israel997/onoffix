@@ -250,7 +250,7 @@ export class TachesService {
     return updated;
   }
 
-  async declarer(tacheId: string, user: AuthenticatedUser) {
+  async declarer(tacheId: string, user: AuthenticatedUser, commentaire?: string) {
     const tache = await this.loadWithBureau(tacheId, user);
     await this.assertBureauMember(tache.projet.bureauId, user);
 
@@ -263,7 +263,11 @@ export class TachesService {
 
     const updated = await this.prisma.tache.update({
       where: { id: tacheId },
-      data: { statut: StatutTache.DECLARE, dateDeclaration: new Date() },
+      data: {
+        statut: StatutTache.DECLARE,
+        dateDeclaration: new Date(),
+        commentaireDeclaration: commentaire?.trim() || null,
+      },
       include: TACHE_INCLUDE,
     });
 
@@ -276,7 +280,9 @@ export class TachesService {
       await this.notifications.create(
         tache.assigneParId,
         NotificationType.VALIDATION_A_FAIRE,
-        `${updated.assigneA?.nom ?? 'Un collaborateur'} a déclaré la tâche « ${updated.titre} » comme terminée`,
+        `${updated.assigneA?.nom ?? 'Un collaborateur'} a déclaré la tâche « ${updated.titre} » comme terminée${
+          updated.commentaireDeclaration ? ` : « ${updated.commentaireDeclaration} »` : ''
+        }`,
         this.lienTache(tache.projet.bureauId),
       );
     }
@@ -301,7 +307,7 @@ export class TachesService {
 
     const updated = await this.prisma.tache.update({
       where: { id: tacheId },
-      data: { statut: StatutTache.EN_COURS, dateDeclaration: null },
+      data: { statut: StatutTache.EN_COURS, dateDeclaration: null, commentaireDeclaration: null },
       include: TACHE_INCLUDE,
     });
 
@@ -340,7 +346,7 @@ export class TachesService {
           })
         : await this.prisma.tache.update({
             where: { id: tacheId },
-            data: { statut: StatutTache.A_REVOIR },
+            data: { statut: StatutTache.A_REVOIR, commentaireDeclaration: null },
             include: TACHE_INCLUDE,
           });
 

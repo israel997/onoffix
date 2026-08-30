@@ -771,6 +771,7 @@ export interface Tache {
   assigneParId: string | null;
   dateDebut: string | null;
   dateDeclaration: string | null;
+  commentaireDeclaration: string | null;
   dateValidation: string | null;
   valideParId: string | null;
   dateCible: string | null;
@@ -812,8 +813,11 @@ export function demarrerTache(tacheId: string) {
   return authFetch<Tache>(`/taches/${tacheId}/demarrer`, { method: 'POST' });
 }
 
-export function declarerTache(tacheId: string) {
-  return authFetch<Tache>(`/taches/${tacheId}/declarer`, { method: 'POST' });
+export function declarerTache(tacheId: string, commentaire?: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/declarer`, {
+    method: 'POST',
+    body: commentaire ? { commentaire } : undefined,
+  });
 }
 
 export function annulerDeclarationTache(tacheId: string) {

@@ -349,6 +349,8 @@ model Tache {
   statut          StatutTache @default(A_FAIRE)
   dateDebut       DateTime?   @map("date_debut")
   dateDeclaration DateTime?   @map("date_declaration")
+  // Note optionnelle laissée par l'assigné en déclarant la tâche faite (cf. "Done").
+  commentaireDeclaration String? @map("commentaire_declaration")
   dateValidation  DateTime?   @map("date_validation")
   valideParId     String?     @map("valide_par")
   // Date cible du rituel quotidien (cf. 2.6) — définie par le manager, jamais par l'IA.
