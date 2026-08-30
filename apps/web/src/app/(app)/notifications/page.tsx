@@ -9,6 +9,8 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription } from '@/components/ui/card';
 import {
+  deleteAllNotifications,
+  deleteNotification,
   listNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
@@ -17,6 +19,7 @@ import {
   type NotificationType,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { useConfirm } from '@/lib/confirm-context';
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -105,6 +108,8 @@ function formatWhen(iso: string) {
 }
 
 export default function NotificationsPage() {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [notifications, setNotifications] = useState<AppNotification[] | null>(null);
   const [category, setCategory] = useState<Category>('ALL');
 
@@ -135,6 +140,24 @@ export default function NotificationsPage() {
     else await markNotificationAsUnread(notification.id);
   }
 
+  async function handleDelete(notification: AppNotification) {
+    setNotifications((prev) => prev?.filter((n) => n.id !== notification.id) ?? null);
+    await deleteNotification(notification.id);
+  }
+
+  async function handleDeleteAll() {
+    const ok = await confirmDialog({
+      title: 'Delete all notifications?',
+      description: 'This cannot be undone.',
+      confirmLabel: 'Delete all',
+      danger: true,
+    });
+    if (!ok) return;
+    setNotifications([]);
+    await deleteAllNotifications();
+    toast('All notifications deleted');
+  }
+
   const unreadCount = notifications?.filter((n) => !n.lue).length ?? 0;
 
   return (
@@ -163,6 +186,11 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <Button variant="secondary" size="sm" onClick={handleMarkAllAsRead}>
               Mark all as read
+            </Button>
+          )}
+          {notifications && notifications.length > 0 && (
+            <Button variant="danger" size="sm" onClick={handleDeleteAll}>
+              Delete all
             </Button>
           )}
         </div>
@@ -226,6 +254,17 @@ export default function NotificationsPage() {
                     className={cn(n.lue ? 'text-muted-foreground hover:text-foreground' : 'text-brand-blue')}
                   >
                     {n.lue ? <MailOpenIcon className="h-4 w-4" /> : <MailIcon className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(n);
+                    }}
+                    aria-label="Delete notification"
+                    title="Delete notification"
+                    className="text-muted-foreground hover:text-status-review"
+                  >
+                    🗑
                   </button>
                 </div>
               </div>

@@ -88,6 +88,15 @@ export function TaskItem({
   // Une tâche d'équipe est fermée par défaut (juste titre + statut) pour ne pas noyer
   // la liste — une tâche personnelle reste toujours "ouverte", c'est déjà compact.
   const [open, setOpen] = useState(false);
+  const [showInfoTip, setShowInfoTip] = useState(false);
+
+  function toggleOpen() {
+    setOpen((o) => {
+      const next = !o;
+      if (next) setShowInfoTip(true);
+      return next;
+    });
+  }
 
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
@@ -262,7 +271,7 @@ export function TaskItem({
         )}
         {!isPersonal && (
           <button
-            onClick={() => setOpen((o) => !o)}
+            onClick={toggleOpen}
             aria-label={open ? 'Collapse task' : 'Expand task'}
             className="mt-1 shrink-0 text-muted-foreground hover:text-foreground"
           >
@@ -271,7 +280,7 @@ export function TaskItem({
         )}
         <button
           className={`min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground ${isPersonal ? 'hover:underline' : ''}`}
-          onClick={() => (isPersonal ? setShowDetail(true) : setOpen((o) => !o))}
+          onClick={() => (isPersonal ? setShowDetail(true) : toggleOpen())}
         >
           {isPersonal ? tache.titre : truncateTitle(tache.titre)}
         </button>
@@ -290,7 +299,7 @@ export function TaskItem({
             <button
               onClick={() => setShowDetail(true)}
               aria-label="View task details"
-              className="rounded px-1 text-muted-foreground hover:text-foreground"
+              className="rounded px-1 text-status-review hover:opacity-75"
             >
               <InfoIcon className="h-4 w-4" />
             </button>
@@ -323,6 +332,22 @@ export function TaskItem({
           )}
         </div>
       </div>
+
+      {!isPersonal && open && showInfoTip && (
+        <div className="mt-1.5 ml-6 flex items-center justify-between gap-2 rounded-lg bg-status-review/10 px-2 py-1.5 text-xs text-status-review">
+          <span className="flex items-center gap-1.5">
+            <InfoIcon className="h-3.5 w-3.5 shrink-0" />
+            Click the red info icon to see the full task details.
+          </span>
+          <button
+            onClick={() => setShowInfoTip(false)}
+            aria-label="Dismiss"
+            className="shrink-0 hover:opacity-70"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {expanded && (
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">

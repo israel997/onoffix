@@ -753,6 +753,14 @@ export function markAllNotificationsAsRead() {
   return authFetch<void>('/notifications/read-all', { method: 'PATCH' });
 }
 
+export function deleteNotification(notificationId: string) {
+  return authFetch<void>(`/notifications/${notificationId}`, { method: 'DELETE' });
+}
+
+export function deleteAllNotifications() {
+  return authFetch<void>('/notifications/all', { method: 'DELETE' });
+}
+
 export type StatutTache = 'A_FAIRE' | 'ACCEPTEE' | 'EN_COURS' | 'DECLARE' | 'VALIDE' | 'A_REVOIR';
 export type SanteTache = 'NORMAL' | 'A_SURVEILLER' | 'A_RISQUE' | 'BLOQUEE';
 export type PrioriteTache = 'BASSE' | 'NORMALE' | 'HAUTE' | 'URGENTE';

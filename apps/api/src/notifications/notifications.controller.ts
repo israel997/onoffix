@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch } from '@nestjs/common';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from './notifications.service';
 
@@ -35,5 +35,20 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.notificationsService.markAsUnread(notificationId, user.userId);
+  }
+
+  @Delete('all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.deleteAll(user.userId);
+  }
+
+  @Delete(':notificationId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteOne(
+    @Param('notificationId') notificationId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.notificationsService.delete(notificationId, user.userId);
   }
 }

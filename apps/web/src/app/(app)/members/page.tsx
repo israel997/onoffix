@@ -282,70 +282,20 @@ function MembersPageContent() {
               </div>
             ))}
             {membres.map((m) => (
-              <div key={m.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+              <div key={m.id} className="flex flex-col gap-2 py-3">
+                <div className="flex items-start justify-between gap-3">
                   <button
                     onClick={() => setDetailMembre(m)}
-                    className="flex items-center gap-3 text-left"
+                    className="flex min-w-0 items-center gap-3 text-left"
                     aria-label={`View ${m.nom}'s profile`}
                   >
                     <MemberAvatar nom={m.nom} photoUrl={m.photoUrl} />
-                    <div>
-                      <p className="text-sm font-medium text-foreground hover:underline">{m.nom}</p>
-                      <p className="text-xs text-muted-foreground">{m.email}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground hover:underline">{m.nom}</p>
+                      <p className="truncate text-xs text-muted-foreground">{m.email}</p>
                     </div>
                   </button>
-                  <div className="pl-12 sm:pl-0">
-                  {editingPosteId === m.id ? (
-                    <div className="mt-1 flex items-center gap-2">
-                      <Input
-                        autoFocus
-                        value={posteDraft}
-                        onChange={(e) => setPosteDraft(e.target.value)}
-                        maxLength={100}
-                        placeholder="Job title"
-                        className="h-7 w-48 text-xs"
-                      />
-                      <Button size="sm" disabled={savingPoste} onClick={() => handleSavePoste(m)}>
-                        Save
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={savingPoste}
-                        onClick={() => setEditingPosteId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    isAdmin && (
-                      <button
-                        onClick={() => startEditPoste(m)}
-                        className="mt-0.5 text-xs text-brand-blue hover:underline"
-                      >
-                        {m.poste ?? 'Add job title'}
-                      </button>
-                    )
-                  )}
-                  {!isAdmin && m.poste && <p className="mt-0.5 text-xs text-muted-foreground">{m.poste}</p>}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="validated">Joined</Badge>
-                    {m.bureaux.slice(0, 3).map((b) => (
-                      <Badge key={b.bureau.id} tone="neutral">
-                        {b.bureau.nom}
-                      </Badge>
-                    ))}
-                    {m.bureaux.length > 3 && (
-                      <button onClick={() => setDetailMembre(m)}>
-                        <Badge tone="neutral">+{m.bureaux.length - 3} more</Badge>
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {m.id === user?.organisation.proprietaireId ? (
                       <Badge tone="brand">
                         <KeyIcon className="mr-1 inline h-3 w-3 -translate-y-px" />
@@ -378,6 +328,56 @@ function MembersPageContent() {
                       </button>
                     )}
                   </div>
+                </div>
+
+                <div className="pl-12">
+                  {editingPosteId === m.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        autoFocus
+                        value={posteDraft}
+                        onChange={(e) => setPosteDraft(e.target.value)}
+                        maxLength={100}
+                        placeholder="Job title"
+                        className="h-7 w-48 text-xs"
+                      />
+                      <Button size="sm" disabled={savingPoste} onClick={() => handleSavePoste(m)}>
+                        Save
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={savingPoste}
+                        onClick={() => setEditingPosteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    isAdmin && (
+                      <button
+                        onClick={() => startEditPoste(m)}
+                        className="text-xs text-brand-blue hover:underline"
+                      >
+                        {m.poste ?? 'Add job title'}
+                      </button>
+                    )
+                  )}
+                  {!isAdmin && m.poste && <p className="text-xs text-muted-foreground">{m.poste}</p>}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pl-12">
+                  <Badge tone="validated">Joined</Badge>
+                  {m.bureaux.slice(0, 3).map((b) => (
+                    <Badge key={b.bureau.id} tone="neutral">
+                      {b.bureau.nom}
+                    </Badge>
+                  ))}
+                  {m.bureaux.length > 3 && (
+                    <button onClick={() => setDetailMembre(m)}>
+                      <Badge tone="neutral">+{m.bureaux.length - 3} more</Badge>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

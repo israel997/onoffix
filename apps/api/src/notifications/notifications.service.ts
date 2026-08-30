@@ -70,4 +70,19 @@ export class NotificationsService {
       data: { lue: true },
     });
   }
+
+  async delete(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification) throw new NotFoundException('Notification introuvable');
+    if (notification.userId !== userId) {
+      throw new ForbiddenException('Cette notification ne vous appartient pas');
+    }
+    await this.prisma.notification.delete({ where: { id: notificationId } });
+  }
+
+  async deleteAll(userId: string) {
+    await this.prisma.notification.deleteMany({ where: { userId } });
+  }
 }
