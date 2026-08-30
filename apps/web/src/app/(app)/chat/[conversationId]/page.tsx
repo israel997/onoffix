@@ -1,5 +1,7 @@
 'use client';
 
+import { Loading } from '@/components/ui/loading';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Chat } from '@/components/chat/chat';
@@ -35,7 +37,7 @@ export default function DirectConversationPage() {
   const conversation = conversations?.find((c) => c.id === conversationId) ?? null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
@@ -43,28 +45,34 @@ export default function DirectConversationPage() {
           { label: conversation?.otherUser.nom ?? '…' },
         ]}
       />
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        {conversations && conversations.length > 0 && (
-          <Card className="hidden overflow-hidden !p-0 lg:block lg:h-fit">
+      <div className="flex gap-6">
+        {/* Toujours montée (même pendant le chargement) pour que la fenêtre de chat ne
+            change jamais de largeur — seul son contenu interne bascule en Loading. */}
+        <Card className="hidden w-72 shrink-0 overflow-hidden !p-0 lg:block lg:h-fit">
+          {conversations === null ? (
+            <Loading className="p-4 text-sm" />
+          ) : (
             <DirectConversationsList
               conversations={conversations}
               activeId={conversationId}
               currentUserId={user?.id}
             />
-          </Card>
-        )}
-        <Chat
-          key={conversationId}
-          roomId={conversationId}
-          roomKey="conversationId"
-          joinEvent="dm:join"
-          leaveEvent="dm:leave"
-          messageEvent="dm:message"
-          fetchHistory={listDirectMessages}
-          uploadFile={sendDirectFile}
-          title={conversation?.otherUser.nom ?? 'Conversation'}
-          description="Direct message."
-        />
+          )}
+        </Card>
+        <div className="min-w-0 flex-1">
+          <Chat
+            key={conversationId}
+            roomId={conversationId}
+            roomKey="conversationId"
+            joinEvent="dm:join"
+            leaveEvent="dm:leave"
+            messageEvent="dm:message"
+            fetchHistory={listDirectMessages}
+            uploadFile={sendDirectFile}
+            title={conversation?.otherUser.nom ?? 'Conversation'}
+            description="Direct message."
+          />
+        </div>
       </div>
     </div>
   );

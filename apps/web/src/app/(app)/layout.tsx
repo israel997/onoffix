@@ -24,9 +24,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Le calendrier a besoin de toute la largeur pour sa grille — les autres pages
-  // gagnent à être plus contenues plutôt qu'étirées bord à bord.
-  const isFullWidthPage = pathname?.startsWith('/calendar');
+  // Le calendrier a besoin de toute la largeur pour sa grille, et un fil de discussion
+  // a besoin de la marge habituellement vide pour loger sa liste de conversations sans
+  // rétrécir la fenêtre de chat elle-même — les autres pages restent plus contenues.
+  const isFullWidthPage = pathname?.startsWith('/calendar') || /^\/chat\/.+/.test(pathname ?? '');
 
   useEffect(() => {
     if (!loading && !user) {
