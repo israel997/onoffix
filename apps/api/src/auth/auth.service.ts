@@ -154,13 +154,19 @@ export class AuthService {
     );
   }
 
-  /** Toujours silencieux côté réponse pour ne pas révéler si un email est enregistré. */
+  /**
+   * Toujours silencieux côté réponse pour ne pas révéler si un email est enregistré.
+   * Un même email peut correspondre à plusieurs organisations (un compte peut en
+   * posséder ou en rejoindre plusieurs) — on cible celle qui a vraiment besoin d'un
+   * code, sinon ce sont systématiquement les organisations déjà vérifiées les plus
+   * anciennes qui répondent, et la nouvelle ne reçoit jamais rien.
+   */
   async resendOtp(email: string) {
     const user = await this.prisma.user.findFirst({
-      where: { email },
+      where: { email, emailVerifie: false },
       orderBy: { createdAt: 'asc' },
     });
-    if (!user || user.emailVerifie) return;
+    if (!user) return;
 
     const lastToken = await this.prisma.emailVerificationToken.findFirst({
       where: { userId: user.id },
@@ -286,6 +292,11 @@ export class AuthService {
           organisationId: organisation.id,
           nom: account_.nom,
           email: account.email,
+          // On est déjà authentifié avec ce compte — son email a forcément été vérifié
+          // pour arriver jusqu'ici, pas besoin de le refaire vérifier pour cette
+          // nouvelle organisation (sinon le prochain login dessus resterait bloqué,
+          // sans jamais recevoir de code puisqu'une autre org du même compte l'a déjà).
+          emailVerifie: true,
           roleGlobal: RoleGlobal.ADMIN,
         },
       });

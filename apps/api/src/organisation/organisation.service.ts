@@ -238,6 +238,14 @@ export class OrganisationService {
         throw new ConflictException('Ce collaborateur est déjà membre de cette organisation');
       }
 
+      // Si ce compte a déjà prouvé cet email ailleurs (une autre organisation), inutile
+      // de le refaire vérifier ici — sinon le login sur cette nouvelle organisation
+      // resterait bloqué sans jamais recevoir de code (une autre org déjà vérifiée
+      // du même compte répond à sa place).
+      const alreadyVerifiedElsewhere = await this.prisma.user.findFirst({
+        where: { accountId: account.id, emailVerifie: true },
+      });
+
       const user = await this.prisma.user.create({
         data: {
           accountId: account.id,
@@ -245,6 +253,7 @@ export class OrganisationService {
           nom: dto.nom,
           email: dto.email,
           poste: dto.poste,
+          emailVerifie: !!alreadyVerifiedElsewhere,
           roleGlobal: RoleGlobal.MEMBRE,
         },
         select: MEMBRE_SELECT,
