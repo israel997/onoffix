@@ -37,7 +37,7 @@ export default function DirectConversationPage() {
   const conversation = conversations?.find((c) => c.id === conversationId) ?? null;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },

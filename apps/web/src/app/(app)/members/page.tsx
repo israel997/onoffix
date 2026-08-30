@@ -2,7 +2,8 @@
 
 import { Loading } from '@/components/ui/loading';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { ChairIcon, ExitIcon, KeyIcon } from '@/components/icons/office-icons';
 import { MemberDetailPanel } from '@/components/offices/member-detail-panel';
 import { Badge } from '@/components/ui/badge';
@@ -51,8 +52,10 @@ import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
-export default function MembersPage() {
+function MembersPageContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const highlightUserId = searchParams.get('userId');
   const toast = useToast();
   const confirmDialog = useConfirm();
   const [membres, setMembres] = useState<OrganisationMembre[] | null>(null);
@@ -80,6 +83,15 @@ export default function MembersPage() {
     setMembres(membresData);
     setInvitations(invitationsData);
   }
+
+  // Lien profond depuis ailleurs dans l'app (ex. l'assigné d'une tâche) : ouvre
+  // directement le profil visé une fois la liste chargée.
+  useEffect(() => {
+    if (!highlightUserId || !membres) return;
+    const target = membres.find((m) => m.id === highlightUserId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (target) setDetailMembre(target);
+  }, [highlightUserId, membres]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -378,5 +390,13 @@ export default function MembersPage() {
 
       {detailMembre && <MemberDetailPanel membre={detailMembre} onClose={() => setDetailMembre(null)} />}
     </div>
+  );
+}
+
+export default function MembersPage() {
+  return (
+    <Suspense fallback={<Loading className="text-sm" />}>
+      <MembersPageContent />
+    </Suspense>
   );
 }

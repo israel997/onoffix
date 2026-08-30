@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ChevronIcon } from '@/components/icons/office-icons';
+import { ChevronIcon, InfoIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,12 @@ import {
 import { useConfirm } from '@/lib/confirm-context';
 import { PRIORITE_TONE, SANTE_LABEL, SANTE_TONE, STATUT_LABEL, STATUT_TONE } from '@/lib/tache-labels';
 import { useToast } from '@/lib/toast-context';
+
+const TITLE_MAX_CHARS = 28;
+
+function truncateTitle(title: string) {
+  return title.length > TITLE_MAX_CHARS ? `${title.slice(0, TITLE_MAX_CHARS - 1)}…` : title;
+}
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -263,14 +270,31 @@ export function TaskItem({
           </button>
         )}
         <button
-          className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
-          onClick={() => setShowDetail(true)}
+          className={`min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground ${isPersonal ? 'hover:underline' : ''}`}
+          onClick={() => (isPersonal ? setShowDetail(true) : setOpen((o) => !o))}
         >
-          {tache.titre}
+          {isPersonal ? tache.titre : truncateTitle(tache.titre)}
         </button>
         <div className="flex shrink-0 items-center gap-1.5">
+          {!isPersonal &&
+            (tache.assigneA ? (
+              <Link href={`/members?userId=${tache.assigneA.id}`} onClick={(e) => e.stopPropagation()}>
+                <Badge tone={isAssignee ? 'indigo' : 'neutral'}>{tache.assigneA.nom}</Badge>
+              </Link>
+            ) : (
+              <Badge tone="neutral">Unassigned</Badge>
+            ))}
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
+          {expanded && !isPersonal && (
+            <button
+              onClick={() => setShowDetail(true)}
+              aria-label="View task details"
+              className="rounded px-1 text-muted-foreground hover:text-foreground"
+            >
+              <InfoIcon className="h-4 w-4" />
+            </button>
+          )}
           {expanded && isManager && (
             <button
               onClick={() => setEditing(true)}
@@ -302,7 +326,7 @@ export function TaskItem({
 
       {expanded && (
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
-        <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>
+        {isPersonal && <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>}
         {tache.priorite !== 'NORMALE' && (
           <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
         )}
