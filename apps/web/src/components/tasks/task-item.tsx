@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ChevronIcon } from '@/components/icons/office-icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,6 +78,9 @@ export function TaskItem({
   );
   const [assigneeId, setAssigneeId] = useState(tache.assigneAId ?? '');
   const [doneComment, setDoneComment] = useState('');
+  // Une tâche d'équipe est fermée par défaut (juste titre + statut) pour ne pas noyer
+  // la liste — une tâche personnelle reste toujours "ouverte", c'est déjà compact.
+  const [open, setOpen] = useState(false);
 
   const isAssignee = tache.assigneAId === currentUserId;
   const isAssigner = tache.assigneParId === currentUserId;
@@ -231,6 +235,7 @@ export function TaskItem({
   const canCheckDone = isAssignee && tache.statut === 'EN_COURS';
   const isChecked = isPersonal ? tache.statut === 'VALIDE' : tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
   const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone || canValidate;
+  const expanded = isPersonal || open;
 
   return (
     <div className="rounded-lg border border-border p-2.5">
@@ -248,6 +253,15 @@ export function TaskItem({
             className="mt-0.5 h-4 w-4 shrink-0 rounded accent-brand-blue"
           />
         )}
+        {!isPersonal && (
+          <button
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? 'Collapse task' : 'Expand task'}
+            className="mt-1 shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronIcon className={`h-3 w-3 transition-transform ${open ? 'rotate-90' : ''}`} />
+          </button>
+        )}
         <button
           className="min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground hover:underline"
           onClick={() => setShowDetail(true)}
@@ -257,7 +271,7 @@ export function TaskItem({
         <div className="flex shrink-0 items-center gap-1.5">
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
-          {isManager && (
+          {expanded && isManager && (
             <button
               onClick={() => setEditing(true)}
               aria-label="Edit task"
@@ -266,7 +280,7 @@ export function TaskItem({
               ✎
             </button>
           )}
-          {canDeleteTask && (
+          {expanded && canDeleteTask && (
             <button
               onClick={async () => {
                 const ok = await confirmDialog({
@@ -286,6 +300,7 @@ export function TaskItem({
         </div>
       </div>
 
+      {expanded && (
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
         <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>
         {tache.priorite !== 'NORMALE' && (
@@ -300,10 +315,11 @@ export function TaskItem({
           <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
         )}
       </div>
+      )}
 
-      {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
+      {expanded && error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
 
-      {!isPersonal && (
+      {!isPersonal && expanded && (
       <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-6">
         {!tache.assigneAId && isManager && (
           <select

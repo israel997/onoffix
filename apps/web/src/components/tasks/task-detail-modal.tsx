@@ -16,6 +16,7 @@ import {
   type TacheBlocage,
   type TypeBlocage,
 } from '@/lib/api';
+import { PRIORITE_TONE, SANTE_LABEL, SANTE_TONE, STATUT_LABEL, STATUT_TONE } from '@/lib/tache-labels';
 import { useToast } from '@/lib/toast-context';
 
 function formatDate(iso: string | null) {
@@ -88,13 +89,19 @@ export function TaskDetailModal({
       </div>
       {tache.description && <p className="mt-2 text-sm text-muted-foreground">{tache.description}</p>}
 
-      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+      <div className="mt-4 grid grid-cols-2 items-center gap-x-4 gap-y-2 text-sm">
         <span className="text-muted-foreground">Status</span>
-        <span className="text-foreground">{tache.statut}</span>
+        <span>
+          <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
+        </span>
         <span className="text-muted-foreground">Health</span>
-        <span className="text-foreground">{tache.sante}</span>
+        <span>
+          <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>
+        </span>
         <span className="text-muted-foreground">Priority</span>
-        <span className="text-foreground">{tache.priorite}</span>
+        <span>
+          <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
+        </span>
         <span className="text-muted-foreground">Assigned to</span>
         <span className="text-foreground">{tache.assigneA?.nom ?? 'Unassigned'}</span>
         <span className="text-muted-foreground">Created</span>
@@ -110,7 +117,9 @@ export function TaskDetailModal({
         {tache.conversation && (
           <>
             <span className="text-muted-foreground">Subject</span>
-            <span className="text-foreground">{tache.conversation.nom}</span>
+            <span>
+              <Badge tone="brand">{tache.conversation.nom}</Badge>
+            </span>
           </>
         )}
       </div>

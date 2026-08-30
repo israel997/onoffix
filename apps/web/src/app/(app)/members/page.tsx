@@ -322,11 +322,16 @@ export default function MembersPage() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="validated">Joined</Badge>
-                    {m.bureaux.map((b) => (
+                    {m.bureaux.slice(0, 3).map((b) => (
                       <Badge key={b.bureau.id} tone="neutral">
                         {b.bureau.nom}
                       </Badge>
                     ))}
+                    {m.bureaux.length > 3 && (
+                      <button onClick={() => setDetailMembre(m)}>
+                        <Badge tone="neutral">+{m.bureaux.length - 3} more</Badge>
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {m.id === user?.organisation.proprietaireId ? (
