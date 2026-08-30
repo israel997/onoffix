@@ -370,7 +370,11 @@ export function Chat({
       selectMention(mentionMatches[0]);
       return;
     }
-    if (event.key === 'Enter' && !event.shiftKey) {
+    // Sur un écran tactile, il n'y a pas de touche Shift commode : Entrée doit rester
+    // un simple retour à la ligne, l'envoi se fait via le bouton dédié.
+    const isTouchDevice =
+      typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+    if (event.key === 'Enter' && !event.shiftKey && !isTouchDevice) {
       event.preventDefault();
       sendMessage();
     }
