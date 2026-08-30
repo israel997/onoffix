@@ -8,10 +8,17 @@ interface ToastItem {
   id: number;
   message: string;
   tone: ToastTone;
+  persistent: boolean;
+}
+
+interface ToastOptions {
+  /** Reste affiché jusqu'à un clic explicite sur "Got it" au lieu de disparaître seul
+   * après quelques secondes — pour une alerte qu'on ne doit pas pouvoir manquer. */
+  persistent?: boolean;
 }
 
 interface ToastContextValue {
-  toast: (message: string, tone?: ToastTone) => void;
+  toast: (message: string, tone?: ToastTone, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -21,13 +28,21 @@ let nextId = 0;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
-  const toast = useCallback((message: string, tone: ToastTone = 'success') => {
-    const id = nextId++;
-    setItems((prev) => [...prev, { id, message, tone }]);
-    setTimeout(() => {
-      setItems((prev) => prev.filter((t) => t.id !== id));
-    }, 3500);
+  const dismiss = useCallback((id: number) => {
+    setItems((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const toast = useCallback(
+    (message: string, tone: ToastTone = 'success', options?: ToastOptions) => {
+      const id = nextId++;
+      const persistent = options?.persistent ?? false;
+      setItems((prev) => [...prev, { id, message, tone, persistent }]);
+      if (!persistent) {
+        setTimeout(() => dismiss(id), 3500);
+      }
+    },
+    [dismiss],
+  );
 
   const value = useMemo(() => ({ toast }), [toast]);
 
@@ -38,11 +53,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className={`animate-fade-in-up pointer-events-auto rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ${
+            className={`animate-fade-in-up pointer-events-auto flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ${
               t.tone === 'success' ? 'bg-status-validated' : t.tone === 'warning' ? 'bg-status-declared' : 'bg-status-review'
             }`}
           >
-            {t.message}
+            <span>{t.message}</span>
+            {t.persistent && (
+              <button
+                onClick={() => dismiss(t.id)}
+                className="shrink-0 rounded-md bg-white/15 px-2 py-1 text-xs font-semibold hover:bg-white/25"
+              >
+                Got it
+              </button>
+            )}
           </div>
         ))}
       </div>

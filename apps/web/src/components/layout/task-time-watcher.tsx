@@ -46,11 +46,16 @@ export function TaskTimeWatcher() {
         notifiedRef.current.set(t.id, bucket);
 
         if (bucket >= QUARTER_BUCKETS) {
-          toast(`You have exceeded the time for "${t.titre}" by ${formatDuration(elapsedMs - estimatedMs)}.`, 'error');
+          toast(
+            `You have exceeded the time for "${t.titre}" by ${formatDuration(elapsedMs - estimatedMs)}.`,
+            'error',
+            { persistent: true },
+          );
         } else {
           toast(
             `You have done ${formatDuration(elapsedMs)} on "${t.titre}". It remains ${formatDuration(estimatedMs - elapsedMs)}.`,
             'warning',
+            { persistent: true },
           );
         }
       }
