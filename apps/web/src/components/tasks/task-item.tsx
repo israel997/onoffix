@@ -90,10 +90,12 @@ export function TaskItem({
   const [open, setOpen] = useState(false);
   const [showInfoTip, setShowInfoTip] = useState(false);
 
+  const infoTipSeenKey = `ooffix_task_info_tip_seen_${tache.id}`;
+
   function toggleOpen() {
     setOpen((o) => {
       const next = !o;
-      if (next) setShowInfoTip(true);
+      if (next && !localStorage.getItem(infoTipSeenKey)) setShowInfoTip(true);
       return next;
     });
   }
@@ -309,9 +311,12 @@ export function TaskItem({
                   <div className="relative rounded-lg bg-brand-blue px-3 py-2 text-xs font-medium text-white shadow-lg">
                     <div className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 bg-brand-blue" />
                     <div className="flex items-start gap-2">
-                      <span>Click here to see the full task details.</span>
+                      <span>See full details here.</span>
                       <button
-                        onClick={() => setShowInfoTip(false)}
+                        onClick={() => {
+                          localStorage.setItem(infoTipSeenKey, '1');
+                          setShowInfoTip(false);
+                        }}
                         aria-label="Dismiss"
                         className="shrink-0 leading-none text-white/80 hover:text-white"
                       >
