@@ -138,7 +138,9 @@ export class OrganisationService {
       this.prisma.tacheSession.findMany({
         where: {
           userId,
-          fin: range ? { not: null, gte: range.from, lte: range.to } : { not: null },
+          // Une session encore active (fin: null, chrono en cours) doit aussi compter —
+          // sinon tout le temps d'une tâche non encore déclarée faite reste invisible.
+          OR: [{ fin: range ? { gte: range.from, lte: range.to } : { not: null } }, { fin: null }],
         },
         select: { debut: true, fin: true },
       }),
@@ -158,9 +160,16 @@ export class OrganisationService {
         .map((t) => t.dateCible!.toISOString().slice(0, 10)),
     );
 
+    const now = new Date();
     const heuresTravaillees =
       Math.round(
-        (sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0) / 3600000) *
+        (sessions.reduce((sum, s) => {
+          const start = range && s.debut < range.from ? range.from : s.debut;
+          const end = s.fin ?? now;
+          const clippedEnd = range && end > range.to ? range.to : end;
+          return sum + Math.max(0, clippedEnd.getTime() - start.getTime());
+        }, 0) /
+          3600000) *
           10,
       ) / 10;
 

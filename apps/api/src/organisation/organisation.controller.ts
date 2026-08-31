@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleGlobal } from '@prisma/client';
 import { memoryStorage } from 'multer';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { endOfDay } from '../common/date.util';
 import { Roles } from '../common/decorators/roles.decorator';
 import { StorageService } from '../common/storage.service';
 import { AddOrganisationMembreDto } from './dto/add-organisation-membre.dto';
@@ -69,7 +70,7 @@ export class OrganisationController {
     if (userId !== user.userId && user.roleGlobal !== RoleGlobal.ADMIN) {
       throw new ForbiddenException('Vous ne pouvez consulter que vos propres statistiques');
     }
-    const range = from && to ? { from: new Date(from), to: new Date(to) } : undefined;
+    const range = from && to ? { from: new Date(from), to: endOfDay(to) } : undefined;
     return this.organisationService.getMembreStats(user.organisationId, userId, range);
   }
 
@@ -87,7 +88,7 @@ export class OrganisationController {
       user.organisationId,
       userId,
       new Date(from),
-      new Date(to),
+      endOfDay(to),
     );
   }
 

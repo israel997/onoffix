@@ -21,6 +21,7 @@ import { memoryStorage } from 'multer';
 import { BureauxService } from './bureaux.service';
 import { BureauRole } from '../common/decorators/bureau-role.decorator';
 import { CurrentUser, type AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { endOfDay } from '../common/date.util';
 import { Roles } from '../common/decorators/roles.decorator';
 import { BureauRoleGuard } from '../common/guards/bureau-role.guard';
 import { StorageService } from '../common/storage.service';
@@ -115,7 +116,7 @@ export class BureauxController {
     ) {
       throw new ForbiddenException('Le classement est masqué pour ce bureau');
     }
-    return this.bureauxService.getClassementFiabilite(bureauId, new Date(from), new Date(to));
+    return this.bureauxService.getClassementFiabilite(bureauId, new Date(from), endOfDay(to));
   }
 
   @BureauRole(RoleBureau.MANAGER)

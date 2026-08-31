@@ -51,10 +51,18 @@ function colorForUser(userId: string) {
 // Sélection restreinte à des émojis modernes et sobres (pas de doublons datés) —
 // pas de librairie externe, ce sont de simples glyphes Unicode rendus par l'OS.
 const EMOJI_LIST = [
-  '😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '😉', '😍', '🥰', '😘', '😜',
-  '🤔', '😎', '🥳', '😴', '😭', '😢', '😅', '😬', '🙄', '😳', '🤯', '🥺',
-  '😡', '😱', '🤗', '🤝', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '🎉',
-  '❤️', '💙', '💚', '💛', '💜', '🖤', '🤍', '💯', '✅', '❌', '⚠️', '👀',
+  '😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😍', '🥰', '😘',
+  '😗', '😙', '😋', '😛', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏',
+  '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢',
+  '😭', '😤', '😠', '😡', '🤬', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥',
+  '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
+  '😴', '🤤', '😪', '😵', '🤯', '🥴', '😷', '🤒', '🤕', '🤢', '🤮', '🥱',
+  '👍', '👎', '👏', '🙌', '🙏', '🤝', '💪', '👋', '🤙', '👌', '✌️', '🤞',
+  '🫡', '🤟', '🖤', '❤️', '🧡', '💛', '💚', '💙', '💜', '🤍', '🤎', '💔',
+  '💯', '🔥', '✨', '🎉', '🎊', '👀', '💤', '💬', '✅', '❌', '⚠️', '❓',
+  '🐶', '🐱', '🐼', '🦁', '🐸', '🐵', '🦄', '🐝', '🌸', '🌞', '🌙', '⭐',
+  '🍕', '🍔', '🍟', '🍎', '🍩', '☕', '🍺', '🎂', '⚽', '🏆', '🎮', '🎵',
+  '🚀', '✈️', '🚗', '🏠', '💡', '📌', '📎', '🔔', '🔒', '💰', '🎁', '📅',
 ];
 
 function quotePreview(message: { contenu: string | null; fichierNom: string | null }) {
@@ -712,7 +720,7 @@ export function Chat({
           </div>
         )}
         {showEmojiPicker && (
-          <div className="animate-fade-in-up absolute bottom-full right-0 z-10 mb-1 grid w-64 grid-cols-8 gap-1 rounded-lg border border-border bg-surface p-2 shadow-lg">
+          <div className="animate-fade-in-up absolute bottom-full right-0 z-10 mb-1 grid max-h-56 w-64 grid-cols-8 gap-1 overflow-y-auto rounded-lg border border-border bg-surface p-2 shadow-lg">
             {EMOJI_LIST.map((emoji) => (
               <button
                 key={emoji}
