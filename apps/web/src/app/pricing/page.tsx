@@ -30,6 +30,32 @@ function CheckIcon() {
   );
 }
 
+/** true = inclus, false = non inclus, string = valeur précise (ex. "10 GB"). */
+type CompareValue = boolean | string;
+
+interface CompareRow {
+  label: string;
+  values: [CompareValue, CompareValue, CompareValue];
+}
+
+const COMPARE_ROWS: CompareRow[] = [
+  { label: 'Offices', values: ['1', 'Up to 10', 'Unlimited'] },
+  { label: 'Seats', values: ['Up to 5', 'Unlimited', 'Unlimited'] },
+  { label: 'BrainDumper (AI assistant)', values: ['10 messages/day', 'Unlimited', 'Unlimited'] },
+  { label: 'File storage', values: ['500 MB', '10 GB', 'Unlimited'] },
+  { label: 'Daily check-in & task tracking', values: [true, true, true] },
+  { label: 'Performance stats & reliability leaderboard', values: [false, true, true] },
+  { label: 'External guest members', values: [false, 'Up to 5', 'Unlimited'] },
+  { label: 'Advanced reporting & CSV/PDF export', values: [false, false, true] },
+  { label: 'Priority support', values: [false, false, true] },
+];
+
+function CompareCell({ value }: { value: CompareValue }) {
+  if (value === true) return <CheckIcon />;
+  if (value === false) return <span className="compare-dash">–</span>;
+  return <span>{value}</span>;
+}
+
 interface Plan {
   key: string;
   floor: string;
@@ -142,6 +168,37 @@ export default function PricingPage() {
       </section>
 
       <section className="band">
+        <div className="wrap">
+          <div className="section-head center" style={{ margin: '0 auto' }}>
+            <h2>Compare plans in detail.</h2>
+          </div>
+
+          <div className="compare">
+            <div className="compare-row compare-head">
+              <div className="compare-crit"></div>
+              <div className="compare-cell">Free</div>
+              <div className="compare-cell win">Growth</div>
+              <div className="compare-cell">Scale</div>
+            </div>
+            {COMPARE_ROWS.map((row) => (
+              <div key={row.label} className="compare-row">
+                <div className="compare-crit">{row.label}</div>
+                <div className="compare-cell" data-plan="Free">
+                  <CompareCell value={row.values[0]} />
+                </div>
+                <div className="compare-cell win" data-plan="Growth">
+                  <CompareCell value={row.values[1]} />
+                </div>
+                <div className="compare-cell" data-plan="Scale">
+                  <CompareCell value={row.values[2]} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section>
         <div className="wrap">
           <div className="section-head center" style={{ margin: '0 auto' }}>
             <h2>Questions?</h2>

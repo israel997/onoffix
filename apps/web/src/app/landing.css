@@ -933,6 +933,85 @@ html {
   }
 }
 
+/* ---------- Pricing: detailed comparison ---------- */
+.landing .compare {
+  --cmp-line: rgba(11, 27, 63, 0.14);
+  border: 1px solid var(--cmp-line);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--lp-surface);
+}
+.landing .compare-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  align-items: center;
+}
+.landing .compare-row:not(:last-child) {
+  border-bottom: 1px solid var(--cmp-line);
+}
+.landing .compare-head {
+  background: #fbfcff;
+}
+.landing .compare-head .compare-cell {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--slate-soft);
+  font-weight: 600;
+}
+.landing .compare-head .compare-cell.win {
+  color: var(--blue);
+}
+.landing .compare-crit {
+  padding: 16px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.landing .compare-cell {
+  padding: 16px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  border-left: 1px solid var(--cmp-line);
+  text-align: center;
+}
+.landing .compare-cell svg {
+  color: var(--success);
+}
+.landing .compare-cell.win {
+  background: #f3f6ff;
+  font-weight: 600;
+}
+.landing .compare-dash {
+  color: var(--slate-soft);
+}
+@media (max-width: 700px) {
+  .landing .compare-row {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+  .landing .compare-crit {
+    padding-bottom: 4px;
+  }
+  .landing .compare-cell {
+    border-left: none;
+    border-top: 1px solid var(--cmp-line);
+    padding: 10px 24px;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+  }
+  .landing .compare-cell::before {
+    content: attr(data-plan);
+    color: var(--slate-soft);
+    font-size: 12px;
+  }
+  .landing .compare-head {
+    display: none;
+  }
+}
+
 /* ---------- Final CTA ---------- */
 .landing .cta-final {
   background: linear-gradient(135deg, var(--ink) 0%, var(--ink-2) 100%);
