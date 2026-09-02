@@ -835,6 +835,104 @@ html {
   }
 }
 
+/* ---------- Pricing ---------- */
+.landing .plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+.landing .plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-line);
+  border-radius: 20px;
+  padding: 32px;
+}
+.landing .plan-card.featured {
+  border-color: var(--blue);
+  box-shadow: 0 24px 60px -30px rgba(46, 92, 255, 0.45);
+  transform: translateY(-8px);
+}
+.landing .plan-badge {
+  position: absolute;
+  top: -13px;
+  left: 32px;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 99px;
+}
+.landing .plan-name {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.landing .plan-tagline {
+  color: var(--slate);
+  font-size: 14px;
+  min-height: 40px;
+}
+.landing .plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 20px 0 4px;
+}
+.landing .plan-price .amount {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.landing .plan-price .period {
+  color: var(--slate-soft);
+  font-size: 14px;
+}
+.landing .plan-trial {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--blue);
+  margin-bottom: 24px;
+  min-height: 16px;
+}
+.landing .plan-cta {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.landing .plan-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.landing .plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.landing .plan-feature svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--success);
+}
+@media (max-width: 900px) {
+  .landing .plan-grid {
+    grid-template-columns: 1fr;
+  }
+  .landing .plan-card.featured {
+    transform: none;
+  }
+}
+
 /* ---------- Final CTA ---------- */
 .landing .cta-final {
   background: linear-gradient(135deg, var(--ink) 0%, var(--ink-2) 100%);
@@ -870,6 +968,15 @@ html {
 }
 .landing .cta-final .btn-primary {
   position: relative;
+}
+.landing .cta-final .btn-ghost {
+  position: relative;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.landing .cta-final .btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
 }
 .landing .cta-honest {
   margin-top: 22px;

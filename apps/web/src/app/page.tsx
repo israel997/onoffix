@@ -3,6 +3,8 @@
 import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
+import { LandingFooter } from '@/components/landing/landing-footer';
+import { LandingHeader } from '@/components/landing/landing-header';
 import { useAuth } from '@/lib/auth-context';
 import './landing.css';
 
@@ -30,34 +32,7 @@ export default function LandingPage() {
     <div
       className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} landing`}
     >
-      <header className="nav">
-        <div className="wrap nav-inner">
-          <Link href="/" className="logo">
-            <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-10 w-auto" />
-          </Link>
-          <nav className="nav-links">
-            <a href="#how">How it works</a>
-            <a href="#ritual">The daily ritual</a>
-            <a href="#features">Features</a>
-          </nav>
-          <div className="nav-actions">
-            {authed ? (
-              <Link href="/dashboard" className="btn btn-primary btn-sm">
-                Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="btn btn-ghost btn-sm">
-                  Log in
-                </Link>
-                <Link href="/register" className="btn btn-primary btn-sm">
-                  Try OOffix
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       <section className="hero">
         <div className="wrap hero-grid">
@@ -77,7 +52,7 @@ export default function LandingPage() {
               </a>
             </div>
             <div className="hero-note">
-              <span className="dot"></span> In internal testing (not yet open to other companies)
+              <span className="dot"></span> No credit card required to get started
             </div>
           </div>
 
@@ -407,33 +382,20 @@ export default function LandingPage() {
         <div className="wrap">
           <div className="cta-final">
             <h2>Bring your team into the office.</h2>
-            <p>
-              OOffix is still being tested within our own team. If you&apos;d like to try it with
-              yours, let&apos;s talk.
-            </p>
-            <Link href={authed ? '/dashboard' : '/register'} className="btn btn-primary">
-              {authed ? 'Go to dashboard' : 'Try OOffix'}
-            </Link>
-            <div className="cta-honest">No pricing plan yet: currently in internal testing</div>
+            <p>Free for small teams. 7-day free trial on paid plans, no credit card required.</p>
+            <div className="hero-ctas" style={{ justifyContent: 'center' }}>
+              <Link href={authed ? '/dashboard' : '/register'} className="btn btn-primary">
+                {authed ? 'Go to dashboard' : 'Try OOffix'}
+              </Link>
+              <Link href="/pricing" className="btn btn-ghost">
+                See pricing
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer>
-        <div className="wrap">
-          <div className="footer-inner">
-            <Link href="/" className="logo">
-              <Image src="/logo.png" alt="OOffix" width={132} height={66} className="h-6 w-auto opacity-80" />
-            </Link>
-            <div className="footer-links">
-              <a href="#how">How it works</a>
-              <a href="#ritual">The ritual</a>
-              <a href="#features">Features</a>
-            </div>
-            <div className="footer-copy">© 2026 OOffix - digital office, still in testing</div>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
