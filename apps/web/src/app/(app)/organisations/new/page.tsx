@@ -36,7 +36,8 @@ export default function NewOrganisationPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Create an organisation</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          You&apos;ll be its owner. Your account can own up to 2 organisations.
+          You&apos;ll be its owner. You can only own one organisation on the Free plan at a
+          time - upgrade your existing one first if you need another.
         </p>
       </div>
 

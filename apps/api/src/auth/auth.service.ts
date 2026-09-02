@@ -28,7 +28,6 @@ const REFRESH_TOKEN_SALT_ROUNDS = 10;
 const OTP_TTL_MINUTES = 10;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const PASSWORD_RESET_TTL_HOURS = 1;
-const MAX_ORGANISATIONS_OWNED = 2;
 
 function generateOtp(): string {
   return randomInt(0, 1_000_000).toString().padStart(6, '0');
@@ -253,7 +252,11 @@ export class AuthService {
     );
   }
 
-  /** Crée une nouvelle organisation possédée par le compte connecté (limite : MAX_ORGANISATIONS_OWNED). */
+  /**
+   * Crée une nouvelle organisation possédée par le compte connecté. Limite : une seule
+   * organisation au plan Free par compte — au-delà, les organisations existantes
+   * doivent être passées sur un plan payant avant d'en créer une nouvelle.
+   */
   async createOrganisation(currentUser: AuthenticatedUser, dto: CreateOrganisationDto) {
     const account = await this.prisma.account.findUniqueOrThrow({
       where: { id: currentUser.accountId },
@@ -266,12 +269,15 @@ export class AuthService {
       })
     ).map((m) => m.id);
 
-    const ownedCount = await this.prisma.organisation.count({
-      where: { proprietaireId: { in: myMembershipIds } },
+    const freeOwnedCount = await this.prisma.organisation.count({
+      where: {
+        proprietaireId: { in: myMembershipIds },
+        OR: [{ planAbonnement: null }, { planAbonnement: 'FREE' }],
+      },
     });
-    if (ownedCount >= MAX_ORGANISATIONS_OWNED) {
+    if (freeOwnedCount >= 1) {
       throw new BadRequestException(
-        `Vous ne pouvez pas posséder plus de ${MAX_ORGANISATIONS_OWNED} organisations`,
+        'You already own an organisation on the Free plan. Upgrade it before creating another one.',
       );
     }
 
