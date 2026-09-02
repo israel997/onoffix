@@ -39,13 +39,12 @@ interface CompareRow {
 }
 
 const COMPARE_ROWS: CompareRow[] = [
-  { label: 'Offices', values: ['1', 'Up to 10', 'Unlimited'] },
-  { label: 'Seats', values: ['Up to 5', 'Unlimited', 'Unlimited'] },
+  { label: 'Offices', values: ['1', '5 (+$1/extra office)', '10 (+$0.80/extra office)'] },
+  { label: 'Seats', values: ['Up to 3', 'Unlimited', 'Unlimited'] },
   { label: 'BrainDumper (AI assistant)', values: ['10 messages/day', 'Unlimited', 'Unlimited'] },
   { label: 'File storage', values: ['500 MB', '10 GB', 'Unlimited'] },
   { label: 'Daily check-in & task tracking', values: [true, true, true] },
   { label: 'Performance stats & reliability leaderboard', values: [false, true, true] },
-  { label: 'External guest members', values: [false, 'Up to 5', 'Unlimited'] },
   { label: 'Advanced reporting & CSV/PDF export', values: [false, false, true] },
   { label: 'Priority support', values: [false, false, true] },
 ];
@@ -78,7 +77,7 @@ const PLANS: Plan[] = [
     featured: false,
     features: [
       '1 office',
-      'Up to 5 seats',
+      'Up to 3 seats',
       'BrainDumper - 10 messages/day',
       '500 MB file storage',
       'Daily check-in & task tracking',
@@ -93,12 +92,11 @@ const PLANS: Plan[] = [
     trial: true,
     featured: true,
     features: [
-      'Up to 10 offices',
+      '5 offices included - $1/extra office',
       'Unlimited seats',
       'BrainDumper - unlimited',
       '10 GB file storage',
       'Performance stats & reliability leaderboard',
-      'Up to 5 external guest members',
     ],
   },
   {
@@ -110,12 +108,11 @@ const PLANS: Plan[] = [
     trial: true,
     featured: false,
     features: [
-      'Unlimited offices',
+      '10 offices included - $0.80/extra office',
       'Unlimited seats',
       'BrainDumper - unlimited',
       'Unlimited file storage',
       'Advanced reporting & CSV/PDF export',
-      'Unlimited external guest members',
       'Priority support',
     ],
   },
