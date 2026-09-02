@@ -85,6 +85,16 @@ export class TachesController {
     return this.tachesService.demarrer(tacheId, user);
   }
 
+  @Post('pause')
+  pauser(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.pauser(tacheId, user);
+  }
+
+  @Post('reprendre')
+  reprendre(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.reprendre(tacheId, user);
+  }
+
   @Post('declarer')
   declarer(
     @Param('tacheId') tacheId: string,

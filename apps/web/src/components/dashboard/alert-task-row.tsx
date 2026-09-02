@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { assignerTache, getBureau, type AlerteTache, type Membre } from '@/lib/api';
@@ -12,10 +12,30 @@ const RAISON_LABEL: Record<AlerteTache['raisons'][number], string> = {
   BLOQUEE: 'Blocked',
   ECHEANCE_PROCHE: 'Due soon',
   ECHEANCE_DEPASSEE: 'Overdue',
+  TEMPS_DEPASSE: 'Over time',
 };
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatOvershoot(minutes: number) {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/** Compteur du dépassement — continue de progresser tant que le chrono de la tâche tourne réellement. */
+function OvershootCounter({ baseMinutes, live }: { baseMinutes: number; live: boolean }) {
+  const [extraMs, setExtraMs] = useState(0);
+  useEffect(() => {
+    if (!live) return;
+    const start = Date.now();
+    const id = setInterval(() => setExtraMs(Date.now() - start), 1000);
+    return () => clearInterval(id);
+  }, [live]);
+  return <span>{formatOvershoot(baseMinutes + extraMs / 60000)}</span>;
 }
 
 export function AlertTaskRow({
@@ -70,7 +90,14 @@ export function AlertTaskRow({
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {tache.raisons.map((raison) => (
-            <Badge key={raison} tone={raison === 'A_RISQUE' || raison === 'BLOQUEE' ? 'review' : 'declared'}>
+            <Badge
+              key={raison}
+              tone={
+                raison === 'A_RISQUE' || raison === 'BLOQUEE' || raison === 'TEMPS_DEPASSE'
+                  ? 'review'
+                  : 'declared'
+              }
+            >
               {RAISON_LABEL[raison]}
             </Badge>
           ))}
@@ -80,6 +107,19 @@ export function AlertTaskRow({
       {tache.blocages.length > 0 && tache.blocages[0].cause && (
         <p className="text-xs text-status-review">Blocked: {tache.blocages[0].cause}</p>
       )}
+
+      {tache.raisons.includes('TEMPS_DEPASSE') &&
+        tache.dureeEstimeeMinutes != null &&
+        tache.tempsReelMinutesActuel != null && (
+          <p className="text-xs font-medium text-status-review">
+            Over the estimated time by{' '}
+            <OvershootCounter
+              baseMinutes={tache.tempsReelMinutesActuel - tache.dureeEstimeeMinutes}
+              live={tache.sessionActive}
+            />{' '}
+            and counting.
+          </p>
+        )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Link href={tache.lien}>

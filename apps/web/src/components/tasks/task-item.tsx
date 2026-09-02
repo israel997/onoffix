@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ButtonTip, hasSeenTip } from '@/components/tasks/button-tip';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import {
   accepterTache,
@@ -15,7 +16,9 @@ import {
   declarerTache,
   deleteTache,
   demarrerTache,
+  pauserTache,
   reouvrirTache,
+  reprendreTache,
   updateTache,
   validerTache,
   type PrioriteTache,
@@ -254,6 +257,27 @@ export function TaskItem({
   const isChecked = isPersonal ? tache.statut === 'VALIDE' : tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
   const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone || canValidate;
   const expanded = isPersonal || open;
+  const activeSession = tache.sessions?.[0] ?? null;
+
+  // Mini onboarding : un seul bulle à la fois, sur le premier bouton pertinent jamais
+  // vu — dans l'ordre logique du cycle de vie d'une tâche.
+  const tipCandidates: { key: string; active: boolean }[] = [
+    { key: 'accept', active: isAssignee && tache.statut === 'A_FAIRE' },
+    { key: 'start', active: isAssignee && (tache.statut === 'ACCEPTEE' || tache.statut === 'A_REVOIR') },
+    { key: 'done', active: canCheckDone },
+    { key: 'break', active: isAssignee && tache.statut === 'EN_COURS' && !!activeSession },
+    {
+      key: 'report',
+      active:
+        (isAssignee || isManager) &&
+        (tache.statut === 'ACCEPTEE' || tache.statut === 'EN_COURS' || tache.statut === 'A_REVOIR'),
+    },
+    { key: 'approve', active: canValidate },
+  ];
+  const activeTipKey =
+    !isPersonal && expanded
+      ? (tipCandidates.find((c) => c.active && !hasSeenTip(c.key))?.key ?? null)
+      : null;
 
   return (
     <div className="rounded-lg border border-border p-2.5">
@@ -363,10 +387,13 @@ export function TaskItem({
         {tache.priorite !== 'NORMALE' && (
           <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
         )}
-        {tache.statut === 'EN_COURS' && tache.dateDebut && (
+        {tache.statut === 'EN_COURS' && activeSession && (
           <span>
-            running <LiveTimer since={tache.dateDebut} />
+            running <LiveTimer since={activeSession.debut} />
           </span>
+        )}
+        {tache.statut === 'EN_COURS' && !activeSession && (
+          <span className="font-medium text-status-declared">paused</span>
         )}
         {tache.commentaireDeclaration && (
           <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
@@ -399,20 +426,40 @@ export function TaskItem({
         )}
 
         {isAssignee && tache.statut === 'A_FAIRE' && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}>
-            Accept
-          </Button>
+          <ButtonTip tipKey="accept" text="Click Accept to take on this task." active={activeTipKey === 'accept'}>
+            <Button size="sm" disabled={busy} onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}>
+              Accept
+            </Button>
+          </ButtonTip>
         )}
 
         {isAssignee && tache.statut === 'ACCEPTEE' && (
-          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
-            Start
-          </Button>
+          <ButtonTip tipKey="start" text="Click Start to begin working and start the timer." active={activeTipKey === 'start'}>
+            <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
+              Start
+            </Button>
+          </ButtonTip>
         )}
 
         {isAssignee && tache.statut === 'A_REVOIR' && (
-          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}>
-            Resubmit
+          <ButtonTip tipKey="start" text="Click Resubmit to start working on it again." active={activeTipKey === 'start'}>
+            <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}>
+              Resubmit
+            </Button>
+          </ButtonTip>
+        )}
+
+        {isAssignee && tache.statut === 'EN_COURS' && activeSession && (
+          <ButtonTip tipKey="break" text="Taking a break? Click here to pause the timer." active={activeTipKey === 'break'}>
+            <Button size="sm" variant="warning" disabled={busy} onClick={() => run(() => pauserTache(tache.id), 'Task paused')}>
+              Break
+            </Button>
+          </ButtonTip>
+        )}
+
+        {isAssignee && tache.statut === 'EN_COURS' && !activeSession && (
+          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => reprendreTache(tache.id), 'Task resumed')}>
+            Resume
           </Button>
         )}
 
@@ -424,19 +471,21 @@ export function TaskItem({
               placeholder="Comment (optional)"
               className="h-7 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
             />
-            <Button
-              size="sm"
-              variant="success"
-              disabled={busy}
-              onClick={() =>
-                run(async () => {
-                  await declarerTache(tache.id, doneComment);
-                  setDoneComment('');
-                }, 'Marked as done')
-              }
-            >
-              Done
-            </Button>
+            <ButtonTip tipKey="done" text="Finished? Click Done to mark it complete." active={activeTipKey === 'done'}>
+              <Button
+                size="sm"
+                variant="success"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await declarerTache(tache.id, doneComment);
+                    setDoneComment('');
+                  }, 'Marked as done')
+                }
+              >
+                Done
+              </Button>
+            </ButtonTip>
           </>
         )}
 
@@ -464,15 +513,23 @@ export function TaskItem({
 
         {(isAssignee || isManager) &&
           (tache.statut === 'ACCEPTEE' || tache.statut === 'EN_COURS' || tache.statut === 'A_REVOIR') && (
-            <Button size="sm" variant="danger" onClick={() => setShowDetail(true)}>
-              Report a problem
-            </Button>
+            <ButtonTip
+              tipKey="report"
+              text="Stuck or blocked? Click here to report a problem."
+              active={activeTipKey === 'report'}
+            >
+              <Button size="sm" variant="danger" onClick={() => setShowDetail(true)}>
+                Report a problem
+              </Button>
+            </ButtonTip>
           )}
 
         {canValidate && (
-          <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'), 'Task approved')}>
-            Approve
-          </Button>
+          <ButtonTip tipKey="approve" text="Review the work, then click Approve to validate it." active={activeTipKey === 'approve'}>
+            <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'), 'Task approved')}>
+              Approve
+            </Button>
+          </ButtonTip>
         )}
 
         {canValidate && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { useEffect, useState } from 'react';
 import { ChevronIcon, ChartIcon } from '@/components/icons/office-icons';
@@ -164,7 +164,17 @@ export default function PerformancePage() {
       </Card>
 
       {stats === null ? (
-        <Loading className="text-sm" />
+        <Card>
+          <Skeleton className="h-4 w-16" />
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <Skeleton className="h-5 w-10" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+        </Card>
       ) : (
         <Card>
           <CardTitle>Stats</CardTitle>
@@ -208,7 +218,14 @@ export default function PerformancePage() {
       <Card>
         <CardTitle>Daily activity</CardTitle>
         {journal === null ? (
-          <Loading className="mt-3 text-sm" />
+          <div className="mt-3 flex flex-col gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center justify-between">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-14" />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
             {journal.map((jour) => {
@@ -272,7 +289,15 @@ export default function PerformancePage() {
           {classementError ? (
             <p className="mt-3 text-sm text-muted-foreground">{classementError}</p>
           ) : classement === null ? (
-            <Loading className="mt-3 text-sm" />
+            <div className="mt-3 flex flex-col gap-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-4 w-4" />
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
           ) : classement.length === 0 ? (
             <EmptyState>No data for this period.</EmptyState>
           ) : (

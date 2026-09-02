@@ -788,6 +788,8 @@ export interface Tache {
   assignePar: { id: string; nom: string } | null;
   valideur: { id: string; nom: string } | null;
   conversation: { id: string; nom: string } | null;
+  /** Session ouverte (chrono actif) s'il y en a une — vide = tâche en pause. */
+  sessions: { debut: string }[];
 }
 
 export function assignerTache(tacheId: string, userId: string) {
@@ -819,6 +821,14 @@ export function accepterTache(tacheId: string) {
 
 export function demarrerTache(tacheId: string) {
   return authFetch<Tache>(`/taches/${tacheId}/demarrer`, { method: 'POST' });
+}
+
+export function pauserTache(tacheId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/pause`, { method: 'POST' });
+}
+
+export function reprendreTache(tacheId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/reprendre`, { method: 'POST' });
 }
 
 export function declarerTache(tacheId: string, commentaire?: string) {
@@ -948,7 +958,12 @@ export function getOrganisationTasks() {
   return authFetch<MyTache[]>('/taches/organisation');
 }
 
-export type RaisonAlerte = 'A_RISQUE' | 'BLOQUEE' | 'ECHEANCE_PROCHE' | 'ECHEANCE_DEPASSEE';
+export type RaisonAlerte =
+  | 'A_RISQUE'
+  | 'BLOQUEE'
+  | 'ECHEANCE_PROCHE'
+  | 'ECHEANCE_DEPASSEE'
+  | 'TEMPS_DEPASSE';
 
 export interface AlerteTache {
   id: string;
@@ -957,6 +972,10 @@ export interface AlerteTache {
   sante: SanteTache;
   priorite: PrioriteTache;
   dateEcheance: string | null;
+  dureeEstimeeMinutes: number | null;
+  /** Temps réel écoulé (minutes) au moment de la requête — voir sessionActive pour savoir s'il faut le faire vivre en direct. */
+  tempsReelMinutesActuel: number | null;
+  sessionActive: boolean;
   assigneA: { id: string; nom: string; email: string } | null;
   blocages: { id: string; type: TypeBlocage; cause: string | null }[];
   projet: { id: string; nom: string; bureau: { id: string; nom: string } | null };
@@ -965,10 +984,19 @@ export interface AlerteTache {
   peutReassigner: boolean;
 }
 
+export interface BureauEnAlerte {
+  id: string;
+  nom: string;
+  niveauAlerte: NiveauAlerte;
+  alerteJusqua: string;
+}
+
 export interface Alertes {
   attention: AlerteTache[];
   okCount: number;
   totalCount: number;
+  /** Bureaux en Orange/Rouge — vide pour tout le monde sauf un admin. */
+  bureauxEnAlerte: BureauEnAlerte[];
 }
 
 /** Tâches à risque pour l'utilisateur : les siennes + celles des bureaux qu'il manage. */

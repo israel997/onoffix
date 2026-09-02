@@ -10,6 +10,7 @@ import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   createOrganizerSubject,
   getBureau,
@@ -150,7 +151,23 @@ function TasksPageContent() {
   const isManager =
     isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
 
-  if (!taches || !bureau || !organizer) return <Loading className="text-sm" />;
+  if (!taches || !bureau || !organizer) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-8 w-32" />
+        {[0, 1, 2].map((i) => (
+          <Card key={i}>
+            <Skeleton className="h-4 w-40" />
+            <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   const filtered = applyFilter(taches, statusFilter);
   const groups = groupBySubject(filtered);

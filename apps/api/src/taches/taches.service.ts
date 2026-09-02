@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  NiveauAlerte,
   NotificationType,
   PrioriteTache,
   RoleBureau,
@@ -22,6 +23,9 @@ const TACHE_INCLUDE = {
   assignePar: { select: { id: true, nom: true } },
   valideur: { select: { id: true, nom: true } },
   conversation: { select: { id: true, nom: true } },
+  // Session ouverte (fin: null) : présente = chrono actif, absente = en pause. Sert au
+  // bouton Break/Resume sans appel séparé pour chaque tâche affichée dans une liste.
+  sessions: { where: { fin: null }, select: { debut: true } },
 };
 
 @Injectable()
@@ -248,6 +252,48 @@ export class TachesService {
     }
 
     return updated;
+  }
+
+  /** Pause le chrono d'une tâche en cours — le temps déjà accumulé reste acquis. */
+  async pauser(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    if (tache.assigneAId !== user.userId) {
+      throw new ForbiddenException('Seule la personne assignée peut mettre cette tâche en pause');
+    }
+    if (tache.statut !== StatutTache.EN_COURS) {
+      throw new BadRequestException('Cette tâche doit être en cours pour être mise en pause');
+    }
+
+    const { count } = await this.prisma.tacheSession.updateMany({
+      where: { tacheId, userId: user.userId, fin: null },
+      data: { fin: new Date() },
+    });
+    if (count === 0) {
+      throw new BadRequestException('Cette tâche est déjà en pause');
+    }
+
+    return this.prisma.tache.findUniqueOrThrow({ where: { id: tacheId }, include: TACHE_INCLUDE });
+  }
+
+  /** Reprend le chrono d'une tâche mise en pause. */
+  async reprendre(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    if (tache.assigneAId !== user.userId) {
+      throw new ForbiddenException('Seule la personne assignée peut reprendre cette tâche');
+    }
+    if (tache.statut !== StatutTache.EN_COURS) {
+      throw new BadRequestException('Cette tâche doit être en cours pour être reprise');
+    }
+
+    const activeSession2 = await this.prisma.tacheSession.findFirst({
+      where: { tacheId, userId: user.userId, fin: null },
+    });
+    if (activeSession2) {
+      throw new BadRequestException("Cette tâche n'est pas en pause");
+    }
+    await this.prisma.tacheSession.create({ data: { tacheId, userId: user.userId } });
+
+    return this.prisma.tache.findUniqueOrThrow({ where: { id: tacheId }, include: TACHE_INCLUDE });
   }
 
   async declarer(tacheId: string, user: AuthenticatedUser, commentaire?: string) {
@@ -495,8 +541,28 @@ export class TachesService {
     const now = new Date();
     const seuilProche = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
+    // Dépassement de temps imparti : une seule requête groupée pour toutes les tâches
+    // en cours concernées, plutôt qu'une requête par tâche dans la boucle ci-dessous.
+    const enCoursAvecEstimation = taches.filter(
+      (t) => t.statut === StatutTache.EN_COURS && t.dureeEstimeeMinutes,
+    );
+    const sessions = enCoursAvecEstimation.length
+      ? await this.prisma.tacheSession.findMany({
+          where: { tacheId: { in: enCoursAvecEstimation.map((t) => t.id) } },
+          select: { tacheId: true, debut: true, fin: true },
+        })
+      : [];
+    const sessionsParTache = new Map<string, typeof sessions>();
+    for (const s of sessions) {
+      const liste = sessionsParTache.get(s.tacheId) ?? [];
+      liste.push(s);
+      sessionsParTache.set(s.tacheId, liste);
+    }
+
     const enrichies = taches.map((t) => {
-      const raisons: ('A_RISQUE' | 'BLOQUEE' | 'ECHEANCE_PROCHE' | 'ECHEANCE_DEPASSEE')[] = [];
+      const raisons: (
+        'A_RISQUE' | 'BLOQUEE' | 'ECHEANCE_PROCHE' | 'ECHEANCE_DEPASSEE' | 'TEMPS_DEPASSE'
+      )[] = [];
       if (t.sante === SanteTache.BLOQUEE || t.blocages.length > 0) {
         raisons.push('BLOQUEE');
       } else if (t.sante === SanteTache.A_RISQUE) {
@@ -507,6 +573,19 @@ export class TachesService {
         else if (t.dateEcheance <= seuilProche) raisons.push('ECHEANCE_PROCHE');
       }
 
+      let tempsReelMinutesActuel: number | null = null;
+      let sessionActive = false;
+      if (t.dureeEstimeeMinutes) {
+        const mesSessions = sessionsParTache.get(t.id) ?? [];
+        sessionActive = mesSessions.some((s) => s.fin === null);
+        const ms = mesSessions.reduce(
+          (sum, s) => sum + ((s.fin ?? now).getTime() - s.debut.getTime()),
+          0,
+        );
+        tempsReelMinutesActuel = Math.round(ms / 60000);
+        if (tempsReelMinutesActuel > t.dureeEstimeeMinutes) raisons.push('TEMPS_DEPASSE');
+      }
+
       const bureauId = t.projet.bureauId;
       return {
         id: t.id,
@@ -515,6 +594,9 @@ export class TachesService {
         sante: t.sante,
         priorite: t.priorite,
         dateEcheance: t.dateEcheance,
+        dureeEstimeeMinutes: t.dureeEstimeeMinutes,
+        tempsReelMinutesActuel,
+        sessionActive,
         assigneA: t.assigneA,
         blocages: t.blocages,
         projet: { id: t.projet.id, nom: t.projet.nom, bureau: t.projet.bureau },
@@ -528,10 +610,25 @@ export class TachesService {
 
     const attention = enrichies.filter((t) => t.raisons.length > 0);
 
+    // Un bureau passé en Orange/Rouge signale une urgence — un admin doit le voir sans
+    // avoir à visiter chaque office un par un.
+    const bureauxEnAlerte =
+      user.roleGlobal === RoleGlobal.ADMIN
+        ? await this.prisma.bureau.findMany({
+            where: {
+              organisationId: user.organisationId,
+              niveauAlerte: { not: NiveauAlerte.AUCUNE },
+              alerteJusqua: { gt: now },
+            },
+            select: { id: true, nom: true, niveauAlerte: true, alerteJusqua: true },
+          })
+        : [];
+
     return {
       attention,
       okCount: enrichies.length - attention.length,
       totalCount: enrichies.length,
+      bureauxEnAlerte,
     };
   }
 
@@ -639,10 +736,9 @@ export class TachesService {
   }
 
   async tempsReelMinutes(tacheId: string): Promise<number> {
-    const sessions = await this.prisma.tacheSession.findMany({
-      where: { tacheId, fin: { not: null } },
-    });
-    const ms = sessions.reduce((sum, s) => sum + (s.fin!.getTime() - s.debut.getTime()), 0);
+    const sessions = await this.prisma.tacheSession.findMany({ where: { tacheId } });
+    const now = new Date();
+    const ms = sessions.reduce((sum, s) => sum + ((s.fin ?? now).getTime() - s.debut.getTime()), 0);
     return Math.round(ms / 60000);
   }
 }

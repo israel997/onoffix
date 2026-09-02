@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -63,6 +63,33 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {alertes && alertes.bureauxEnAlerte.length > 0 && (
+        <Card>
+          <CardTitle className="flex items-center gap-2 text-status-review">
+            <AlarmIcon className="h-5 w-5" />
+            Offices in alert
+          </CardTitle>
+          <div className="mt-2 flex flex-col divide-y divide-border">
+            {alertes.bureauxEnAlerte.map((b) => (
+              <Link
+                key={b.id}
+                href={`/offices/${b.id}`}
+                className="flex items-center justify-between gap-3 py-2 text-sm hover:bg-surface-muted"
+              >
+                <span className="font-medium text-foreground">{b.nom}</span>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold text-white ${
+                    b.niveauAlerte === 'ROUGE' ? 'bg-status-review' : 'bg-status-declared'
+                  }`}
+                >
+                  {b.niveauAlerte === 'ROUGE' ? 'Red' : 'Orange'}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -76,7 +103,15 @@ export default function DashboardPage() {
           )}
         </div>
         {alertes === null ? (
-          <Loading className="mt-3 text-sm" />
+          <div className="mt-3 flex flex-col gap-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 py-1">
+                <Skeleton className="h-4 w-4 shrink-0 rounded-full" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-5 w-16 shrink-0" />
+              </div>
+            ))}
+          </div>
         ) : alertes.attention.length === 0 ? (
           <p className="mt-3 text-sm text-status-validated">
             {alertes.totalCount === 0

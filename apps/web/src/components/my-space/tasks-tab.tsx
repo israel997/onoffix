@@ -1,12 +1,11 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
-
 import { useEffect, useState } from 'react';
 import { ChevronIcon } from '@/components/icons/office-icons';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getMyTasks, type MyTache } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -59,7 +58,21 @@ export function TasksTab({ scope = 'all' }: { scope?: 'all' | 'personal' }) {
     });
   }
 
-  if (taches === null) return <Loading className="text-sm" />;
+  if (taches === null) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[0, 1, 2].map((i) => (
+          <Card key={i}>
+            <Skeleton className="h-4 w-40" />
+            <div className="mt-3 flex gap-2">
+              <Skeleton className="h-7 w-20 rounded-lg" />
+              <Skeleton className="h-7 w-20 rounded-lg" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   const scoped = scope === 'personal' ? taches.filter((t) => t.projet.bureau === null) : taches;
 
