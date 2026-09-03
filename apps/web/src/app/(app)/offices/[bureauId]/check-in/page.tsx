@@ -113,14 +113,14 @@ function PendingRow({ tache, onChange }: { tache: Tache; onChange: () => void })
           </Button>
         </div>
       </div>
-      {tache.commentaireDeclaration && (
-        <p className="text-xs italic text-muted-foreground">&quot;{tache.commentaireDeclaration}&quot;</p>
-      )}
+      <p className="text-xs italic text-muted-foreground">
+        {tache.commentaireDeclaration ? `"${tache.commentaireDeclaration}"` : 'No comment'}
+      </p>
     </div>
   );
 }
 
-export default function TodayPage() {
+export default function CheckInPage() {
   const params = useParams<{ bureauId: string }>();
   const bureauId = params.bureauId;
   const { user } = useAuth();
@@ -176,11 +176,11 @@ export default function TodayPage() {
           { label: 'Dashboard', href: '/dashboard' },
           { label: 'Offices', href: '/offices' },
           { label: bureau.nom, href: `/offices/${bureauId}` },
-          { label: 'Today' },
+          { label: 'Check-In' },
         ]}
       />
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Today</h1>
+        <h1 className="text-2xl font-bold text-foreground">Check-In</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {isManager ? 'Review and approve what got marked done.' : "See how today's work is going."}
         </p>

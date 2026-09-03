@@ -466,3 +466,31 @@ export function XCircleIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Coche simple, sans cercle — action "Accept" (distincte de Done, qui utilise CheckCircleIcon). */
+export function CheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M4.5 12.5l5 5L19.5 6.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Triangle plein — Start/Resume/Resubmit (le chrono repart). */
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M7.5 5.2v13.6c0 .9 1 1.4 1.7.9l10.6-6.8a1 1 0 0 0 0-1.8L9.2 4.3c-.7-.5-1.7 0-1.7.9z" />
+    </svg>
+  );
+}
+
+/** Deux barres — Break (le chrono se met en pause). */
+export function PauseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <rect x="6" y="5" width="4.5" height="14" rx="1.2" />
+      <rect x="13.5" y="5" width="4.5" height="14" rx="1.2" />
+    </svg>
+  );
+}

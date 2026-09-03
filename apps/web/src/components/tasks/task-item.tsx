@@ -2,12 +2,21 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ChevronIcon, InfoIcon } from '@/components/icons/office-icons';
+import {
+  AlertTriangleIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  ChevronIcon,
+  InfoIcon,
+  PauseIcon,
+  PlayIcon,
+} from '@/components/icons/office-icons';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Modal } from '@/components/ui/modal';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
   accepterTache,
@@ -87,7 +96,8 @@ export function TaskItem({
     tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
   );
   const [assigneeId, setAssigneeId] = useState(tache.assigneAId ?? '');
-  const [doneComment, setDoneComment] = useState('');
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
   // Une tâche d'équipe est fermée par défaut (juste titre + statut) pour ne pas noyer
   // la liste — une tâche personnelle reste toujours "ouverte", c'est déjà compact.
   const [open, setOpen] = useState(false);
@@ -247,10 +257,13 @@ export function TaskItem({
       confirmLabel: 'Submit',
     });
     if (!ok) return;
-    await run(async () => {
-      await declarerTache(tache.id, doneComment);
-      setDoneComment('');
-    }, 'Marked as done');
+    setShowCommentModal(true);
+  }
+
+  async function submitDone(comment?: string) {
+    await run(() => declarerTache(tache.id, comment), 'Marked as done');
+    setShowCommentModal(false);
+    setCommentDraft('');
   }
 
   const canCheckDone = isAssignee && tache.statut === 'EN_COURS';
@@ -373,70 +386,74 @@ export function TaskItem({
           <div className="flex flex-wrap items-center gap-1.5">
             {isAssignee && tache.statut === 'A_FAIRE' && (
               <Button
-                size="sm"
+                size="icon"
                 disabled={busy}
-                title="Take on this task"
+                aria-label="Accept task"
+                title="Accept - take on this task"
                 onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}
               >
-                Accept
+                <CheckIcon className="h-4 w-4" />
               </Button>
             )}
             {isAssignee && tache.statut === 'ACCEPTEE' && (
               <Button
-                size="sm"
+                size="icon"
                 variant="success"
                 disabled={busy}
-                title="Begin working and start the timer"
+                aria-label="Start task"
+                title="Start - begin working and start the timer"
                 onClick={() => run(() => demarrerTache(tache.id), 'Task started')}
               >
-                Start
+                <PlayIcon className="h-4 w-4" />
               </Button>
             )}
             {isAssignee && tache.statut === 'A_REVOIR' && (
               <Button
-                size="sm"
+                size="icon"
                 variant="success"
                 disabled={busy}
-                title="Start working on it again"
+                aria-label="Resubmit task"
+                title="Resubmit - start working on it again"
                 onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}
               >
-                Resubmit
+                <PlayIcon className="h-4 w-4" />
               </Button>
             )}
             {isAssignee && tache.statut === 'EN_COURS' && activeSession && (
               <Button
-                size="sm"
+                size="icon"
                 variant="warning"
                 disabled={busy}
-                title="Pause the timer"
+                aria-label="Take a break"
+                title="Break - pause the timer"
                 onClick={() => run(() => pauserTache(tache.id), 'Task paused')}
               >
-                Break
+                <PauseIcon className="h-4 w-4" />
               </Button>
             )}
             {isAssignee && tache.statut === 'EN_COURS' && !activeSession && (
               <Button
-                size="sm"
+                size="icon"
                 variant="success"
                 disabled={busy}
-                title="Resume the timer"
+                aria-label="Resume task"
+                title="Resume - restart the timer"
                 onClick={() => run(() => reprendreTache(tache.id), 'Task resumed')}
               >
-                Resume
+                <PlayIcon className="h-4 w-4" />
               </Button>
             )}
             {canCheckDone && (
-              <>
-                <input
-                  value={doneComment}
-                  onChange={(e) => setDoneComment(e.target.value)}
-                  placeholder="Comment (optional)"
-                  className="h-7 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
-                />
-                <Button size="sm" variant="success" disabled={busy} title="Mark as complete" onClick={handleDoneClick}>
-                  Done
-                </Button>
-              </>
+              <Button
+                size="icon"
+                variant="success"
+                disabled={busy}
+                aria-label="Mark as done"
+                title="Done - mark as complete"
+                onClick={handleDoneClick}
+              >
+                <CheckCircleIcon className="h-4 w-4" />
+              </Button>
             )}
             {!tache.assigneAId && (
               <Button
@@ -462,15 +479,16 @@ export function TaskItem({
           <div className="flex flex-wrap items-center gap-1.5">
             {canReport && (
               <Button
-                size="sm"
+                size="icon"
                 variant="danger"
-                title="Flag what's blocking this task"
+                aria-label="Report a problem"
+                title="Report a problem - flag what's blocking this task"
                 onClick={() => {
                   setFocusReport(true);
                   setShowDetail(true);
                 }}
               >
-                Report a problem
+                <AlertTriangleIcon className="h-4 w-4" />
               </Button>
             )}
             {isManager && moveTargets && moveTargets.length > 0 && (
@@ -501,6 +519,33 @@ export function TaskItem({
           }}
           onChange={onChange}
         />
+      )}
+
+      {showCommentModal && (
+        <Modal onClose={() => submitDone(undefined)}>
+          <h2 className="text-lg font-bold text-foreground">Add a comment?</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Would you like to add a comment to this task before submitting it?
+          </p>
+          <textarea
+            autoFocus
+            value={commentDraft}
+            onChange={(e) => setCommentDraft(e.target.value.slice(0, 150))}
+            maxLength={150}
+            rows={3}
+            placeholder="Optional comment…"
+            className="mt-3 w-full resize-none rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue"
+          />
+          <p className="mt-1 text-right text-xs text-muted-foreground">{commentDraft.length}/150</p>
+          <div className="mt-3 flex justify-end gap-2">
+            <Button variant="secondary" disabled={busy} onClick={() => submitDone(undefined)}>
+              No
+            </Button>
+            <Button variant="success" disabled={busy || !commentDraft.trim()} onClick={() => submitDone(commentDraft.trim())}>
+              Add Comment
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

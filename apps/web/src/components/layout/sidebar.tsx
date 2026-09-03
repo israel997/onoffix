@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', available: true, icon: DoorControlIcon },
   { label: 'Offices', href: '/offices', available: true, hideIfNoOffices: true, icon: BuildingIcon },
   { label: 'Performance', href: '/performance', available: true, icon: ChartIcon },
-  { label: 'Daily check-in', href: '/check-in', available: true, icon: AlarmIcon },
+  { label: 'Validations', href: '/validations', available: true, icon: AlarmIcon },
   { label: 'Members', href: '/members', available: true, icon: ChairIcon },
   { label: 'Notifications', href: '/notifications', available: true, unreadSource: 'notifications', icon: FolderIcon },
   { label: 'Chat', href: '/chat', available: true, unreadSource: 'chat', icon: MailIcon },

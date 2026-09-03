@@ -13,7 +13,7 @@ export function OfficeNav({ bureauId, showSettings }: { bureauId: string; showSe
     { label: 'Overview', href: overviewHref },
     { label: 'Organizer', href: `/offices/${bureauId}/organizer` },
     { label: 'Tasks', href: `/offices/${bureauId}/tasks` },
-    ...(showSettings ? [{ label: 'Today', href: `/offices/${bureauId}/today` }] : []),
+    ...(showSettings ? [{ label: 'Check-In', href: `/offices/${bureauId}/check-in` }] : []),
     ...(showSettings ? [{ label: 'Settings', href: `/offices/${bureauId}/settings`, icon: KeyIcon }] : []),
   ];
 

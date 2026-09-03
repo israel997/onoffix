@@ -10,7 +10,7 @@ import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { listBureaux, type Bureau } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
-export default function CheckInPage() {
+export default function ValidationsPage() {
   const { user } = useAuth();
   const [allBureaux, setAllBureaux] = useState<Bureau[] | null>(null);
   const isAdmin = user?.roleGlobal === 'ADMIN';
@@ -29,11 +29,11 @@ export default function CheckInPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Daily check-in' }]} />
+      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Validations' }]} />
       <div>
         <h1 className="flex items-center gap-2.5 text-2xl font-bold text-foreground">
           <AlarmIcon className="h-6 w-6 text-brand-blue" />
-          Daily check-in
+          Validations
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">Declare what you got done today.</p>
       </div>
@@ -42,13 +42,13 @@ export default function CheckInPage() {
 
       {managedBureaux.length > 0 && (
         <Card>
-          <CardTitle>Your teams&apos; check-in</CardTitle>
+          <CardTitle>Your teams&apos; Check-In</CardTitle>
           <CardDescription>Review and confirm what each collaborator got done today.</CardDescription>
           <div className="mt-3 flex flex-col divide-y divide-border">
             {managedBureaux.map((b) => (
               <Link
                 key={b.id}
-                href={`/offices/${b.id}/today`}
+                href={`/offices/${b.id}/check-in`}
                 className="flex items-center justify-between py-2.5 text-sm text-foreground hover:text-brand-blue"
               >
                 {b.nom}
