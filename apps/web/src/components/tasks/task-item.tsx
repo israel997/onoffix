@@ -376,7 +376,9 @@ export function TaskItem({
 
       {expanded && (
         <div className={!isPersonal ? 'mt-2 border-t border-border pt-2.5' : 'mt-1'}>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
+          {/* min-h réserve la ligne même vide (rien à afficher) — sinon les boutons du
+              dessous remontent d'une carte à l'autre selon ce qu'il y a à montrer ici. */}
+          <div className="flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
             {isPersonal && (
               <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>
             )}
