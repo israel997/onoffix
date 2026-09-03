@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationType, RoleBureau, RoleGlobal } from '@prisma/client';
+import { NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { AiService } from '../ai/ai.service';
 import { ChatService } from '../chat/chat.service';
@@ -221,10 +221,13 @@ export class OrganizerService {
 
   private async assertManager(bureauId: string, user: AuthenticatedUser) {
     if (user.roleGlobal === RoleGlobal.ADMIN) return;
+    if (user.roleGlobal !== RoleGlobal.MANAGER) {
+      throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
+    }
     const membership = await this.prisma.userBureau.findUnique({
       where: { userId_bureauId: { userId: user.userId, bureauId } },
     });
-    if (!membership || membership.roleDansBureau !== RoleBureau.MANAGER) {
+    if (!membership) {
       throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
     }
   }

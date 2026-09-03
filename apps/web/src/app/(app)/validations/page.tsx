@@ -25,7 +25,9 @@ export default function ValidationsPage() {
   // pour les autres, la liste vient directement de son propre rôle par bureau (pas d'appel API).
   const managedBureaux = isAdmin
     ? (allBureaux ?? []).map((b) => ({ id: b.id, nom: b.nom }))
-    : user.bureaux.filter((b) => b.roleDansBureau === 'MANAGER').map((b) => b.bureau);
+    : user.roleGlobal === 'MANAGER'
+      ? user.bureaux.map((b) => b.bureau)
+      : [];
 
   return (
     <div className="flex flex-col gap-6">

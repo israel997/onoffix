@@ -6,9 +6,12 @@ import { BUREAU_ROLE_KEY } from '../decorators/bureau-role.decorator';
 import type { RequestWithUser } from '../decorators/current-user.decorator';
 
 /**
- * Vérifie que l'utilisateur a le rôle requis (ex. MANAGER) sur le bureau
- * ciblé par le paramètre de route :bureauId. Un admin d'organisation
- * (roleGlobal ADMIN) passe toujours, cf. 2.2 du cahier des charges.
+ * Vérifie que l'utilisateur a le rôle requis (ex. MANAGER) sur le bureau ciblé
+ * par le paramètre de route :bureauId. Le rôle Manager/Collaborateur est
+ * désormais global à la personne (User.roleGlobal), plus choisi par bureau —
+ * ce garde ne lit donc plus UserBureau.roleDansBureau, seulement son
+ * existence (= appartenance au bureau). Authority (roleGlobal ADMIN) passe
+ * toujours, sans même être membre.
  */
 @Injectable()
 export class BureauRoleGuard implements CanActivate {
@@ -40,8 +43,12 @@ export class BureauRoleGuard implements CanActivate {
     const membership = await this.prisma.userBureau.findUnique({
       where: { userId_bureauId: { userId: user.userId, bureauId } },
     });
+    if (!membership) {
+      throw new ForbiddenException('Rôle insuffisant sur ce bureau');
+    }
 
-    if (!membership || !requiredRoles.includes(membership.roleDansBureau)) {
+    const requiresManager = requiredRoles.length === 1 && requiredRoles[0] === RoleBureau.MANAGER;
+    if (requiresManager && user.roleGlobal !== RoleGlobal.MANAGER) {
       throw new ForbiddenException('Rôle insuffisant sur ce bureau');
     }
 

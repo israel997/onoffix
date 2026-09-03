@@ -150,7 +150,9 @@ export default function CheckInPage() {
 
   const isAdmin = user?.roleGlobal === 'ADMIN';
   const isManager =
-    isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
+    isAdmin ||
+    (user?.roleGlobal === 'MANAGER' && bureau?.membres.some((m) => m.user.id === user?.id)) ||
+    false;
 
   const pending = useMemo(() => taches?.filter((t) => t.statut === 'DECLARE') ?? [], [taches]);
   const approved = useMemo(() => {

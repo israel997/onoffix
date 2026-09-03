@@ -24,7 +24,6 @@ import {
   listBureauInvitations,
   listOrganisationMembres,
   removeMembre,
-  updateMembre,
   type BureauDetail,
   type BureauInvitation,
   type BureauStats,
@@ -32,6 +31,12 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/lib/toast-context';
+
+function roleLabel(roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE' | undefined) {
+  if (roleGlobal === 'ADMIN') return 'Authority';
+  if (roleGlobal === 'MANAGER') return 'Manager';
+  return 'Collaborator';
+}
 
 export default function OfficeDetailPage() {
   const params = useParams<{ bureauId: string }>();
@@ -48,13 +53,16 @@ export default function OfficeDetailPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState('');
   const [roleInterne, setRoleInterne] = useState('');
-  const [roleDansBureau, setRoleDansBureau] = useState<'COLLABORATEUR' | 'MANAGER'>('COLLABORATEUR');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  // Manager/Collaborator est désormais un rôle global à la personne (voir Members) — un
+  // Manager n'a la main que dans les bureaux dont il fait déjà partie ; une Authority
+  // gère tout, même sans en être membre.
   const isManagerOf = (b: BureauDetail | null) =>
-    user?.roleGlobal === 'ADMIN' || b?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER');
+    user?.roleGlobal === 'ADMIN' ||
+    (user?.roleGlobal === 'MANAGER' && b?.membres.some((m) => m.user.id === user?.id));
 
   async function load() {
     const [bureauData, membresData, statsData] = await Promise.all([
@@ -118,7 +126,6 @@ export default function OfficeDetailPage() {
     try {
       await addMembre(bureauId, {
         email: selectedEmail,
-        roleDansBureau,
         roleInterne: roleInterne || undefined,
       });
       toast('Invitation sent: they need to accept before joining.');
@@ -131,11 +138,6 @@ export default function OfficeDetailPage() {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  async function handleRoleChange(userId: string, role: 'MANAGER' | 'COLLABORATEUR') {
-    await updateMembre(bureauId, userId, { roleDansBureau: role });
-    await load();
   }
 
   async function handleRemove(userId: string) {
@@ -269,17 +271,14 @@ export default function OfficeDetailPage() {
                 </Label>
               </div>
             )}
-            <Label className="max-w-xs">
-              Office role
-              <select
-                value={roleDansBureau}
-                onChange={(e) => setRoleDansBureau(e.target.value as 'COLLABORATEUR' | 'MANAGER')}
-                className="h-10 rounded-lg border border-border bg-surface px-3 text-sm"
-              >
-                <option value="COLLABORATEUR">Collaborator</option>
-                <option value="MANAGER">Manager</option>
-              </select>
-            </Label>
+            <p className="text-xs text-muted-foreground">
+              Their Authority/Manager/Collaborator level is set once for the whole organisation on
+              the{' '}
+              <a href="/members" className="font-medium text-brand-blue hover:underline">
+                Members
+              </a>{' '}
+              page.
+            </p>
             {error && <p className="text-sm text-status-review">{error}</p>}
             {availableMembres.length > 0 && (
               <Button type="submit" disabled={submitting} className="w-fit">
@@ -314,18 +313,7 @@ export default function OfficeDetailPage() {
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {m.roleInterne && <Badge tone="brand">{m.roleInterne}</Badge>}
-                {isManager ? (
-                  <select
-                    value={m.roleDansBureau}
-                    onChange={(e) => handleRoleChange(m.user.id, e.target.value as 'MANAGER' | 'COLLABORATEUR')}
-                    className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
-                  >
-                    <option value="COLLABORATEUR">Collaborator</option>
-                    <option value="MANAGER">Manager</option>
-                  </select>
-                ) : (
-                  <Badge tone="neutral">{m.roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}</Badge>
-                )}
+                <Badge tone="neutral">{roleLabel(orgMembres?.find((om) => om.id === m.user.id)?.roleGlobal)}</Badge>
                 {isManager && (
                   <button
                     onClick={() => handleRemove(m.user.id)}
@@ -351,7 +339,6 @@ export default function OfficeDetailPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="declared">Pending</Badge>
-                  <Badge tone="neutral">{inv.roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}</Badge>
                   <Button
                     variant="ghost"
                     size="sm"

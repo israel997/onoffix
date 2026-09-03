@@ -247,7 +247,7 @@ export class BureauxService {
       data: {
         bureauId,
         userId: membre.id,
-        roleDansBureau: dto.roleDansBureau,
+        roleDansBureau: dto.roleDansBureau ?? RoleBureau.COLLABORATEUR,
         roleInterne: dto.roleInterne,
       },
       select: INVITATION_SELECT,

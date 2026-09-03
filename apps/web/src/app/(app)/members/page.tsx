@@ -13,7 +13,6 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Toggle } from '@/components/ui/toggle';
 import {
   addOrganisationMembre,
   cancelOrganisationInvitation,
@@ -21,11 +20,18 @@ import {
   listOrganisationMembres,
   removeOrganisationMembre,
   resolveAssetUrl,
+  transferOwnership,
   updateMembrePoste,
   updateOrganisationMembreRole,
   type Invitation,
   type OrganisationMembre,
 } from '@/lib/api';
+
+const ROLE_LABEL: Record<'ADMIN' | 'MANAGER' | 'MEMBRE', string> = {
+  ADMIN: 'Authority',
+  MANAGER: 'Manager',
+  MEMBRE: 'Collaborator',
+};
 
 function initials(name: string) {
   return name
@@ -129,13 +135,36 @@ function MembersPageContent() {
 
   const isAdmin = user?.roleGlobal === 'ADMIN';
 
-  async function handleRoleChange(membre: OrganisationMembre, roleGlobal: 'ADMIN' | 'MEMBRE') {
+  async function handleRoleChange(membre: OrganisationMembre, roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE') {
     setUpdatingRoleId(membre.id);
     setError(null);
     try {
       await updateOrganisationMembreRole(membre.id, roleGlobal);
       await load();
-      toast(`${membre.nom} is now ${roleGlobal === 'ADMIN' ? 'an admin' : 'a member'}`);
+      toast(`${membre.nom} is now ${ROLE_LABEL[roleGlobal]}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      toast(message, 'error');
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  }
+
+  async function handleTransferOwnership(membre: OrganisationMembre) {
+    const ok = await confirmDialog({
+      title: `Make ${membre.nom} the owner?`,
+      description: 'They become the sole owner of this organisation. You keep your Authority access, but lose owner-only actions (deleting the organisation, transferring it again).',
+      confirmLabel: 'Transfer ownership',
+      danger: true,
+    });
+    if (!ok) return;
+    setUpdatingRoleId(membre.id);
+    setError(null);
+    try {
+      await transferOwnership(membre.id);
+      await load();
+      toast(`${membre.nom} is now the owner of this organisation`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
       setError(message);
@@ -302,19 +331,30 @@ function MembersPageContent() {
                         Owner
                       </Badge>
                     ) : isAdmin ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Admin</span>
-                        <Toggle
-                          checked={m.roleGlobal === 'ADMIN'}
+                      <>
+                        <select
+                          value={m.roleGlobal}
                           disabled={updatingRoleId === m.id}
-                          label={`Toggle admin for ${m.nom}`}
-                          onChange={() => handleRoleChange(m, m.roleGlobal === 'ADMIN' ? 'MEMBRE' : 'ADMIN')}
-                        />
-                      </div>
+                          onChange={(e) => handleRoleChange(m, e.target.value as 'ADMIN' | 'MANAGER' | 'MEMBRE')}
+                          aria-label={`Role for ${m.nom}`}
+                          className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
+                        >
+                          <option value="ADMIN">Authority</option>
+                          <option value="MANAGER">Manager</option>
+                          <option value="MEMBRE">Collaborator</option>
+                        </select>
+                        {user?.id === user?.organisation.proprietaireId && (
+                          <button
+                            onClick={() => handleTransferOwnership(m)}
+                            disabled={updatingRoleId === m.id}
+                            className="text-xs font-medium text-brand-blue hover:underline disabled:opacity-50"
+                          >
+                            Make owner
+                          </button>
+                        )}
+                      </>
                     ) : (
-                      <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
-                        {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
-                      </Badge>
+                      <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>{ROLE_LABEL[m.roleGlobal]}</Badge>
                     )}
                     {isAdmin && m.id !== user?.organisation.proprietaireId && m.id !== user?.id && (
                       <button

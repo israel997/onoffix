@@ -8,7 +8,6 @@ import {
   NiveauAlerte,
   NotificationType,
   PrioriteTache,
-  RoleBureau,
   RoleGlobal,
   SanteTache,
   StatutTache,
@@ -56,10 +55,13 @@ export class TachesService {
   private async assertManager(bureauId: string | null, user: AuthenticatedUser) {
     if (bureauId === null) return; // Tâche personnelle : déjà filtrée par appartenance dans loadWithBureau
     if (user.roleGlobal === RoleGlobal.ADMIN) return;
+    if (user.roleGlobal !== RoleGlobal.MANAGER) {
+      throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
+    }
     const membership = await this.prisma.userBureau.findUnique({
       where: { userId_bureauId: { userId: user.userId, bureauId } },
     });
-    if (!membership || membership.roleDansBureau !== RoleBureau.MANAGER) {
+    if (!membership) {
       throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
     }
   }
@@ -76,10 +78,11 @@ export class TachesService {
   private async isManager(bureauId: string | null, user: AuthenticatedUser): Promise<boolean> {
     if (bureauId === null) return true; // Tâche personnelle : le propriétaire gère seul
     if (user.roleGlobal === RoleGlobal.ADMIN) return true;
+    if (user.roleGlobal !== RoleGlobal.MANAGER) return false;
     const membership = await this.prisma.userBureau.findUnique({
       where: { userId_bureauId: { userId: user.userId, bureauId } },
     });
-    return membership?.roleDansBureau === RoleBureau.MANAGER;
+    return !!membership;
   }
 
   private lienTache(bureauId: string | null) {
@@ -504,12 +507,14 @@ export class TachesService {
               select: { id: true },
             })
           ).map((b) => b.id)
-        : (
-            await this.prisma.userBureau.findMany({
-              where: { userId: user.userId, roleDansBureau: RoleBureau.MANAGER },
-              select: { bureauId: true },
-            })
-          ).map((m) => m.bureauId),
+        : user.roleGlobal === RoleGlobal.MANAGER
+          ? (
+              await this.prisma.userBureau.findMany({
+                where: { userId: user.userId },
+                select: { bureauId: true },
+              })
+            ).map((m) => m.bureauId)
+          : [],
     );
 
     const taches = await this.prisma.tache.findMany({

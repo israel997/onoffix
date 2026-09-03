@@ -71,7 +71,7 @@ export default function OfficeSettingsPage() {
 
   const isManager =
     user?.roleGlobal === 'ADMIN' ||
-    bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER');
+    (user?.roleGlobal === 'MANAGER' && bureau?.membres.some((m) => m.user.id === user?.id));
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();

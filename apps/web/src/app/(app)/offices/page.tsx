@@ -5,7 +5,6 @@ import { Loading } from '@/components/ui/loading';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { BuildingIcon, DoorIcon, MailIcon } from '@/components/icons/office-icons';
-import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
@@ -165,7 +164,6 @@ export default function OfficesPage() {
               >
                 <div>
                   <p className="text-sm font-medium text-foreground">{inv.bureau.nom}</p>
-                  <Badge tone="neutral">{inv.roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}</Badge>
                 </div>
                 <div className="flex gap-2">
                   <Button

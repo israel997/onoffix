@@ -42,10 +42,12 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
   if (!user) return null;
 
+  const roleLabel =
+    user.roleGlobal === 'ADMIN' ? 'Authority' : user.roleGlobal === 'MANAGER' ? 'Manager' : 'Collaborator';
   const bureauLabel = user.bureaux[0]
-    ? `${user.bureaux[0].bureau.nom} · ${user.bureaux[0].roleDansBureau === 'MANAGER' ? 'Manager' : 'Collaborator'}`
+    ? `${user.bureaux[0].bureau.nom} · ${roleLabel}`
     : user.roleGlobal === 'ADMIN'
-      ? 'Organisation admin'
+      ? 'Organisation Authority'
       : 'No office yet';
 
   return (

@@ -1,10 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  NotificationType,
-  RoleBureau,
-  RoleGlobal,
-  StatutValidationDeclaration,
-} from '@prisma/client';
+import { NotificationType, RoleGlobal, StatutValidationDeclaration } from '@prisma/client';
 import { todayDate } from '../common/date.util';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -119,7 +114,7 @@ export class RituelService {
 
     const [bureauManagers, orgAdmins, membre] = await Promise.all([
       this.prisma.userBureau.findMany({
-        where: { bureauId: { in: bureauIds }, roleDansBureau: RoleBureau.MANAGER },
+        where: { bureauId: { in: bureauIds }, user: { roleGlobal: RoleGlobal.MANAGER } },
         select: { userId: true },
       }),
       // Un admin d'organisation gère implicitement tous les bureaux (bypass roleGlobal),

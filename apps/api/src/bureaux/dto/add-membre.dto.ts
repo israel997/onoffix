@@ -7,8 +7,10 @@ export class AddMembreDto {
   @NormalizedEmail()
   email: string;
 
+  /** Vestige : le rôle manager/collaborateur est désormais global à la personne (Members), plus choisi par bureau. */
+  @IsOptional()
   @IsEnum(RoleBureau)
-  roleDansBureau: RoleBureau;
+  roleDansBureau?: RoleBureau;
 
   @IsOptional()
   @IsString()

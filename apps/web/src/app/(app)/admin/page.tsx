@@ -218,7 +218,7 @@ export default function AdminPage() {
                     <td className="py-3 pr-4 text-muted-foreground">{m.organisationNom}</td>
                     <td className="py-3 pr-4">
                       <Badge tone={m.roleGlobal === 'ADMIN' ? 'brand' : 'neutral'}>
-                        {m.roleGlobal === 'ADMIN' ? 'Admin' : 'Member'}
+                        {m.roleGlobal === 'ADMIN' ? 'Authority' : m.roleGlobal === 'MANAGER' ? 'Manager' : 'Collaborator'}
                       </Badge>
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap text-muted-foreground">
@@ -241,7 +241,7 @@ export default function AdminPage() {
                             disabled={busyId === m.userId}
                             onClick={() => handlePromote(m)}
                           >
-                            Make admin
+                            Make Authority
                           </Button>
                         )}
                         {m.restricted ? (

@@ -106,9 +106,9 @@ export class BureauxController {
     @Query('to') to: string,
   ) {
     const bureau = await this.bureauxService.findOne(bureauId, user);
-    const isManagerHere = bureau.membres.some(
-      (m) => m.user.id === user.userId && m.roleDansBureau === RoleBureau.MANAGER,
-    );
+    const isManagerHere =
+      user.roleGlobal === RoleGlobal.MANAGER &&
+      bureau.membres.some((m) => m.user.id === user.userId);
     if (
       !bureau.classementFiabiliteVisible &&
       user.roleGlobal !== RoleGlobal.ADMIN &&

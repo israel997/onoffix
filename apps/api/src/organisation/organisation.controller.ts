@@ -22,6 +22,7 @@ import { endOfDay } from '../common/date.util';
 import { Roles } from '../common/decorators/roles.decorator';
 import { StorageService } from '../common/storage.service';
 import { AddOrganisationMembreDto } from './dto/add-organisation-membre.dto';
+import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { UpdateMembrePosteDto } from './dto/update-membre-poste.dto';
 import { UpdateMembreRoleDto } from './dto/update-membre-role.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
@@ -106,6 +107,12 @@ export class OrganisationController {
     @Body() dto: UpdateMembreRoleDto,
   ) {
     return this.organisationService.updateMembreRole(user.organisationId, userId, user, dto);
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Patch('transfer-ownership')
+  transferOwnership(@CurrentUser() user: AuthenticatedUser, @Body() dto: TransferOwnershipDto) {
+    return this.organisationService.transferOwnership(user.organisationId, user, dto.newOwnerId);
   }
 
   @Roles(RoleGlobal.ADMIN)

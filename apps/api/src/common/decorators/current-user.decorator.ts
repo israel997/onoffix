@@ -5,7 +5,7 @@ export interface AuthenticatedUser {
   userId: string;
   accountId: string;
   organisationId: string;
-  roleGlobal: 'ADMIN' | 'MEMBRE';
+  roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE';
   restricted: boolean;
 }
 

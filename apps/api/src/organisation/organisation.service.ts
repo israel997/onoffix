@@ -353,13 +353,21 @@ export class OrganisationService {
     });
   }
 
+  /**
+   * Change le rôle global (Authority/Manager/Collaborator) d'un membre. Toute Authority peut
+   * le faire (cf. garde @Roles(ADMIN) sur la route) — seul le transfert de propriété
+   * lui-même (transferOwnership) reste réservé au propriétaire actuel.
+   */
   async updateMembreRole(
     organisationId: string,
     targetUserId: string,
-    currentUser: AuthenticatedUser,
+    _currentUser: AuthenticatedUser,
     dto: UpdateMembreRoleDto,
   ) {
-    const organisation = await this.assertOwner(organisationId, currentUser.userId);
+    const organisation = await this.prisma.organisation.findUniqueOrThrow({
+      where: { id: organisationId },
+      select: { proprietaireId: true },
+    });
 
     if (targetUserId === organisation.proprietaireId) {
       throw new BadRequestException(
@@ -400,6 +408,57 @@ export class OrganisationService {
     }
 
     return updated;
+  }
+
+  /**
+   * Transfère la propriété de l'organisation à un autre membre — réservé au propriétaire
+   * actuel. Le nouveau propriétaire devient Authority s'il ne l'était pas déjà, pour
+   * garder l'accès complet que le statut de propriétaire suppose.
+   */
+  async transferOwnership(
+    organisationId: string,
+    currentUser: AuthenticatedUser,
+    newOwnerId: string,
+  ) {
+    const organisation = await this.assertOwner(organisationId, currentUser.userId);
+
+    if (newOwnerId === organisation.proprietaireId) {
+      throw new BadRequestException('Ce membre est déjà propriétaire de l’organisation');
+    }
+
+    const newOwner = await this.prisma.user.findFirst({
+      where: { id: newOwnerId, organisationId },
+    });
+    if (!newOwner)
+      throw new NotFoundException("Ce collaborateur ne fait pas partie de l'organisation");
+
+    await this.prisma.organisation.update({
+      where: { id: organisationId },
+      data: { proprietaireId: newOwnerId },
+    });
+
+    if (newOwner.roleGlobal !== RoleGlobal.ADMIN) {
+      await this.prisma.user.update({
+        where: { id: newOwnerId },
+        data: { roleGlobal: RoleGlobal.ADMIN },
+      });
+      const bureaux = await this.prisma.bureau.findMany({
+        where: { organisationId },
+        select: { id: true },
+      });
+      if (bureaux.length > 0) {
+        await this.prisma.userBureau.createMany({
+          data: bureaux.map((bureau) => ({
+            userId: newOwnerId,
+            bureauId: bureau.id,
+            roleDansBureau: RoleBureau.MANAGER,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return this.findOne(organisationId);
   }
 
   /** Poste/titre affiché (ex. "Chief Technical Officer") — modifiable par un admin, y compris après coup. */

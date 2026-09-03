@@ -19,7 +19,7 @@ export interface Me {
   poste: string | null;
   bio: string | null;
   photoUrl: string | null;
-  roleGlobal: 'ADMIN' | 'MEMBRE';
+  roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE';
   emailVerifie: boolean;
   hierarchie: string | null;
   dateAnniversaire: string | null;
@@ -118,7 +118,7 @@ export interface InvitationPreview {
   email: string;
   nom: string;
   organisationNom: string;
-  roleGlobal: 'ADMIN' | 'MEMBRE';
+  roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE';
 }
 
 export function getInvitationPreview(token: string) {
@@ -382,7 +382,7 @@ export interface MyBureauInvitation {
 
 export function addMembre(
   bureauId: string,
-  data: { email: string; roleDansBureau: 'MANAGER' | 'COLLABORATEUR'; roleInterne?: string },
+  data: { email: string; roleInterne?: string },
 ) {
   return authFetch<BureauInvitation>(`/bureaux/${bureauId}/membres`, { method: 'POST', body: data });
 }
@@ -428,7 +428,7 @@ export interface OrganisationMembre {
   email: string;
   poste: string | null;
   photoUrl: string | null;
-  roleGlobal: 'ADMIN' | 'MEMBRE';
+  roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE';
   createdAt: string;
   hierarchie: string | null;
   dateAnniversaire: string | null;
@@ -503,7 +503,7 @@ export function removeOrganisationLogo() {
   return authFetch<Organisation>('/organisation/logo', { method: 'DELETE' });
 }
 
-export function updateOrganisationMembreRole(userId: string, roleGlobal: 'ADMIN' | 'MEMBRE') {
+export function updateOrganisationMembreRole(userId: string, roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE') {
   return authFetch<OrganisationMembre>(`/organisation/membres/${userId}/role`, {
     method: 'PATCH',
     body: { roleGlobal },
@@ -512,6 +512,14 @@ export function updateOrganisationMembreRole(userId: string, roleGlobal: 'ADMIN'
 
 export function removeOrganisationMembre(userId: string) {
   return authFetch<void>(`/organisation/membres/${userId}`, { method: 'DELETE' });
+}
+
+/** Réservé au propriétaire actuel de l'organisation. */
+export function transferOwnership(newOwnerId: string) {
+  return authFetch<Organisation>('/organisation/transfer-ownership', {
+    method: 'PATCH',
+    body: { newOwnerId },
+  });
 }
 
 export function listOrganisationMembres() {
@@ -1143,7 +1151,7 @@ export function createTache(
 }
 
 export interface MyOrganisation extends OrganisationOption {
-  roleGlobal: 'ADMIN' | 'MEMBRE';
+  roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE';
   current: boolean;
 }
 
@@ -1191,7 +1199,7 @@ export interface AdminMembre {
   nom: string;
   email: string;
   organisationNom: string;
-  roleGlobal: 'ADMIN' | 'MEMBRE';
+  roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE';
   dateInscription: string;
   pays: string | null;
   banned: boolean;

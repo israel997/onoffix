@@ -48,7 +48,7 @@ export default function OrganizerPage() {
 
   const isManager =
     user?.roleGlobal === 'ADMIN' ||
-    bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') ||
+    (user?.roleGlobal === 'MANAGER' && bureau?.membres.some((m) => m.user.id === user?.id)) ||
     false;
 
   async function handleCreateTache(event: FormEvent) {
