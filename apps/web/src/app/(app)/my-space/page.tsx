@@ -12,8 +12,8 @@ import { cn } from '@/lib/cn';
 type Tab = 'organizer' | 'tasks';
 
 const TABS: { key: Tab; label: string; description: string }[] = [
-  { key: 'organizer', label: 'Organizer', description: 'Your private brain dump.' },
-  { key: 'tasks', label: 'Tasks', description: 'Tasks from your personal Organizer.' },
+  { key: 'organizer', label: 'BrainDumper', description: 'Your private brain dump.' },
+  { key: 'tasks', label: 'Tasks', description: 'Tasks from your personal BrainDumper.' },
 ];
 
 function MySpaceContent() {

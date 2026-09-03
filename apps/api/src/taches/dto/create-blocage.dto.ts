@@ -1,13 +1,14 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { TypeBlocage } from '@prisma/client';
 
 export class CreateBlocageDto {
   @IsEnum(TypeBlocage)
   type: TypeBlocage;
 
-  @IsOptional()
+  // Un blocage sans explication n'aide personne à comprendre ce qui coince.
   @IsString()
-  cause?: string;
+  @MinLength(3)
+  cause: string;
 
   @IsOptional()
   @IsString()

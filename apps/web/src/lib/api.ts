@@ -861,6 +861,7 @@ export interface TacheBlocage {
   dateDebut: string;
   dateFin: string | null;
   responsable: { id: string; nom: string } | null;
+  signalePar: { id: string; nom: string } | null;
   bloquantTache: { id: string; titre: string } | null;
 }
 
@@ -868,7 +869,7 @@ export function listBlocages(tacheId: string) {
   return authFetch<TacheBlocage[]>(`/taches/${tacheId}/blocages`);
 }
 
-export function creerBlocage(tacheId: string, data: { type: TypeBlocage; cause?: string }) {
+export function creerBlocage(tacheId: string, data: { type: TypeBlocage; cause: string }) {
   return authFetch<TacheBlocage>(`/taches/${tacheId}/blocages`, { method: 'POST', body: data });
 }
 
@@ -876,6 +877,10 @@ export function resoudreBlocage(tacheId: string, blocageId: string) {
   return authFetch<TacheBlocage>(`/taches/${tacheId}/blocages/${blocageId}/resoudre`, {
     method: 'PATCH',
   });
+}
+
+export function retirerBlocage(tacheId: string, blocageId: string) {
+  return authFetch<void>(`/taches/${tacheId}/blocages/${blocageId}`, { method: 'DELETE' });
 }
 
 export interface ChronoStatut {

@@ -3,15 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ChevronIcon, InfoIcon } from '@/components/icons/office-icons';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ButtonTip, hasSeenTip } from '@/components/tasks/button-tip';
-import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
   accepterTache,
-  annulerDeclarationTache,
   assignerTache,
   declarerTache,
   deleteTache,
@@ -79,6 +78,7 @@ export function TaskItem({
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [focusReport, setFocusReport] = useState(false);
   const [titre, setTitre] = useState(tache.titre);
   const [description, setDescription] = useState(tache.description ?? '');
   const [dateCible, setDateCible] = useState(tache.dateCible ?? '');
@@ -91,21 +91,8 @@ export function TaskItem({
   // Une tâche d'équipe est fermée par défaut (juste titre + statut) pour ne pas noyer
   // la liste — une tâche personnelle reste toujours "ouverte", c'est déjà compact.
   const [open, setOpen] = useState(false);
-  const [showInfoTip, setShowInfoTip] = useState(false);
-
-  const infoTipSeenKey = `ooffix_task_info_tip_seen_${tache.id}`;
-
-  function toggleOpen() {
-    setOpen((o) => {
-      const next = !o;
-      if (next && !localStorage.getItem(infoTipSeenKey)) setShowInfoTip(true);
-      return next;
-    });
-  }
 
   const isAssignee = tache.assigneAId === currentUserId;
-  const isAssigner = tache.assigneParId === currentUserId;
-  const canValidate = tache.statut === 'DECLARE' && (isAssigner || isManager);
   const canDeleteTask = isAdmin || isManager || (isPersonal && isAssignee);
   const toast = useToast();
   const confirmDialog = useConfirm();
@@ -253,31 +240,26 @@ export function TaskItem({
     }, 'Task completed');
   }
 
+  async function handleDoneClick() {
+    const ok = await confirmDialog({
+      title: 'Submit this task as done?',
+      description: 'This action is irreversible - your manager will be notified to review it.',
+      confirmLabel: 'Submit',
+    });
+    if (!ok) return;
+    await run(async () => {
+      await declarerTache(tache.id, doneComment);
+      setDoneComment('');
+    }, 'Marked as done');
+  }
+
   const canCheckDone = isAssignee && tache.statut === 'EN_COURS';
   const isChecked = isPersonal ? tache.statut === 'VALIDE' : tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
-  const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone || canValidate;
+  const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone;
   const expanded = isPersonal || open;
   const activeSession = tache.sessions?.[0] ?? null;
-
-  // Mini onboarding : un seul bulle à la fois, sur le premier bouton pertinent jamais
-  // vu — dans l'ordre logique du cycle de vie d'une tâche.
-  const tipCandidates: { key: string; active: boolean }[] = [
-    { key: 'accept', active: isAssignee && tache.statut === 'A_FAIRE' },
-    { key: 'start', active: isAssignee && (tache.statut === 'ACCEPTEE' || tache.statut === 'A_REVOIR') },
-    { key: 'done', active: canCheckDone },
-    { key: 'break', active: isAssignee && tache.statut === 'EN_COURS' && !!activeSession },
-    {
-      key: 'report',
-      active:
-        (isAssignee || isManager) &&
-        (tache.statut === 'ACCEPTEE' || tache.statut === 'EN_COURS' || tache.statut === 'A_REVOIR'),
-    },
-    { key: 'approve', active: canValidate },
-  ];
-  const activeTipKey =
-    !isPersonal && expanded
-      ? (tipCandidates.find((c) => c.active && !hasSeenTip(c.key))?.key ?? null)
-      : null;
+  // Report a problem n'a de sens qu'une fois le travail réellement commencé.
+  const canReport = (isAssignee || isManager) && tache.statut === 'EN_COURS';
 
   return (
     <div className="rounded-lg border border-border p-2.5">
@@ -297,7 +279,7 @@ export function TaskItem({
         )}
         {!isPersonal && (
           <button
-            onClick={toggleOpen}
+            onClick={() => setOpen((o) => !o)}
             aria-label={open ? 'Collapse task' : 'Expand task'}
             className="mt-1 shrink-0 text-muted-foreground hover:text-foreground"
           >
@@ -305,8 +287,9 @@ export function TaskItem({
           </button>
         )}
         <button
+          title={tache.titre}
           className={`min-w-0 flex-1 truncate text-left text-sm font-medium text-foreground ${isPersonal ? 'hover:underline' : ''}`}
-          onClick={() => (isPersonal ? setShowDetail(true) : toggleOpen())}
+          onClick={() => (isPersonal ? setShowDetail(true) : setOpen((o) => !o))}
         >
           {isPersonal ? tache.titre : truncateTitle(tache.titre)}
         </button>
@@ -322,40 +305,20 @@ export function TaskItem({
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
           {expanded && !isPersonal && (
-            <div className="relative">
-              <button
-                onClick={() => setShowDetail(true)}
-                aria-label="View task details"
-                className="rounded px-1 text-status-review hover:opacity-75"
-              >
-                <InfoIcon className="h-4 w-4" />
-              </button>
-              {showInfoTip && (
-                <div className="absolute right-0 top-full z-20 mt-2 w-48">
-                  <div className="relative rounded-lg bg-brand-blue px-3 py-2 text-xs font-medium text-white shadow-lg">
-                    <div className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 bg-brand-blue" />
-                    <div className="flex items-start gap-2">
-                      <span>See full details here.</span>
-                      <button
-                        onClick={() => {
-                          localStorage.setItem(infoTipSeenKey, '1');
-                          setShowInfoTip(false);
-                        }}
-                        aria-label="Dismiss"
-                        className="shrink-0 leading-none text-white/80 hover:text-white"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => setShowDetail(true)}
+              aria-label="View task details"
+              title="View task details"
+              className="rounded px-1 text-status-review hover:opacity-75"
+            >
+              <InfoIcon className="h-4 w-4" />
+            </button>
           )}
           {expanded && isManager && (
             <button
               onClick={() => setEditing(true)}
               aria-label="Edit task"
+              title="Edit task"
               className="rounded px-1 text-muted-foreground hover:text-foreground"
             >
               ✎
@@ -373,6 +336,7 @@ export function TaskItem({
                 if (ok) run(() => deleteTache(tache.id), 'Task deleted');
               }}
               aria-label="Delete task"
+              title="Delete task"
               className="rounded px-1 text-muted-foreground hover:text-status-review"
             >
               🗑
@@ -382,7 +346,8 @@ export function TaskItem({
       </div>
 
       {expanded && (
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
+        <div className={!isPersonal ? 'mt-2 border-t border-border pt-2.5' : 'mt-1'}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
         {isPersonal && <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>}
         {tache.priorite !== 'NORMALE' && (
           <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
@@ -399,172 +364,129 @@ export function TaskItem({
           <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
         )}
       </div>
-      )}
 
-      {expanded && error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
+      {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
 
-      {!isPersonal && expanded && (
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-6">
-        {!tache.assigneAId && isManager && (
-          <select
-            disabled={busy}
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) run(() => assignerTache(tache.id, e.target.value), 'Task assigned');
-            }}
-            className="h-7 rounded-lg border border-border bg-surface px-2 text-xs"
-          >
-            <option value="" disabled>
-              Assign to…
-            </option>
-            {assignableMembres.map((m) => (
-              <option key={m.user.id} value={m.user.id}>
-                {m.user.nom}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {isAssignee && tache.statut === 'A_FAIRE' && (
-          <ButtonTip tipKey="accept" text="Click Accept to take on this task." active={activeTipKey === 'accept'}>
-            <Button size="sm" disabled={busy} onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}>
-              Accept
-            </Button>
-          </ButtonTip>
-        )}
-
-        {isAssignee && tache.statut === 'ACCEPTEE' && (
-          <ButtonTip tipKey="start" text="Click Start to begin working and start the timer." active={activeTipKey === 'start'}>
-            <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task started')}>
-              Start
-            </Button>
-          </ButtonTip>
-        )}
-
-        {isAssignee && tache.statut === 'A_REVOIR' && (
-          <ButtonTip tipKey="start" text="Click Resubmit to start working on it again." active={activeTipKey === 'start'}>
-            <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}>
-              Resubmit
-            </Button>
-          </ButtonTip>
-        )}
-
-        {isAssignee && tache.statut === 'EN_COURS' && activeSession && (
-          <ButtonTip tipKey="break" text="Taking a break? Click here to pause the timer." active={activeTipKey === 'break'}>
-            <Button size="sm" variant="warning" disabled={busy} onClick={() => run(() => pauserTache(tache.id), 'Task paused')}>
-              Break
-            </Button>
-          </ButtonTip>
-        )}
-
-        {isAssignee && tache.statut === 'EN_COURS' && !activeSession && (
-          <Button size="sm" variant="success" disabled={busy} onClick={() => run(() => reprendreTache(tache.id), 'Task resumed')}>
-            Resume
-          </Button>
-        )}
-
-        {canCheckDone && (
-          <>
-            <input
-              value={doneComment}
-              onChange={(e) => setDoneComment(e.target.value)}
-              placeholder="Comment (optional)"
-              className="h-7 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
-            />
-            <ButtonTip tipKey="done" text="Finished? Click Done to mark it complete." active={activeTipKey === 'done'}>
+      {!isPersonal && (
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 pl-6">
+          {/* Action principale : où on en est, et l'étape suivante logique. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isAssignee && tache.statut === 'A_FAIRE' && (
+              <Button
+                size="sm"
+                disabled={busy}
+                title="Take on this task"
+                onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}
+              >
+                Accept
+              </Button>
+            )}
+            {isAssignee && tache.statut === 'ACCEPTEE' && (
               <Button
                 size="sm"
                 variant="success"
                 disabled={busy}
-                onClick={() =>
-                  run(async () => {
-                    await declarerTache(tache.id, doneComment);
-                    setDoneComment('');
-                  }, 'Marked as done')
-                }
+                title="Begin working and start the timer"
+                onClick={() => run(() => demarrerTache(tache.id), 'Task started')}
               >
-                Done
+                Start
               </Button>
-            </ButtonTip>
-          </>
-        )}
+            )}
+            {isAssignee && tache.statut === 'A_REVOIR' && (
+              <Button
+                size="sm"
+                variant="success"
+                disabled={busy}
+                title="Start working on it again"
+                onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}
+              >
+                Resubmit
+              </Button>
+            )}
+            {isAssignee && tache.statut === 'EN_COURS' && activeSession && (
+              <Button
+                size="sm"
+                variant="warning"
+                disabled={busy}
+                title="Pause the timer"
+                onClick={() => run(() => pauserTache(tache.id), 'Task paused')}
+              >
+                Break
+              </Button>
+            )}
+            {isAssignee && tache.statut === 'EN_COURS' && !activeSession && (
+              <Button
+                size="sm"
+                variant="success"
+                disabled={busy}
+                title="Resume the timer"
+                onClick={() => run(() => reprendreTache(tache.id), 'Task resumed')}
+              >
+                Resume
+              </Button>
+            )}
+            {canCheckDone && (
+              <>
+                <input
+                  value={doneComment}
+                  onChange={(e) => setDoneComment(e.target.value)}
+                  placeholder="Comment (optional)"
+                  className="h-7 w-40 rounded-lg border border-border bg-surface px-2 text-xs"
+                />
+                <Button size="sm" variant="success" disabled={busy} title="Mark as complete" onClick={handleDoneClick}>
+                  Done
+                </Button>
+              </>
+            )}
+            {!tache.assigneAId && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => run(() => assignerTache(tache.id, currentUserId), 'Assigned to you')}
+              >
+                Assign to me
+              </Button>
+            )}
+            {!tache.assigneAId && isManager && (
+              <SearchableSelect
+                placeholder="Assign to…"
+                disabled={busy}
+                options={assignableMembres.map((m) => ({ value: m.user.id, label: m.user.nom }))}
+                onSelect={(userId) => run(() => assignerTache(tache.id, userId), 'Task assigned')}
+              />
+            )}
+          </div>
 
-        {isAssignee && tache.statut === 'DECLARE' && (
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => run(() => annulerDeclarationTache(tache.id), 'Undone - back to in progress')}
-          >
-            Undone
-          </Button>
-        )}
-
-        {!tache.assigneAId && (
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => run(() => assignerTache(tache.id, currentUserId), 'Assigned to you')}
-          >
-            Assign to me
-          </Button>
-        )}
-
-        {(isAssignee || isManager) &&
-          (tache.statut === 'ACCEPTEE' || tache.statut === 'EN_COURS' || tache.statut === 'A_REVOIR') && (
-            <ButtonTip
-              tipKey="report"
-              text="Stuck or blocked? Click here to report a problem."
-              active={activeTipKey === 'report'}
-            >
-              <Button size="sm" variant="danger" onClick={() => setShowDetail(true)}>
+          {/* Secondaire : problème à signaler, déplacer ailleurs. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {canReport && (
+              <Button
+                size="sm"
+                variant="danger"
+                title="Flag what's blocking this task"
+                onClick={() => {
+                  setFocusReport(true);
+                  setShowDetail(true);
+                }}
+              >
                 Report a problem
               </Button>
-            </ButtonTip>
-          )}
-
-        {canValidate && (
-          <ButtonTip tipKey="approve" text="Review the work, then click Approve to validate it." active={activeTipKey === 'approve'}>
-            <Button size="sm" disabled={busy} onClick={() => run(() => validerTache(tache.id, 'ok'), 'Task approved')}>
-              Approve
-            </Button>
-          </ButtonTip>
-        )}
-
-        {canValidate && (
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => run(() => validerTache(tache.id, 'litige'), 'Sent back for rework')}
-          >
-            Send back
-          </Button>
-        )}
-
-        {isManager && moveTargets && moveTargets.length > 0 && (
-          <select
-            disabled={busy}
-            defaultValue=""
-            onChange={(e) => {
-              if (!e.target.value) return;
-              const conversationId = e.target.value === '__none__' ? null : e.target.value;
-              run(() => updateTache(tache.id, { conversationId }), 'Task moved');
-            }}
-            className="h-7 rounded-lg border border-border bg-surface px-2 text-xs"
-          >
-            <option value="" disabled>
-              Move to…
-            </option>
-            {moveTargets.map((g) => (
-              <option key={g.conversationId ?? '__none__'} value={g.conversationId ?? '__none__'}>
-                {g.nom}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+            )}
+            {isManager && moveTargets && moveTargets.length > 0 && (
+              <SearchableSelect
+                placeholder="Move to…"
+                disabled={busy}
+                options={moveTargets.map((g) => ({ value: g.conversationId ?? '__none__', label: g.nom }))}
+                onSelect={(value) =>
+                  run(() => updateTache(tache.id, { conversationId: value === '__none__' ? null : value }), 'Task moved')
+                }
+              />
+            )}
+          </div>
+        </div>
+      )}
+        </div>
       )}
 
       {showDetail && (
@@ -572,7 +494,11 @@ export function TaskItem({
           tache={tache}
           isManager={isManager}
           currentUserId={currentUserId}
-          onClose={() => setShowDetail(false)}
+          focusBlockerForm={focusReport}
+          onClose={() => {
+            setShowDetail(false);
+            setFocusReport(false);
+          }}
           onChange={onChange}
         />
       )}

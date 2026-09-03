@@ -34,12 +34,16 @@ export function SubjectsChat({
   tasksHref,
   mentionableUsers,
   couleur,
+  onSubjectsChanged,
 }: {
   projetId: string;
   canManage: boolean;
   tasksHref?: string;
   mentionableUsers?: { id: string; nom: string }[];
   couleur?: CouleurBureau;
+  /** Prévient le parent qu'un Subject a été créé/renommé/supprimé (ex. pour rafraîchir
+   * un formulaire "Add task manually" qui a sa propre copie de la liste des Subjects). */
+  onSubjectsChanged?: () => void;
 }) {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -78,6 +82,7 @@ export function SubjectsChat({
       setNewName('');
       await load();
       setActiveId(subject.id);
+      onSubjectsChanged?.();
       toast(`Subject "${nom}" created`);
     } finally {
       setCreating(false);
@@ -89,6 +94,7 @@ export function SubjectsChat({
     if (!nom || nom === subject.nom) return;
     await renameOrganizerSubject(projetId, subject.id, nom);
     await load();
+    onSubjectsChanged?.();
     toast('Subject renamed');
   }
 
@@ -102,6 +108,7 @@ export function SubjectsChat({
     if (!ok) return;
     await deleteOrganizerSubject(projetId, subject.id);
     await load(false);
+    onSubjectsChanged?.();
     toast('Subject deleted');
   }
 

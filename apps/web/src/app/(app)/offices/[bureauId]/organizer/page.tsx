@@ -102,6 +102,7 @@ export default function OrganizerPage() {
           tasksHref={`/offices/${bureauId}/tasks`}
           mentionableUsers={bureau.membres.map((m) => ({ id: m.user.id, nom: m.user.nom }))}
           couleur={bureau.couleur}
+          onSubjectsChanged={load}
         />
 
         {isManager && (

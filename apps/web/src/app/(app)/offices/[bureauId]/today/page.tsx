@@ -3,7 +3,8 @@
 import { Loading } from '@/components/ui/loading';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronIcon } from '@/components/icons/office-icons';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -12,13 +13,15 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   getBureau,
-  getBureauRituel,
   getDailyBrief,
-  validerRituelMembre,
+  listBureauTaches,
+  validerTache,
   type BureauDetail,
-  type BureauRituelMembre,
   type DailyBrief,
+  type Tache,
 } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/lib/toast-context';
 
 function DailyBriefCard({ brief }: { brief: DailyBrief }) {
   return (
@@ -70,111 +73,99 @@ function DailyBriefCard({ brief }: { brief: DailyBrief }) {
   );
 }
 
-const STATUT_LABEL: Record<string, string> = {
-  EN_ATTENTE: 'Waiting for validation',
-  VALIDEE: 'Validated',
-  LITIGE: 'In dispute',
-};
+function formatWhen(iso: string) {
+  return new Date(iso).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
 
-function MemberRow({ membre, bureauId, onChange }: { membre: BureauRituelMembre; bureauId: string; onChange: () => void }) {
-  const [checked, setChecked] = useState<Set<string>>(
-    new Set(membre.taches.filter((t) => t.cocheParAdmin).map((t) => t.id)),
-  );
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function PendingRow({ tache, onChange }: { tache: Tache; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
-  function toggle(tacheId: string) {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(tacheId)) next.delete(tacheId);
-      else next.add(tacheId);
-      return next;
-    });
-  }
-
-  async function handleValidate() {
-    setSaving(true);
-    setError(null);
+  async function decide(decision: 'ok' | 'litige') {
+    setBusy(true);
     try {
-      await validerRituelMembre(bureauId, membre.user.id, [...checked]);
+      await validerTache(tache.id, decision);
       onChange();
+      toast(decision === 'ok' ? 'Task approved' : 'Sent back for rework');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   }
 
   return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground">{membre.user.nom}</p>
-        <div className="flex items-center gap-2">
-          {!membre.declare && <Badge tone="review">Not declared yet</Badge>}
-          {membre.pourcentage !== null && (
-            <Badge tone={membre.pourcentage === 100 ? 'validated' : 'brand'}>{membre.pourcentage}%</Badge>
-          )}
-          {membre.statutValidation && (
-            <Badge tone={membre.statutValidation === 'VALIDEE' ? 'validated' : 'declared'}>
-              {STATUT_LABEL[membre.statutValidation]}
-            </Badge>
-          )}
+    <div className="flex flex-col gap-1.5 border-b border-border py-3 last:border-b-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground">{tache.titre}</p>
+          <p className="text-xs text-muted-foreground">
+            {tache.assigneA?.nom ?? 'Unassigned'}
+            {tache.dateDeclaration && ` · marked done ${formatWhen(tache.dateDeclaration)}`}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button size="sm" disabled={busy} onClick={() => decide('ok')}>
+            Approve
+          </Button>
+          <Button size="sm" variant="secondary" disabled={busy} onClick={() => decide('litige')}>
+            Send back
+          </Button>
         </div>
       </div>
-
-      <div className="mt-3 flex flex-col divide-y divide-border">
-        {membre.taches.map((t) => (
-          <label key={t.id} className="flex items-center gap-3 py-2">
-            <input
-              type="checkbox"
-              checked={checked.has(t.id)}
-              onChange={() => toggle(t.id)}
-              className="h-4 w-4 rounded border-border"
-            />
-            <span className="flex-1 text-sm text-foreground">{t.titre}</span>
-            {t.cocheParMembre ? (
-              <Badge tone="declared">Declared by member</Badge>
-            ) : (
-              <Badge tone="neutral">Not declared</Badge>
-            )}
-          </label>
-        ))}
-      </div>
-
-      {error && <p className="mt-2 text-xs text-status-review">{error}</p>}
-
-      <Button
-        className="mt-3 w-fit"
-        size="sm"
-        disabled={saving || !membre.declare}
-        onClick={handleValidate}
-      >
-        {saving ? 'Saving…' : 'Validate'}
-      </Button>
-    </Card>
+      {tache.commentaireDeclaration && (
+        <p className="text-xs italic text-muted-foreground">&quot;{tache.commentaireDeclaration}&quot;</p>
+      )}
+    </div>
   );
 }
 
-export default function TodayRituelPage() {
+export default function TodayPage() {
   const params = useParams<{ bureauId: string }>();
   const bureauId = params.bureauId;
+  const { user } = useAuth();
 
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
-  const [membres, setMembres] = useState<BureauRituelMembre[] | null>(null);
   const [brief, setBrief] = useState<DailyBrief | null>(null);
+  const [taches, setTaches] = useState<Tache[] | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const [historyFrom, setHistoryFrom] = useState(today);
+  const [historyTo, setHistoryTo] = useState(today);
 
   async function load() {
-    const [bur, rit, br] = await Promise.all([getBureau(bureauId), getBureauRituel(bureauId), getDailyBrief(bureauId)]);
+    const [bur, br, t] = await Promise.all([getBureau(bureauId), getDailyBrief(bureauId), listBureauTaches(bureauId)]);
     setBureau(bur);
-    setMembres(rit);
     setBrief(br);
+    setTaches(t);
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    const interval = setInterval(load, 20_000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bureauId]);
+
+  const isAdmin = user?.roleGlobal === 'ADMIN';
+  const isManager =
+    isAdmin || bureau?.membres.some((m) => m.user.id === user?.id && m.roleDansBureau === 'MANAGER') || false;
+
+  const pending = useMemo(() => taches?.filter((t) => t.statut === 'DECLARE') ?? [], [taches]);
+  const approved = useMemo(() => {
+    if (!taches) return [];
+    const from = new Date(historyFrom);
+    const to = new Date(historyTo);
+    to.setUTCHours(23, 59, 59, 999);
+    return taches
+      .filter((t) => t.statut === 'VALIDE' && t.dateValidation)
+      .filter((t) => {
+        const d = new Date(t.dateValidation!);
+        return d >= from && d <= to;
+      })
+      .sort((a, b) => new Date(b.dateValidation!).getTime() - new Date(a.dateValidation!).getTime());
+  }, [taches, historyFrom, historyTo]);
 
   if (!bureau) return <Loading className="text-sm" />;
 
@@ -191,27 +182,84 @@ export default function TodayRituelPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Today</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Review and confirm what each collaborator got done today.
+          {isManager ? 'Review and approve what got marked done.' : "See how today's work is going."}
         </p>
       </div>
 
-      <OfficeNav bureauId={bureauId} showSettings />
+      <OfficeNav bureauId={bureauId} showSettings={isManager} />
 
       {brief && <DailyBriefCard brief={brief} />}
 
-      {membres === null ? (
-        <Loading className="text-sm" />
-      ) : membres.length === 0 ? (
+      {isManager && (
         <Card>
-          <EmptyState>No task with a target date for today in this office.</EmptyState>
+          <h2 className="text-sm font-semibold text-foreground">Waiting for your approval</h2>
+          {taches === null ? (
+            <Loading className="mt-3 text-sm" />
+          ) : pending.length === 0 ? (
+            <EmptyState>Nothing waiting for approval right now.</EmptyState>
+          ) : (
+            <div className="mt-2 flex flex-col">
+              {pending.map((t) => (
+                <PendingRow key={t.id} tache={t} onChange={load} />
+              ))}
+            </div>
+          )}
         </Card>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {membres.map((m) => (
-            <MemberRow key={m.user.id} membre={m} bureauId={bureauId} onChange={load} />
-          ))}
-        </div>
       )}
+
+      <Card>
+        <button
+          onClick={() => setHistoryOpen((o) => !o)}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <span className="flex items-center gap-2">
+            <ChevronIcon className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${historyOpen ? 'rotate-90' : ''}`} />
+            <span className="text-sm font-semibold text-foreground">Approved tasks</span>
+          </span>
+          <span className="text-xs text-muted-foreground">{approved.length} in range</span>
+        </button>
+        {historyOpen && (
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                From
+                <input
+                  type="date"
+                  value={historyFrom}
+                  max={historyTo}
+                  onChange={(e) => setHistoryFrom(e.target.value)}
+                  className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+                To
+                <input
+                  type="date"
+                  value={historyTo}
+                  min={historyFrom}
+                  onChange={(e) => setHistoryTo(e.target.value)}
+                  className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+                />
+              </label>
+            </div>
+            {approved.length === 0 ? (
+              <EmptyState>No task validated in this range.</EmptyState>
+            ) : (
+              <div className="flex flex-col divide-y divide-border">
+                {approved.map((t) => (
+                  <div key={t.id} className="py-2.5 text-sm">
+                    <p className="text-foreground">{t.titre}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.assigneA?.nom ?? 'Unassigned'} · approved by {t.valideur?.nom ?? '—'} ·{' '}
+                      {t.dateValidation && formatWhen(t.dateValidation)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

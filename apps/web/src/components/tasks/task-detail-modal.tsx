@@ -2,7 +2,7 @@
 
 import { Loading } from '@/components/ui/loading';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -11,6 +11,7 @@ import {
   getChronoStatut,
   listBlocages,
   resoudreBlocage,
+  retirerBlocage,
   type ChronoStatut,
   type Tache,
   type TacheBlocage,
@@ -37,12 +38,15 @@ export function TaskDetailModal({
   tache,
   isManager,
   currentUserId,
+  focusBlockerForm = false,
   onClose,
   onChange,
 }: {
   tache: Tache;
   isManager: boolean;
   currentUserId: string;
+  /** Ouvert depuis "Report a problem" — on saute direct au formulaire, pas au reste du détail. */
+  focusBlockerForm?: boolean;
   onClose: () => void;
   onChange: () => void;
 }) {
@@ -51,8 +55,11 @@ export function TaskDetailModal({
   const [chrono, setChrono] = useState<ChronoStatut | null>(null);
   const [newCause, setNewCause] = useState('');
   const [newType, setNewType] = useState<TypeBlocage>('TACHE');
+  const [causeError, setCauseError] = useState(false);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const causeInputRef = useRef<HTMLInputElement>(null);
+  const blockersRef = useRef<HTMLDivElement>(null);
 
   async function load() {
     const [b, c] = await Promise.all([listBlocages(tache.id), getChronoStatut(tache.id)]);
@@ -66,6 +73,13 @@ export function TaskDetailModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tache.id]);
 
+  useEffect(() => {
+    if (focusBlockerForm) {
+      blockersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      causeInputRef.current?.focus();
+    }
+  }, [focusBlockerForm]);
+
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     try {
@@ -77,6 +91,16 @@ export function TaskDetailModal({
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleAddBlocker() {
+    if (!newCause.trim()) {
+      setCauseError(true);
+      causeInputRef.current?.focus();
+      return;
+    }
+    setCauseError(false);
+    run(() => creerBlocage(tache.id, { type: newType, cause: newCause.trim() })).then(() => setNewCause(''));
   }
 
   return (
@@ -136,7 +160,7 @@ export function TaskDetailModal({
         </p>
       </div>
 
-      <div className="mt-4 border-t border-border pt-4">
+      <div ref={blockersRef} className="mt-4 border-t border-border pt-4">
         <p className="text-sm font-semibold text-foreground">Blockers</p>
         <div className="mt-2 flex flex-col gap-2">
           {blocages === null ? (
@@ -144,51 +168,67 @@ export function TaskDetailModal({
           ) : blocages.length === 0 ? (
             <p className="text-xs text-muted-foreground">None.</p>
           ) : (
-            blocages.map((b) => (
-              <div key={b.id} className="flex items-center justify-between rounded-lg border border-border p-2 text-xs">
-                <div>
-                  <Badge tone={b.dateFin ? 'validated' : 'review'}>{b.type}</Badge>
-                  {b.cause && <span className="ml-2 text-muted-foreground">{b.cause}</span>}
+            blocages.map((b) => {
+              const canRetract = !b.dateFin && (b.signalePar?.id === currentUserId || isManager);
+              return (
+                <div key={b.id} className="rounded-lg border border-border p-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <Badge tone={b.dateFin ? 'validated' : 'review'}>{b.type}</Badge>
+                      {b.cause && <span className="ml-2 text-foreground">{b.cause}</span>}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {!b.dateFin && isManager && (
+                        <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(() => resoudreBlocage(tache.id, b.id))}>
+                          Resolve
+                        </Button>
+                      )}
+                      {canRetract && (
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => retirerBlocage(tache.id, b.id))}>
+                          Retract
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {b.signalePar && (
+                    <p className="mt-1 text-muted-foreground">
+                      Reported by {b.signalePar.nom} · {formatDate(b.dateDebut)}
+                    </p>
+                  )}
                 </div>
-                {!b.dateFin && isManager && (
-                  <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(() => resoudreBlocage(tache.id, b.id))}>
-                    Resolve
-                  </Button>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
         {canReportBlocker && (
-          <div className="mt-3 flex items-center gap-2">
-            <select
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as TypeBlocage)}
-              className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
-            >
-              {BLOCAGE_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <input
-              value={newCause}
-              onChange={(e) => setNewCause(e.target.value)}
-              placeholder="Cause…"
-              className="h-8 flex-1 rounded-lg border border-border bg-surface px-2 text-xs"
-            />
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() =>
-                run(() => creerBlocage(tache.id, { type: newType, cause: newCause || undefined })).then(() =>
-                  setNewCause(''),
-                )
-              }
-            >
-              Add
-            </Button>
+          <div className="mt-3 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value as TypeBlocage)}
+                className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
+              >
+                {BLOCAGE_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <input
+                ref={causeInputRef}
+                value={newCause}
+                onChange={(e) => {
+                  setNewCause(e.target.value);
+                  if (causeError) setCauseError(false);
+                }}
+                placeholder="What's blocking it? (required)"
+                className={`h-8 flex-1 rounded-lg border bg-surface px-2 text-xs ${causeError ? 'border-status-review' : 'border-border'}`}
+              />
+              <Button size="sm" disabled={busy} onClick={handleAddBlocker}>
+                Add
+              </Button>
+            </div>
+            {causeError && <p className="text-xs text-status-review">Explain what&apos;s blocking it before reporting.</p>}
           </div>
         )}
       </div>

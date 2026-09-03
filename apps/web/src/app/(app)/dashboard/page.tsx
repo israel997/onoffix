@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 <DeskIcon className="h-5 w-5 text-brand-blue" />
                 My Space
               </CardTitle>
-              <CardDescription>Your private Organizer.</CardDescription>
+              <CardDescription>Your private BrainDumper.</CardDescription>
             </CardHeader>
           </Card>
         </Link>

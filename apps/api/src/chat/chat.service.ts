@@ -145,7 +145,7 @@ export class ChatService {
   listSubjects(projetId: string) {
     return this.prisma.conversation.findMany({
       where: { projetId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 

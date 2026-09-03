@@ -664,6 +664,7 @@ export class TachesService {
       orderBy: { dateDebut: 'desc' },
       include: {
         responsable: { select: { id: true, nom: true } },
+        signalePar: { select: { id: true, nom: true } },
         bloquantTache: { select: { id: true, titre: true } },
       },
     });
@@ -687,9 +688,11 @@ export class TachesService {
           cause: dto.cause,
           bloquantTacheId: dto.bloquantTacheId,
           responsableId: dto.responsableId,
+          signaleParId: user.userId,
         },
         include: {
           responsable: { select: { id: true, nom: true } },
+          signalePar: { select: { id: true, nom: true } },
           bloquantTache: { select: { id: true, titre: true } },
         },
       }),
@@ -699,6 +702,7 @@ export class TachesService {
     return blocage;
   }
 
+  /** Marque un blocage comme réellement résolu — réservé au manager, garde l'historique. */
   async resoudreBlocage(tacheId: string, blocageId: string, user: AuthenticatedUser) {
     const tache = await this.loadWithBureau(tacheId, user);
     await this.assertManager(tache.projet.bureauId, user);
@@ -708,6 +712,32 @@ export class TachesService {
       data: { dateFin: new Date() },
     });
 
+    await this.recalculerSanteApresBlocage(tacheId);
+    return blocage;
+  }
+
+  /** Retire un signalement fait par erreur — réservé à son auteur (ou un manager), et
+   * seulement tant qu'il n'a pas déjà été résolu. Contrairement à "résoudre", ça ne
+   * garde pas de trace : ça n'aurait jamais dû exister. */
+  async retirerBlocage(tacheId: string, blocageId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    const blocage = await this.prisma.tacheBlocage.findUnique({ where: { id: blocageId } });
+    if (!blocage || blocage.tacheId !== tacheId) {
+      throw new NotFoundException('Blocage introuvable');
+    }
+    if (blocage.dateFin) {
+      throw new BadRequestException('Ce blocage est déjà résolu');
+    }
+    const manager = await this.isManager(tache.projet.bureauId, user);
+    if (blocage.signaleParId !== user.userId && !manager) {
+      throw new ForbiddenException('Seul l’auteur du signalement ou un manager peut le retirer');
+    }
+
+    await this.prisma.tacheBlocage.delete({ where: { id: blocageId } });
+    await this.recalculerSanteApresBlocage(tacheId);
+  }
+
+  private async recalculerSanteApresBlocage(tacheId: string) {
     const restants = await this.prisma.tacheBlocage.count({ where: { tacheId, dateFin: null } });
     if (restants === 0) {
       await this.prisma.tache.update({
@@ -715,8 +745,6 @@ export class TachesService {
         data: { sante: SanteTache.NORMAL },
       });
     }
-
-    return blocage;
   }
 
   // ---------- Chronomètre ----------

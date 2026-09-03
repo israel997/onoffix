@@ -54,7 +54,7 @@ export class OrganizerService {
       where: { bureauId, estOrganizer: true },
       include: {
         taches: { orderBy: { createdAt: 'desc' }, include: TACHE_INCLUDE },
-        conversations: { orderBy: { createdAt: 'asc' } },
+        conversations: { orderBy: { createdAt: 'desc' } },
       },
     });
   }
@@ -64,7 +64,7 @@ export class OrganizerService {
       where: { proprietaireId: userId, estOrganizer: true },
       include: {
         taches: { orderBy: { createdAt: 'desc' }, include: TACHE_INCLUDE },
-        conversations: { orderBy: { createdAt: 'asc' } },
+        conversations: { orderBy: { createdAt: 'desc' } },
       },
     });
   }

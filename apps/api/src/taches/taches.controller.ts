@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -144,6 +145,16 @@ export class TachesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.tachesService.resoudreBlocage(tacheId, blocageId, user);
+  }
+
+  @Delete('blocages/:blocageId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  retirerBlocage(
+    @Param('tacheId') tacheId: string,
+    @Param('blocageId') blocageId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.tachesService.retirerBlocage(tacheId, blocageId, user);
   }
 
   @Get('chrono')

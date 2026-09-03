@@ -267,7 +267,8 @@ model User {
   conversationReads        ConversationRead[]
   messages                 Message[]
   projetsPersonnels        Projet[]
-  blocagesResponsable      TacheBlocage[]
+  blocagesResponsable      TacheBlocage[]           @relation("BlocageResponsable")
+  blocagesSignales         TacheBlocage[]           @relation("BlocageSignalePar")
   tachesSessions           TacheSession[]
   pushSubscriptions        PushSubscription[]
 
@@ -391,14 +392,18 @@ model TacheBlocage {
   cause           String?
   bloquantTacheId String?     @map("bloquant_tache_id")
   responsableId   String?     @map("responsable_id")
-  dateDebut       DateTime    @default(now()) @map("date_debut")
-  dateFin         DateTime?   @map("date_fin")
+  // Qui a signalé ce blocage — distinct de "responsable" (qui doit le résoudre) ;
+  // sert à autoriser l'auteur à retirer son propre signalement par erreur.
+  signaleParId String? @map("signale_par_id")
+  dateDebut    DateTime  @default(now()) @map("date_debut")
+  dateFin      DateTime? @map("date_fin")
 
   createdAt DateTime @default(now()) @map("created_at")
 
   tache         Tache  @relation("TacheBlocages", fields: [tacheId], references: [id], onDelete: Cascade)
   bloquantTache Tache? @relation("TacheBloquantes", fields: [bloquantTacheId], references: [id], onDelete: SetNull)
-  responsable   User?  @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+  responsable   User?  @relation("BlocageResponsable", fields: [responsableId], references: [id], onDelete: SetNull)
+  signalePar    User?  @relation("BlocageSignalePar", fields: [signaleParId], references: [id], onDelete: SetNull)
 
   @@index([tacheId])
   @@index([bloquantTacheId])
