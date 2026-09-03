@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton } from '@/components/ui/skeleton';
 
 import { useEffect, useMemo, useState } from 'react';
 import { TaskCalendarModal } from '@/components/calendar/task-calendar-modal';
@@ -175,7 +175,9 @@ export default function CalendarPage() {
       </div>
 
       {tasks === null ? (
-        <Loading className="text-sm" />
+        <Card>
+          <ListSkeleton rows={4} />
+        </Card>
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-3">

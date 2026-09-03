@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton } from '@/components/ui/skeleton';
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -71,7 +71,7 @@ export default function ChatListPage() {
         <Card>
           <p className="mb-3 text-sm font-medium text-foreground">Start a conversation with…</p>
           {!members ? (
-            <Loading className="text-sm" />
+            <ListSkeleton rows={3} />
           ) : pickable.length === 0 ? (
             <EmptyState>No other member in your organisation yet.</EmptyState>
           ) : (
@@ -99,7 +99,9 @@ export default function ChatListPage() {
       )}
 
       {conversations === null ? (
-        <Loading className="text-sm" />
+        <Card>
+          <ListSkeleton />
+        </Card>
       ) : conversations.length === 0 ? (
         <Card>
           <EmptyState>No conversation yet - start one above.</EmptyState>

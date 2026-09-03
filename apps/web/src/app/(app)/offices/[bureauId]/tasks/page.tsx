@@ -1,7 +1,5 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
-
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { ChevronIcon, FilterIcon } from '@/components/icons/office-icons';
@@ -10,7 +8,7 @@ import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PageSkeleton, Skeleton } from '@/components/ui/skeleton';
 import {
   createOrganizerSubject,
   getBureau,
@@ -288,7 +286,7 @@ function TasksPageContent() {
 
 export default function TasksPage() {
   return (
-    <Suspense fallback={<Loading className="text-sm" />}>
+    <Suspense fallback={<PageSkeleton />}>
       <TasksPageContent />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -112,7 +112,7 @@ export default function OrganisationSettingsPage() {
     }
   }
 
-  if (!organisation) return <Loading className="text-sm" />;
+  if (!organisation) return <PageSkeleton />;
 
   if (!isAdmin) {
     return <p className="text-sm text-muted-foreground">You don&apos;t have access to this page.</p>;

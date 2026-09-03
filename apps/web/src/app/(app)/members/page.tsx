@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton, PageSkeleton } from '@/components/ui/skeleton';
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
@@ -283,7 +283,7 @@ function MembersPageContent() {
       <Card>
         <CardTitle>Members</CardTitle>
         {membres === null || invitations === null ? (
-          <Loading className="mt-3 text-sm" />
+          <ListSkeleton />
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
             {invitations.map((inv) => (
@@ -435,7 +435,7 @@ function MembersPageContent() {
 
 export default function MembersPage() {
   return (
-    <Suspense fallback={<Loading className="text-sm" />}>
+    <Suspense fallback={<PageSkeleton />}>
       <MembersPageContent />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -147,7 +147,7 @@ export default function OfficeSettingsPage() {
     }
   }
 
-  if (!bureau) return <Loading className="text-sm" />;
+  if (!bureau) return <PageSkeleton />;
 
   if (!isManager) {
     return <p className="text-sm text-muted-foreground">You don&apos;t have access to this page.</p>;

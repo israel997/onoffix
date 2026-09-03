@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronIcon } from '@/components/icons/office-icons';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { getValidationsAujourdhui, type ValidationAujourdhui } from '@/lib/api';
 
 /** Qui a validé quoi aujourd'hui — vue informative, aucune action ici. */
@@ -25,7 +25,7 @@ export function ValidationsToday() {
     });
   }
 
-  if (validations === null) return <Loading className="text-sm" />;
+  if (validations === null) return <ListSkeleton rows={2} />;
   if (validations.length === 0) {
     return (
       <Card>

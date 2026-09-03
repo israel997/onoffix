@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -146,7 +146,7 @@ export default function OfficeDetailPage() {
     await load();
   }
 
-  if (!bureau) return <Loading className="text-sm" />;
+  if (!bureau) return <PageSkeleton />;
 
   return (
     <div className="flex flex-col gap-6">

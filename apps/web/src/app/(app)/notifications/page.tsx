@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton } from '@/components/ui/skeleton';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -199,7 +199,9 @@ export default function NotificationsPage() {
       <PushToggle />
 
       {notifications === null ? (
-        <Loading className="text-sm" />
+        <Card>
+          <ListSkeleton />
+        </Card>
       ) : notifications.length === 0 ? (
         <Card>
           <CardDescription>No notifications yet.</CardDescription>

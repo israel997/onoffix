@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton, PageSkeleton } from '@/components/ui/skeleton';
 
 import { useEffect, useState } from 'react';
 import { GearIcon } from '@/components/icons/office-icons';
@@ -127,7 +127,7 @@ export default function AdminPage() {
   }
 
   if (loading) {
-    return <Loading className="text-sm" />;
+    return <PageSkeleton />;
   }
 
   if (!authorized) {
@@ -156,7 +156,7 @@ export default function AdminPage() {
       <Card>
         <CardTitle>Organisations</CardTitle>
         {organisations === null ? (
-          <Loading className="mt-3 text-sm" />
+          <ListSkeleton rows={2} />
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
             {organisations.map((org) => (
@@ -192,7 +192,7 @@ export default function AdminPage() {
       <Card>
         <CardTitle>Members</CardTitle>
         {membres === null ? (
-          <Loading className="mt-3 text-sm" />
+          <ListSkeleton rows={3} />
         ) : membres.length === 0 ? (
           <EmptyState className="mt-3">No member yet.</EmptyState>
         ) : (

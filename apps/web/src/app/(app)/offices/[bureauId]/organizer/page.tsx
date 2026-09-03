@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -73,7 +73,7 @@ export default function OrganizerPage() {
     }
   }
 
-  if (!organizer || !bureau) return <Loading className="text-sm" />;
+  if (!organizer || !bureau) return <PageSkeleton />;
 
   return (
     <div className="flex flex-col gap-6">

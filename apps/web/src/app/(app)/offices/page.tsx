@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -204,7 +204,14 @@ export default function OfficesPage() {
       )}
 
       {bureaux === null ? (
-        <Loading className="text-sm" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <Card key={i}>
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="mt-3 h-16" />
+            </Card>
+          ))}
+        </div>
       ) : bureaux.length === 0 ? (
         <Card>
           <EmptyState>No office yet.</EmptyState>

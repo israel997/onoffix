@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { StickyNoteIcon } from '@/components/icons/office-icons';
@@ -48,7 +48,20 @@ export function OrganizerTab() {
     }
   }
 
-  if (!organizer) return <Loading className="text-sm" />;
+  if (!organizer) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <Card>
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="mt-3 h-40" />
+        </Card>
+        <Card>
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="mt-3 h-24" />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">

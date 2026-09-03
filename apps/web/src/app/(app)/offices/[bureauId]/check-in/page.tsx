@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton, PageSkeleton } from '@/components/ui/skeleton';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -169,7 +169,7 @@ export default function CheckInPage() {
       .sort((a, b) => new Date(b.dateValidation!).getTime() - new Date(a.dateValidation!).getTime());
   }, [taches, historyFrom, historyTo]);
 
-  if (!bureau) return <Loading className="text-sm" />;
+  if (!bureau) return <PageSkeleton />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -196,7 +196,7 @@ export default function CheckInPage() {
         <Card>
           <h2 className="text-sm font-semibold text-foreground">Waiting for your approval</h2>
           {taches === null ? (
-            <Loading className="mt-3 text-sm" />
+            <ListSkeleton rows={2} />
           ) : pending.length === 0 ? (
             <EmptyState>Nothing waiting for approval right now.</EmptyState>
           ) : (

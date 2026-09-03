@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { ListSkeleton } from '@/components/ui/skeleton';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -50,7 +50,9 @@ export default function DirectConversationPage() {
             change jamais de largeur — seul son contenu interne bascule en Loading. */}
         <Card className="hidden w-72 shrink-0 overflow-hidden !p-0 lg:block lg:h-fit">
           {conversations === null ? (
-            <Loading className="p-4 text-sm" />
+            <div className="p-4">
+              <ListSkeleton rows={4} />
+            </div>
           ) : (
             <DirectConversationsList
               conversations={conversations}

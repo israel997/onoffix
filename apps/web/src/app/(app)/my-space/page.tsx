@@ -1,6 +1,6 @@
 'use client';
 
-import { Loading } from '@/components/ui/loading';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -53,7 +53,7 @@ function MySpaceContent() {
 
 export default function MySpacePage() {
   return (
-    <Suspense fallback={<Loading className="text-sm" />}>
+    <Suspense fallback={<PageSkeleton />}>
       <MySpaceContent />
     </Suspense>
   );
