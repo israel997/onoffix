@@ -494,3 +494,61 @@ export function PauseIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Main levée, paume ouverte — geste "stop/halte". Break et Resume réutilisent la même icône, juste une couleur différente. */
+export function HandStopIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <rect x="4" y="10.5" width="2.3" height="6" rx="1.1" />
+      <rect x="7.2" y="3.3" width="2.1" height="9.2" rx="1.05" />
+      <rect x="9.9" y="2.2" width="2.1" height="10.3" rx="1.05" />
+      <rect x="12.6" y="3.3" width="2.1" height="9.2" rx="1.05" />
+      <rect x="15.3" y="4.8" width="2.1" height="7.7" rx="1.05" />
+      <path d="M6 12v3.4a5.6 5.6 0 0 0 5.6 5.6h3.3a5 5 0 0 0 4.9-4l.5-2.7a1.6 1.6 0 0 0-3.1-.7l-.4 1.6z" />
+    </svg>
+  );
+}
+
+/** Drapeau sur mât — Done (tâche marquée terminée). */
+export function FlagIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M6 21V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M6 5c2-1.3 4-1.3 6 0s4 1.3 6 0v8c-2 1.3-4 1.3-6 0s-4-1.3-6 0V5z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Double coche — Accept (l'assigné prend la tâche en charge). */
+export function DoubleCheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M1.5 12.5l4 4L13 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12.5l4 4 8.5-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Fusée — Start/Resubmit (on décolle sur la tâche). */
+export function RocketIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M12 2.5c3 2 4.5 5.5 4.5 9 0 2-.5 3.8-1.3 5.3H8.8C8 15.3 7.5 13.5 7.5 11.5c0-3.5 1.5-7 4.5-9z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10.5" r="1.6" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M7.5 13.5l-3 1.5 1.2-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16.5 13.5l3 1.5-1.2-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M9.5 16.8c-.3 1.6.4 3 2.5 4.7 2.1-1.7 2.8-3.1 2.5-4.7"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   AlertTriangleIcon,
-  CheckCircleIcon,
-  CheckIcon,
   ChevronIcon,
+  DoubleCheckIcon,
+  FlagIcon,
+  HandStopIcon,
   InfoIcon,
-  PauseIcon,
-  PlayIcon,
+  RocketIcon,
 } from '@/components/icons/office-icons';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,13 @@ import {
   type Tache,
 } from '@/lib/api';
 import { useConfirm } from '@/lib/confirm-context';
-import { PRIORITE_TONE, SANTE_LABEL, SANTE_TONE, STATUT_LABEL, STATUT_TONE } from '@/lib/tache-labels';
+import {
+  PRIORITE_TONE,
+  SANTE_LABEL,
+  SANTE_TONE,
+  STATUT_LABEL,
+  STATUT_TONE,
+} from '@/lib/tache-labels';
 import { useToast } from '@/lib/toast-context';
 
 const TITLE_MAX_CHARS = 28;
@@ -131,7 +137,8 @@ export function TaskItem({
         description: description || undefined,
         dateCible: dateCible || null,
         priorite,
-        dureeEstimeeMinutes: dureeEstimeeHeures.trim() && !Number.isNaN(heures) ? Math.round(heures * 60) : null,
+        dureeEstimeeMinutes:
+          dureeEstimeeHeures.trim() && !Number.isNaN(heures) ? Math.round(heures * 60) : null,
       });
       if (assigneeId && assigneeId !== tache.assigneAId) {
         await assignerTache(tache.id, assigneeId);
@@ -214,7 +221,9 @@ export function TaskItem({
                 setDescription(tache.description ?? '');
                 setDateCible(tache.dateCible ?? '');
                 setPriorite(tache.priorite);
-                setDureeEstimeeHeures(tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '');
+                setDureeEstimeeHeures(
+                  tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
+                );
                 setAssigneeId(tache.assigneAId ?? '');
                 setEditing(false);
               }}
@@ -267,7 +276,9 @@ export function TaskItem({
   }
 
   const canCheckDone = isAssignee && tache.statut === 'EN_COURS';
-  const isChecked = isPersonal ? tache.statut === 'VALIDE' : tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
+  const isChecked = isPersonal
+    ? tache.statut === 'VALIDE'
+    : tache.statut === 'DECLARE' || tache.statut === 'VALIDE';
   const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone;
   const expanded = isPersonal || open;
   const activeSession = tache.sessions?.[0] ?? null;
@@ -309,14 +320,19 @@ export function TaskItem({
         <div className="flex shrink-0 items-center gap-1.5">
           {!isPersonal &&
             (tache.assigneA ? (
-              <Link href={`/members?userId=${tache.assigneA.id}`} onClick={(e) => e.stopPropagation()}>
+              <Link
+                href={`/members?userId=${tache.assigneA.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Badge tone={isAssignee ? 'indigo' : 'neutral'}>{tache.assigneA.nom}</Badge>
               </Link>
             ) : (
               <Badge tone="neutral">Unassigned</Badge>
             ))}
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
-          {tache.sante !== 'NORMAL' && <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>}
+          {tache.sante !== 'NORMAL' && (
+            <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>
+          )}
           {expanded && !isPersonal && (
             <button
               onClick={() => setShowDetail(true)}
@@ -360,150 +376,166 @@ export function TaskItem({
 
       {expanded && (
         <div className={!isPersonal ? 'mt-2 border-t border-border pt-2.5' : 'mt-1'}>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
-        {isPersonal && <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>}
-        {tache.priorite !== 'NORMALE' && (
-          <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
-        )}
-        {tache.statut === 'EN_COURS' && activeSession && (
-          <span>
-            running <LiveTimer since={activeSession.debut} />
-          </span>
-        )}
-        {tache.statut === 'EN_COURS' && !activeSession && (
-          <span className="font-medium text-status-declared">paused</span>
-        )}
-        {tache.commentaireDeclaration && (
-          <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
-        )}
-      </div>
-
-      {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
-
-      {!isPersonal && (
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 pl-6">
-          {/* Action principale : où on en est, et l'étape suivante logique. */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {isAssignee && tache.statut === 'A_FAIRE' && (
-              <Button
-                size="icon"
-                disabled={busy}
-                aria-label="Accept task"
-                title="Accept - take on this task"
-                onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}
-              >
-                <CheckIcon className="h-4 w-4" />
-              </Button>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">
+            {isPersonal && (
+              <span className="truncate">{tache.assigneA ? tache.assigneA.nom : 'Unassigned'}</span>
             )}
-            {isAssignee && tache.statut === 'ACCEPTEE' && (
-              <Button
-                size="icon"
-                variant="success"
-                disabled={busy}
-                aria-label="Start task"
-                title="Start - begin working and start the timer"
-                onClick={() => run(() => demarrerTache(tache.id), 'Task started')}
-              >
-                <PlayIcon className="h-4 w-4" />
-              </Button>
+            {tache.priorite !== 'NORMALE' && (
+              <Badge tone={PRIORITE_TONE[tache.priorite]}>{tache.priorite}</Badge>
             )}
-            {isAssignee && tache.statut === 'A_REVOIR' && (
-              <Button
-                size="icon"
-                variant="success"
-                disabled={busy}
-                aria-label="Resubmit task"
-                title="Resubmit - start working on it again"
-                onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}
-              >
-                <PlayIcon className="h-4 w-4" />
-              </Button>
+            {tache.statut === 'EN_COURS' && activeSession && (
+              <span>
+                running <LiveTimer since={activeSession.debut} />
+              </span>
             )}
-            {isAssignee && tache.statut === 'EN_COURS' && activeSession && (
-              <Button
-                size="icon"
-                variant="warning"
-                disabled={busy}
-                aria-label="Take a break"
-                title="Break - pause the timer"
-                onClick={() => run(() => pauserTache(tache.id), 'Task paused')}
-              >
-                <PauseIcon className="h-4 w-4" />
-              </Button>
+            {tache.statut === 'EN_COURS' && !activeSession && (
+              <span className="font-medium text-status-declared">paused</span>
             )}
-            {isAssignee && tache.statut === 'EN_COURS' && !activeSession && (
-              <Button
-                size="icon"
-                variant="success"
-                disabled={busy}
-                aria-label="Resume task"
-                title="Resume - restart the timer"
-                onClick={() => run(() => reprendreTache(tache.id), 'Task resumed')}
-              >
-                <PlayIcon className="h-4 w-4" />
-              </Button>
-            )}
-            {canCheckDone && (
-              <Button
-                size="icon"
-                variant="success"
-                disabled={busy}
-                aria-label="Mark as done"
-                title="Done - mark as complete"
-                onClick={handleDoneClick}
-              >
-                <CheckCircleIcon className="h-4 w-4" />
-              </Button>
-            )}
-            {!tache.assigneAId && (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => run(() => assignerTache(tache.id, currentUserId), 'Assigned to you')}
-              >
-                Assign to me
-              </Button>
-            )}
-            {!tache.assigneAId && isManager && (
-              <SearchableSelect
-                placeholder="Assign to…"
-                disabled={busy}
-                options={assignableMembres.map((m) => ({ value: m.user.id, label: m.user.nom }))}
-                onSelect={(userId) => run(() => assignerTache(tache.id, userId), 'Task assigned')}
-              />
+            {tache.commentaireDeclaration && (
+              <span className="truncate italic">&quot;{tache.commentaireDeclaration}&quot;</span>
             )}
           </div>
 
-          {/* Secondaire : problème à signaler, déplacer ailleurs. */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {canReport && (
-              <Button
-                size="icon"
-                variant="danger"
-                aria-label="Report a problem"
-                title="Report a problem - flag what's blocking this task"
-                onClick={() => {
-                  setFocusReport(true);
-                  setShowDetail(true);
-                }}
-              >
-                <AlertTriangleIcon className="h-4 w-4" />
-              </Button>
-            )}
-            {isManager && moveTargets && moveTargets.length > 0 && (
-              <SearchableSelect
-                placeholder="Move to…"
-                disabled={busy}
-                options={moveTargets.map((g) => ({ value: g.conversationId ?? '__none__', label: g.nom }))}
-                onSelect={(value) =>
-                  run(() => updateTache(tache.id, { conversationId: value === '__none__' ? null : value }), 'Task moved')
-                }
-              />
-            )}
-          </div>
-        </div>
-      )}
+          {error && <p className="mt-1 pl-6 text-xs text-status-review">{error}</p>}
+
+          {!isPersonal && (
+            // Une seule rangée, tout aligné à gauche — sinon la position du groupe "secondaire"
+            // (Report/Move to) saute d'une carte à l'autre selon la largeur du groupe "principal".
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-6">
+              {isAssignee && tache.statut === 'A_FAIRE' && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-brand-blue"
+                  disabled={busy}
+                  aria-label="Accept task"
+                  title="Accept - take on this task"
+                  onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}
+                >
+                  <DoubleCheckIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {isAssignee && tache.statut === 'ACCEPTEE' && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-status-validated"
+                  disabled={busy}
+                  aria-label="Start task"
+                  title="Start - begin working and start the timer"
+                  onClick={() => run(() => demarrerTache(tache.id), 'Task started')}
+                >
+                  <RocketIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {isAssignee && tache.statut === 'A_REVOIR' && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-status-validated"
+                  disabled={busy}
+                  aria-label="Resubmit task"
+                  title="Resubmit - start working on it again"
+                  onClick={() => run(() => demarrerTache(tache.id), 'Task restarted')}
+                >
+                  <RocketIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {isAssignee && tache.statut === 'EN_COURS' && activeSession && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-status-declared"
+                  disabled={busy}
+                  aria-label="Take a break"
+                  title="Break - pause the timer"
+                  onClick={() => run(() => pauserTache(tache.id), 'Task paused')}
+                >
+                  <HandStopIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {isAssignee && tache.statut === 'EN_COURS' && !activeSession && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-indigo-600"
+                  disabled={busy}
+                  aria-label="Resume task"
+                  title="Resume - restart the timer"
+                  onClick={() => run(() => reprendreTache(tache.id), 'Task resumed')}
+                >
+                  <HandStopIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {canCheckDone && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-status-validated"
+                  disabled={busy}
+                  aria-label="Mark as done"
+                  title="Done - mark as complete"
+                  onClick={handleDoneClick}
+                >
+                  <FlagIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {canReport && (
+                <Button
+                  size="icon"
+                  variant="plain"
+                  className="text-status-review"
+                  aria-label="Report a problem"
+                  title="Report a problem - flag what's blocking this task"
+                  onClick={() => {
+                    setFocusReport(true);
+                    setShowDetail(true);
+                  }}
+                >
+                  <AlertTriangleIcon className="h-4 w-4" />
+                </Button>
+              )}
+              {!tache.assigneAId && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    run(() => assignerTache(tache.id, currentUserId), 'Assigned to you')
+                  }
+                >
+                  Assign to me
+                </Button>
+              )}
+              {!tache.assigneAId && isManager && (
+                <SearchableSelect
+                  placeholder="Assign to…"
+                  disabled={busy}
+                  options={assignableMembres.map((m) => ({ value: m.user.id, label: m.user.nom }))}
+                  onSelect={(userId) => run(() => assignerTache(tache.id, userId), 'Task assigned')}
+                />
+              )}
+              {isManager && moveTargets && moveTargets.length > 0 && (
+                <SearchableSelect
+                  placeholder="Move to…"
+                  disabled={busy}
+                  options={moveTargets.map((g) => ({
+                    value: g.conversationId ?? '__none__',
+                    label: g.nom,
+                  }))}
+                  onSelect={(value) =>
+                    run(
+                      () =>
+                        updateTache(tache.id, {
+                          conversationId: value === '__none__' ? null : value,
+                        }),
+                      'Task moved',
+                    )
+                  }
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -541,7 +573,11 @@ export function TaskItem({
             <Button variant="secondary" disabled={busy} onClick={() => submitDone(undefined)}>
               No
             </Button>
-            <Button variant="success" disabled={busy || !commentDraft.trim()} onClick={() => submitDone(commentDraft.trim())}>
+            <Button
+              variant="success"
+              disabled={busy || !commentDraft.trim()}
+              onClick={() => submitDone(commentDraft.trim())}
+            >
               Add Comment
             </Button>
           </div>

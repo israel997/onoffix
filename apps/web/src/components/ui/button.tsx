@@ -1,7 +1,7 @@
 import { type ButtonHTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'warning' | 'success';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'plain' | 'danger' | 'warning' | 'success';
 type Size = 'default' | 'sm' | 'lg' | 'icon';
 
 const variantClasses: Record<Variant, string> = {
@@ -10,6 +10,9 @@ const variantClasses: Record<Variant, string> = {
   secondary:
     'bg-surface text-foreground border border-border hover:bg-surface-muted',
   ghost: 'bg-transparent text-foreground hover:bg-surface-muted',
+  // Pas de couleur de texte imposée : l'appelant colore l'icône lui-même via className
+  // (ex. icônes d'action de tâche — pas de fond, juste l'icône teintée).
+  plain: 'bg-transparent hover:bg-surface-muted',
   danger: 'bg-status-review text-white hover:opacity-90',
   warning: 'bg-status-declared text-white hover:opacity-90',
   success: 'bg-status-validated text-white hover:opacity-90',
