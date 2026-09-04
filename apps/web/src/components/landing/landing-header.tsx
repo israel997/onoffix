@@ -2,37 +2,62 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
+const NAV_EN = [
+  { href: '/#how', label: 'How it works' },
+  { href: '/#ritual', label: 'The daily ritual' },
+  { href: '/#features', label: 'Features' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/docs', label: 'Docs' },
+];
+
+const NAV_FR = [
+  { href: '/fr/#how', label: 'Comment ça marche' },
+  { href: '/fr/#ritual', label: 'Le rituel quotidien' },
+  { href: '/fr/#features', label: 'Fonctionnalités' },
+  { href: '/fr/pricing', label: 'Tarifs' },
+  { href: '/fr/docs', label: 'Docs' },
+];
+
+/** La langue est déduite de l'URL (préfixe /fr), pas d'un prop à faire passer partout. */
 export function LandingHeader() {
   const { user, loading } = useAuth();
+  const pathname = usePathname() ?? '/';
   const authed = !loading && !!user;
+  const isFr = pathname.startsWith('/fr');
+  const nav = isFr ? NAV_FR : NAV_EN;
+  const altHref = isFr ? pathname.slice(3) || '/' : `/fr${pathname === '/' ? '' : pathname}`;
 
   return (
     <header className="nav">
       <div className="wrap nav-inner">
-        <Link href="/" className="logo">
+        <Link href={isFr ? '/fr' : '/'} className="logo">
           <Image src="/logo.png" alt="OOffix" width={176} height={88} priority className="h-10 w-auto" />
         </Link>
         <nav className="nav-links">
-          <Link href="/#how">How it works</Link>
-          <Link href="/#ritual">The daily ritual</Link>
-          <Link href="/#features">Features</Link>
-          <Link href="/pricing">Pricing</Link>
-          <Link href="/docs">Docs</Link>
+          {nav.map((item) => (
+            <Link key={item.href} href={item.href}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
         <div className="nav-actions">
+          <Link href={altHref} className="lang-switch" aria-label={isFr ? 'Switch to English' : 'Passer en français'}>
+            {isFr ? 'EN' : 'FR'}
+          </Link>
           {authed ? (
             <Link href="/dashboard" className="btn btn-primary btn-sm">
-              Dashboard
+              {isFr ? 'Tableau de bord' : 'Dashboard'}
             </Link>
           ) : (
             <>
               <Link href="/login" className="btn btn-ghost btn-sm">
-                Log in
+                {isFr ? 'Connexion' : 'Log in'}
               </Link>
               <Link href="/register" className="btn btn-primary btn-sm">
-                Try OOffix
+                {isFr ? 'Essayer OOffix' : 'Try OOffix'}
               </Link>
             </>
           )}
