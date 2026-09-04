@@ -5,8 +5,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { LandingHeader } from '@/components/landing/landing-header';
+import { RotatingHeadline, type HeroHeadline } from '@/components/landing/rotating-headline';
 import { useAuth } from '@/lib/auth-context';
 import './landing.css';
+
+const HERO_HEADLINES: HeroHeadline[] = [
+  { before: 'Know exactly where your team stands, ', emphasis: 'every day', after: '.' },
+  { before: 'Fewer meetings, more focus, ', emphasis: 'more results', after: '.' },
+];
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -37,9 +43,7 @@ export default function LandingPage() {
       <section className="hero">
         <div className="wrap hero-grid">
           <div>
-            <h1>
-              Know exactly where your team stands, <span className="u">every day</span>.
-            </h1>
+            <RotatingHeadline headlines={HERO_HEADLINES} />
             <p className="hero-sub">
               Organize your team into offices and see, every evening, who actually made progress.
             </p>
