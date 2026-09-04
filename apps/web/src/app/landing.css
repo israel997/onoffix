@@ -1106,3 +1106,309 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Docs ---------- */
+.landing .docs-hero {
+  padding: 56px 0 32px;
+  border-bottom: 1px solid var(--lp-line);
+}
+.landing .docs-hero h1 {
+  font-size: 34px;
+  margin-top: 10px;
+}
+.landing .docs-hero p {
+  margin-top: 10px;
+  color: var(--slate);
+  font-size: 16px;
+  max-width: 640px;
+}
+
+.landing .docs-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 220px;
+  gap: 48px;
+  padding: 40px 0 100px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .landing .docs-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .landing .docs-toc {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .landing .docs-body {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+
+.landing .docs-sidebar {
+  position: sticky;
+  top: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.landing .docs-sidebar-title {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-soft);
+  margin: 18px 0 6px;
+}
+.landing .docs-sidebar-title:first-child {
+  margin-top: 0;
+}
+.landing .docs-sidebar a {
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  color: var(--slate);
+}
+.landing .docs-sidebar a:hover {
+  background: var(--lp-surface);
+  color: var(--ink);
+}
+.landing .docs-sidebar a.active {
+  background: #eaf0ff;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.landing .docs-crumbs {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--slate-soft);
+  margin-bottom: 18px;
+}
+.landing .docs-crumbs a:hover {
+  color: var(--blue);
+}
+
+.landing .docs-content h1 {
+  font-size: 32px;
+}
+.landing .docs-content > p:first-of-type {
+  margin-top: 12px;
+  font-size: 16.5px;
+  color: var(--slate);
+}
+.landing .docs-content h2 {
+  font-size: 22px;
+  margin-top: 44px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lp-line);
+  scroll-margin-top: 96px;
+}
+.landing .docs-content h2:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.landing .docs-content h3 {
+  font-size: 17px;
+  margin-top: 26px;
+  scroll-margin-top: 96px;
+}
+.landing .docs-content p {
+  margin-top: 12px;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.landing .docs-content ul,
+.landing .docs-content ol {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.landing .docs-content li {
+  font-size: 15px;
+  color: var(--ink-2);
+  padding-left: 20px;
+  position: relative;
+}
+.landing .docs-content ul li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--blue-light);
+}
+.landing .docs-content ol {
+  counter-reset: docs-ol;
+}
+.landing .docs-content ol li::before {
+  counter-increment: docs-ol;
+  content: counter(docs-ol) '.';
+  position: absolute;
+  left: 0;
+  color: var(--blue);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.landing .docs-content strong {
+  color: var(--ink);
+}
+.landing .docs-content code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: #eef1fa;
+  border: 1px solid var(--lp-line);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+.landing .docs-content img {
+  margin-top: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--lp-line);
+  box-shadow: 0 8px 24px rgba(11, 27, 63, 0.08);
+}
+.landing .docs-content figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--slate-soft);
+  text-align: center;
+}
+
+.landing .docs-callout {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--lp-line);
+  background: var(--lp-surface);
+}
+.landing .docs-callout-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.landing .docs-callout ul {
+  margin-top: 8px;
+}
+.landing .docs-callout p {
+  margin-top: 6px;
+}
+.landing .docs-callout.warn {
+  background: var(--amber-bg);
+  border-color: #f0dcb3;
+}
+.landing .docs-callout.warn .docs-callout-title {
+  color: #8a5c10;
+}
+
+.landing .docs-icon-legend {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.landing .docs-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--lp-line);
+  border-radius: 10px;
+  background: var(--lp-surface);
+}
+.landing .docs-icon-row .swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.landing .docs-icon-row .swatch svg {
+  width: 18px;
+  height: 18px;
+}
+.landing .docs-icon-row .label {
+  font-size: 14.5px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.landing .docs-icon-row .desc {
+  font-size: 13.5px;
+  color: var(--slate);
+}
+
+.landing .docs-toc {
+  position: sticky;
+  top: 96px;
+  font-size: 13.5px;
+}
+.landing .docs-toc-title {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-soft);
+  margin-bottom: 10px;
+}
+.landing .docs-toc ul {
+  border-left: 1px solid var(--lp-line);
+  gap: 2px;
+}
+.landing .docs-toc li {
+  padding: 0;
+}
+.landing .docs-toc li::before {
+  content: none;
+}
+.landing .docs-toc a {
+  display: block;
+  padding: 5px 0 5px 14px;
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  color: var(--slate);
+}
+.landing .docs-toc a:hover {
+  color: var(--ink);
+}
+
+.landing .docs-index-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 760px) {
+  .landing .docs-index-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.landing .docs-index-card {
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid var(--lp-line);
+  background: var(--lp-surface);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.landing .docs-index-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(11, 27, 63, 0.08);
+}
+.landing .docs-index-card h3 {
+  font-size: 16px;
+  margin-top: 10px;
+}
+.landing .docs-index-card p {
+  margin-top: 6px;
+  font-size: 13.5px;
+  color: var(--slate);
+}
+.landing .docs-index-card .eyebrow {
+  font-size: 11px;
+}

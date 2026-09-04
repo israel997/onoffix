@@ -19,6 +19,7 @@ export function LandingHeader() {
           <Link href="/#ritual">The daily ritual</Link>
           <Link href="/#features">Features</Link>
           <Link href="/pricing">Pricing</Link>
+          <Link href="/docs">Docs</Link>
         </nav>
         <div className="nav-actions">
           {authed ? (
