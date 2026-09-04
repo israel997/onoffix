@@ -18,6 +18,15 @@ import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 
 const INVITATION_TTL_DAYS = 7;
 
+const ORGANISATION_SELECT = {
+  id: true,
+  nom: true,
+  logoUrl: true,
+  proprietaireId: true,
+  dateCreation: true,
+  planAbonnement: true,
+};
+
 const MEMBRE_SELECT = {
   id: true,
   nom: true,
@@ -50,7 +59,7 @@ export class OrganisationService {
   async findOne(organisationId: string) {
     const organisation = await this.prisma.organisation.findUniqueOrThrow({
       where: { id: organisationId },
-      select: { id: true, nom: true, logoUrl: true, proprietaireId: true, dateCreation: true },
+      select: ORGANISATION_SELECT,
     });
     return organisation;
   }
@@ -341,7 +350,7 @@ export class OrganisationService {
     return this.prisma.organisation.update({
       where: { id: organisationId },
       data: { nom: dto.nom },
-      select: { id: true, nom: true, logoUrl: true, proprietaireId: true, dateCreation: true },
+      select: ORGANISATION_SELECT,
     });
   }
 
@@ -349,7 +358,7 @@ export class OrganisationService {
     return this.prisma.organisation.update({
       where: { id: organisationId },
       data: { logoUrl },
-      select: { id: true, nom: true, logoUrl: true, proprietaireId: true, dateCreation: true },
+      select: ORGANISATION_SELECT,
     });
   }
 

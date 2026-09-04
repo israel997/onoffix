@@ -479,6 +479,7 @@ export interface Organisation {
   logoUrl: string | null;
   proprietaireId: string;
   dateCreation: string;
+  planAbonnement: string | null;
 }
 
 export function getOrganisation() {

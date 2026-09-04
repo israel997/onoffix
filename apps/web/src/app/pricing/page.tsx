@@ -4,6 +4,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from 'next/font/google';
 import Link from 'next/link';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { LandingHeader } from '@/components/landing/landing-header';
+import { PLANS } from '@/lib/plans';
 import '../landing.css';
 
 const spaceGrotesk = Space_Grotesk({
@@ -54,69 +55,6 @@ function CompareCell({ value }: { value: CompareValue }) {
   if (value === false) return <span className="compare-dash">–</span>;
   return <span>{value}</span>;
 }
-
-interface Plan {
-  key: string;
-  floor: string;
-  name: string;
-  tagline: string;
-  price: number;
-  trial: boolean;
-  featured: boolean;
-  features: string[];
-}
-
-const PLANS: Plan[] = [
-  {
-    key: 'free',
-    floor: 'Ground floor',
-    name: 'Free',
-    tagline: 'For a small team getting started.',
-    price: 0,
-    trial: false,
-    featured: false,
-    features: [
-      '1 office',
-      'Up to 3 seats',
-      'BrainDumper - 10 messages/day',
-      '500 MB file storage',
-      'Daily check-in & task tracking',
-    ],
-  },
-  {
-    key: 'growth',
-    floor: '1st floor',
-    name: 'Growth',
-    tagline: 'For a team that outgrew a single office.',
-    price: 19,
-    trial: true,
-    featured: true,
-    features: [
-      '5 offices included - $1/extra office',
-      'Unlimited seats',
-      'BrainDumper - unlimited',
-      '10 GB file storage',
-      'Performance stats & reliability leaderboard',
-    ],
-  },
-  {
-    key: 'scale',
-    floor: '2nd floor',
-    name: 'Scale',
-    tagline: 'For agencies running multiple teams.',
-    price: 39,
-    trial: true,
-    featured: false,
-    features: [
-      '10 offices included - $0.80/extra office',
-      'Unlimited seats',
-      'BrainDumper - unlimited',
-      'Unlimited file storage',
-      'Advanced reporting & CSV/PDF export',
-      'Priority support',
-    ],
-  },
-];
 
 export default function PricingPage() {
   return (

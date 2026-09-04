@@ -467,6 +467,15 @@ export function XCircleIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Croix simple — fermer une modale. */
+export function CloseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Coche simple, sans cercle — action "Accept" (distincte de Done, qui utilise CheckCircleIcon). */
 export function CheckIcon(props: SVGProps<SVGSVGElement>) {
   return (

@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTaskRow } from '@/components/dashboard/alert-task-row';
+import { CurrentPlanModal } from '@/components/dashboard/current-plan-modal';
 import {
   AlarmIcon,
   BriefcaseIcon,
@@ -12,16 +13,20 @@ import {
   ChairIcon,
   DeskIcon,
   ReceptionIcon,
+  StairsIcon,
 } from '@/components/icons/office-icons';
 import { TasksTab } from '@/components/my-space/tasks-tab';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getAlertes, getOrganisationStats, type Alertes, type OrganisationStats } from '@/lib/api';
+import { getAlertes, getOrganisation, getOrganisationStats, type Alertes, type Organisation, type OrganisationStats } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getPlan, planKeyFromAbonnement } from '@/lib/plans';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<OrganisationStats | null>(null);
   const [alertes, setAlertes] = useState<Alertes | null>(null);
+  const [organisation, setOrganisation] = useState<Organisation | null>(null);
+  const [showPlanModal, setShowPlanModal] = useState(false);
 
   const loadAlertes = useCallback(() => {
     getAlertes().then(setAlertes);
@@ -29,8 +34,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getOrganisationStats().then(setStats);
+    getOrganisation().then(setOrganisation);
     loadAlertes();
   }, [loadAlertes]);
+
+  const planKey = planKeyFromAbonnement(organisation?.planAbonnement);
+  const plan = getPlan(planKey);
 
   if (!user) return null;
 
@@ -127,7 +136,7 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Link href="/offices">
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardHeader>
@@ -150,7 +159,22 @@ export default function DashboardPage() {
             </CardHeader>
           </Card>
         </Link>
+        <button onClick={() => setShowPlanModal(true)} className="h-full text-left">
+          <Card className="h-full transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <StairsIcon className="h-5 w-5 text-brand-blue" />
+                {plan.name} plan
+              </CardTitle>
+              <CardDescription>
+                {planKey === 'scale' ? "You're on our top plan." : 'See what upgrading unlocks.'}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </button>
       </div>
+
+      {showPlanModal && <CurrentPlanModal planKey={planKey} onClose={() => setShowPlanModal(false)} />}
 
       <div>
         <h2 className="text-lg font-bold text-foreground">All your tasks</h2>
