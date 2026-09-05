@@ -47,12 +47,12 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold text-foreground">
-          <ReceptionIcon className="h-6 w-6 text-brand-blue" />
-          Welcome, {user.nom.split(' ')[0]}
+        <h1 className="flex items-center gap-2.5 text-3xl font-bold text-foreground">
+          <ReceptionIcon className="h-7 w-7 text-brand-blue" />
+          Welcome, <span className="text-brand-blue">{user.nom.split(' ')[0]}</span>
         </h1>
         <RotatingSubtitle
-          className="mt-1 text-sm text-muted-foreground"
+          className="mt-1.5 text-base font-medium text-indigo-600"
           lines={[
             'Know exactly how your team is progressing on their tasks.',
             'Fewer meetings, more focus, more results.',
