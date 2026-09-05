@@ -3,7 +3,7 @@
 import { Loading } from '@/components/ui/loading';
 
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { DownloadIcon, PaperclipIcon, PaperPlaneIcon, SmileyIcon } from '@/components/icons/office-icons';
+import { CheckIcon, DoubleCheckIcon, DownloadIcon, PaperclipIcon, PaperPlaneIcon, SmileyIcon } from '@/components/icons/office-icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { downloadFileViaApi, resolveAssetUrl, type ChatMessage } from '@/lib/api';
@@ -605,9 +605,24 @@ export function Chat({
                           <p className="whitespace-pre-wrap break-words">{renderWithMentions(m.contenu, mine)}</p>
                         )}
                         <Attachment message={m} />
-                        <p className={`mt-1 text-[10px] ${mine ? 'text-white/70' : 'text-muted-foreground'}`}>
-                          {formatTime(m.createdAt)}
-                          {m.edited && ' · edited'}
+                        <p
+                          className={`mt-1 flex items-center gap-1 text-[10px] ${mine ? 'justify-end text-white/70' : 'text-muted-foreground'}`}
+                        >
+                          <span>
+                            {formatTime(m.createdAt)}
+                            {m.edited && ' · edited'}
+                          </span>
+                          {isDirect && mine && (
+                            (otherReadAt && otherReadAt >= new Date(m.createdAt)) ? (
+                              <span title={`Seen ${formatTime(otherReadAt.toISOString())}`}>
+                                <DoubleCheckIcon className="h-3 w-3 shrink-0 text-white" />
+                              </span>
+                            ) : (
+                              <span title="Sent">
+                                <CheckIcon className="h-3 w-3 shrink-0 text-white/60" />
+                              </span>
+                            )
+                          )}
                         </p>
                       </>
                     )}
