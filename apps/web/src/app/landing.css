@@ -1440,3 +1440,89 @@ html {
 .landing .docs-index-card .eyebrow {
   font-size: 11px;
 }
+
+/* ---------- Docs: structure diagram ---------- */
+.landing .docs-structure {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1.5px dashed var(--blue-light);
+  background: linear-gradient(180deg, #fbfcff 0%, var(--lp-bg) 100%);
+}
+.landing .docs-structure-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+  display: block;
+  text-align: center;
+}
+.landing .docs-structure-connector {
+  width: 1.5px;
+  height: 22px;
+  background: var(--blue-light);
+  margin: 6px auto;
+}
+.landing .docs-structure-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+.landing .docs-structure-office {
+  flex: 1 1 260px;
+  max-width: 320px;
+  border-radius: 12px;
+  border: 1.5px solid var(--lp-line);
+  background: var(--lp-surface);
+  padding: 16px;
+}
+.landing .docs-structure-office .docs-structure-label {
+  color: var(--ink);
+  text-align: left;
+}
+.landing .docs-structure-office-hint {
+  font-size: 12px;
+  color: var(--slate-soft);
+  margin: 4px 0 12px;
+}
+.landing .docs-structure-leaves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.landing .docs-structure-leaf {
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--blue-light);
+  color: var(--ink);
+}
+.landing .docs-structure-side {
+  flex: 1 1 180px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+.landing .docs-structure-side .docs-structure-leaf {
+  background: var(--lp-surface);
+  border: 1.5px dashed var(--lp-line);
+  color: var(--slate);
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .landing .docs-structure-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .landing .docs-structure-office,
+  .landing .docs-structure-side {
+    max-width: none;
+  }
+}

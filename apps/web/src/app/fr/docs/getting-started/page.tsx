@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { LandingFooter } from '@/components/landing/landing-footer';
 import { LandingHeader } from '@/components/landing/landing-header';
 import { DocsCallout, DocsShell, type TocEntry } from '@/components/docs/docs-shell';
+import { StructureDiagram } from '@/components/docs/structure-diagram';
 import '../../../landing.css';
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-display-src' });
@@ -53,6 +54,7 @@ export default function GettingStartedPageFr() {
             le cycle de vie complet.
           </li>
         </ul>
+        <StructureDiagram locale="fr" />
         <figure>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/docs-img/sidebar-nav.png" alt="Navigation latérale d'OOffix" width={280} />
