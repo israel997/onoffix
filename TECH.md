@@ -280,3 +280,4 @@ Autres conventions :
 - [ ] Rotation des secrets prod (JWT, Google AI, R2) — voir mémoire de session du 2026-08-11.
 - [ ] Réintroduire une confirmation par mot de passe avant Ban/Delete dans le panneau admin (retirée temporairement à la demande).
 - [ ] Pas de création manuelle de Projet dans l'UI — un vrai Projet naît uniquement de la conversion d'un plan Organizer.
+- [ ] Barre de recherche globale sur l'app connectée : icône dans la Topbar, style Cmd+K (champ + résultats groupés au fil de la frappe, dès 2 caractères). Périmètre v1 : tâches (titre), offices, membres, subjects du BrainDumper — chat exclu pour l'instant (portée et confidentialité plus lourdes). Un seul endpoint API interrogeant les 4 types, respectant les mêmes règles d'accès que le reste (Collaborator scoping par bureau, Authority org-wide).
