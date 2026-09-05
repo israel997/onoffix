@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { ChevronIcon } from '@/components/icons/office-icons';
+import { cn } from '@/lib/cn';
 import { DOCS_NAV } from '@/lib/docs-nav';
 import { DOCS_NAV_FR } from '@/lib/docs-nav-fr';
 
@@ -21,6 +23,7 @@ export function DocsShell({
   locale?: 'en' | 'fr';
   children: ReactNode;
 }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isFr = locale === 'fr';
   const nav = isFr ? DOCS_NAV_FR : DOCS_NAV;
   const base = isFr ? '/fr/docs' : '/docs';
@@ -28,10 +31,25 @@ export function DocsShell({
 
   return (
     <div className="wrap docs-body">
-      <aside className="docs-sidebar">
-        <p className="docs-sidebar-title">{isFr ? 'Documentation' : 'Documentation'}</p>
+      <button
+        type="button"
+        className="docs-mobile-menu-toggle"
+        onClick={() => setMobileNavOpen((v) => !v)}
+        aria-expanded={mobileNavOpen}
+      >
+        <ChevronIcon className={cn('h-3 w-3 transition-transform', mobileNavOpen && 'rotate-90')} />
+        Menu
+      </button>
+
+      <aside className={cn('docs-sidebar', mobileNavOpen && 'open')}>
+        <p className="docs-sidebar-title">Documentation</p>
         {nav.map((item) => (
-          <Link key={item.slug} href={`${base}/${item.slug}`} className={item.slug === activeSlug ? 'active' : ''}>
+          <Link
+            key={item.slug}
+            href={`${base}/${item.slug}`}
+            className={item.slug === activeSlug ? 'active' : ''}
+            onClick={() => setMobileNavOpen(false)}
+          >
             {item.title}
           </Link>
         ))}

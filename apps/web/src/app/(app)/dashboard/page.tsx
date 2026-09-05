@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTaskRow } from '@/components/dashboard/alert-task-row';
 import { CurrentPlanModal } from '@/components/dashboard/current-plan-modal';
+import { DashboardHeading } from '@/components/dashboard/dashboard-heading';
 import { RotatingSubtitle } from '@/components/dashboard/rotating-subtitle';
 import {
   AlarmIcon,
@@ -13,14 +14,20 @@ import {
   BuildingIcon,
   ChairIcon,
   DeskIcon,
-  HeadphonesIcon,
-  MountainPeakIcon,
-  ReceptionIcon,
   StairsIcon,
 } from '@/components/icons/office-icons';
 import { TasksTab } from '@/components/my-space/tasks-tab';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getAlertes, getOrganisation, getOrganisationStats, type Alertes, type Organisation, type OrganisationStats } from '@/lib/api';
+import {
+  getAlertes,
+  getOrganisation,
+  getOrganisationStats,
+  listBureaux,
+  type Alertes,
+  type Bureau,
+  type Organisation,
+  type OrganisationStats,
+} from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { getPlan, planKeyFromAbonnement } from '@/lib/plans';
 
@@ -29,6 +36,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<OrganisationStats | null>(null);
   const [alertes, setAlertes] = useState<Alertes | null>(null);
   const [organisation, setOrganisation] = useState<Organisation | null>(null);
+  const [bureaux, setBureaux] = useState<Bureau[]>([]);
   const [showPlanModal, setShowPlanModal] = useState(false);
 
   const loadAlertes = useCallback(() => {
@@ -38,6 +46,7 @@ export default function DashboardPage() {
   useEffect(() => {
     getOrganisationStats().then(setStats);
     getOrganisation().then(setOrganisation);
+    listBureaux().then(setBureaux);
     loadAlertes();
   }, [loadAlertes]);
 
@@ -49,27 +58,9 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
+        <DashboardHeading name={user.nom.split(' ')[0]} bureaux={bureaux} />
         <RotatingSubtitle
-          as="h1"
-          intervalMs={2500}
-          className="flex items-center gap-3 text-4xl font-bold text-foreground"
-          lines={[
-            <>
-              <ReceptionIcon className="h-8 w-8 text-brand-blue" />
-              Welcome, <span className="text-brand-blue">{user.nom.split(' ')[0]}</span>
-            </>,
-            <>
-              <HeadphonesIcon className="h-8 w-8 text-status-review" />
-              Fewer meetings, <span className="text-status-review">more focus</span>.
-            </>,
-            <>
-              <MountainPeakIcon className="h-8 w-8 text-indigo-600" />
-              Fewer meetings, <span className="text-indigo-600">more results</span>.
-            </>,
-          ]}
-        />
-        <RotatingSubtitle
-          className="mt-1.5 text-base font-medium text-indigo-600"
+          className="mt-1.5 text-base font-medium text-foreground"
           lines={['Know exactly how your team is progressing on their tasks.']}
         />
       </div>

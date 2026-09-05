@@ -32,6 +32,7 @@ import {
   type PrioriteTache,
   type Tache,
 } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { useConfirm } from '@/lib/confirm-context';
 import {
   PRIORITE_TONE,
@@ -43,6 +44,15 @@ import {
 import { useToast } from '@/lib/toast-context';
 
 const TITLE_MAX_CHARS = 28;
+
+function initials(nom: string) {
+  return nom
+    .split(' ')
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
 
 function truncateTitle(title: string) {
   return title.length > TITLE_MAX_CHARS ? `${title.slice(0, TITLE_MAX_CHARS - 1)}…` : title;
@@ -323,8 +333,21 @@ export function TaskItem({
               <Link
                 href={`/members?userId=${tache.assigneA.id}`}
                 onClick={(e) => e.stopPropagation()}
+                title={tache.assigneA.nom}
               >
-                <Badge tone={isAssignee ? 'indigo' : 'neutral'}>{tache.assigneA.nom}</Badge>
+                {/* Sur mobile, le nom complet écrase le titre de la tâche — juste les
+                    initiales, pas de survol possible au doigt pour compenser. */}
+                <span
+                  className={cn(
+                    'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold sm:hidden',
+                    isAssignee ? 'bg-indigo-100 text-indigo-700' : 'bg-surface-muted text-muted-foreground',
+                  )}
+                >
+                  {initials(tache.assigneA.nom)}
+                </span>
+                <Badge tone={isAssignee ? 'indigo' : 'neutral'} className="hidden sm:inline-flex">
+                  {tache.assigneA.nom}
+                </Badge>
               </Link>
             ) : (
               <Badge tone="neutral">Unassigned</Badge>

@@ -582,3 +582,14 @@ export function MountainPeakIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Écritoire à pince — liste de tâches à passer en revue. */
+export function ClipboardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="5" y="4" width="14" height="17" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="9" y="2.3" width="6" height="3" rx="1" fill="currentColor" />
+      <path d="M8 10.5h8M8 14h8M8 17.5h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}

@@ -4,6 +4,13 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ConfirmProvider } from "@/lib/confirm-context";
 import { ToastProvider } from "@/lib/toast-context";
 import "./globals.css";
+// Chargé ici (racine, toujours monté) plutôt que dans chaque page marketing/doc qui
+// l'importe déjà : sinon, sur mobile, une navigation côté client vers une de ces pages
+// peut peindre avant que son chunk CSS dédié n'ait fini de charger (flash ~1s de mise
+// en page non stylée). Une fois chargé ici, il est en cache pour toute la session.
+// Sans risque pour le reste de l'app : tout le fichier est scopé sous .landing, sauf
+// une unique règle globale (scroll-behavior: smooth) inoffensive.
+import "./landing.css";
 
 // Même trio que la landing page (landing.css) : titres en Space Grotesk, corps de
 // texte en IBM Plex Sans, chiffres/horodatages en IBM Plex Mono.
