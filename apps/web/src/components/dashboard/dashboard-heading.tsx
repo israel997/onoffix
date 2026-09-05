@@ -110,8 +110,8 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
     return (
       <h1 className="text-4xl font-bold text-foreground">
         <span key="declare" className={lineClass}>
-          <AlarmIcon className={cn(iconClass, 'text-status-validated')} />
-          Time to <span className="text-status-validated">declare your day</span>.
+          <AlarmIcon className={cn(iconClass, 'text-indigo-600')} />
+          Time to <span className="text-indigo-600">declare your day</span>.
         </span>
       </h1>
     );
