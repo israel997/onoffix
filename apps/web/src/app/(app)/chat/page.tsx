@@ -5,7 +5,8 @@ import { ListSkeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PersonPlusIcon } from '@/components/icons/office-icons';
-import { Avatar, DirectConversationsList } from '@/components/chat/direct-conversations-list';
+import { DirectConversationsList } from '@/components/chat/direct-conversations-list';
+import { Avatar } from '@/components/ui/avatar';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -83,7 +84,7 @@ export default function ChatListPage() {
                   onClick={() => handleStart(m.id)}
                   className="flex items-center gap-3 py-2.5 text-left hover:bg-surface-muted"
                 >
-                  <Avatar nom={m.nom} photoUrl={m.photoUrl} />
+                  <Avatar nom={m.nom} photoUrl={m.photoUrl} size="lg" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{m.nom}</p>
                     <p className="truncate text-xs text-muted-foreground">{m.email}</p>

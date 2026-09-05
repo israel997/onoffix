@@ -1,30 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { resolveAssetUrl, type DirectConversation } from '@/lib/api';
+import { Avatar } from '@/components/ui/avatar';
+import type { DirectConversation } from '@/lib/api';
 import { cn } from '@/lib/cn';
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
-
-export function Avatar({ nom, photoUrl }: { nom: string; photoUrl: string | null }) {
-  const src = resolveAssetUrl(photoUrl);
-  if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={nom} className="h-10 w-10 shrink-0 rounded-full object-cover" />;
-  }
-  return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-navy text-sm font-semibold text-white">
-      {initials(nom)}
-    </span>
-  );
-}
 
 export function formatConversationWhen(iso: string) {
   return new Date(iso).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -51,7 +30,7 @@ export function DirectConversationsList({
             c.id === activeId && 'bg-brand-blue-light',
           )}
         >
-          <Avatar nom={c.otherUser.nom} photoUrl={c.otherUser.photoUrl} />
+          <Avatar nom={c.otherUser.nom} photoUrl={c.otherUser.photoUrl} size="lg" />
           <div className="min-w-0 flex-1">
             <p className={cn('truncate text-sm text-foreground', c.unread ? 'font-semibold' : 'font-medium')}>
               {c.otherUser.nom}

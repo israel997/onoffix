@@ -12,6 +12,7 @@ import {
   RocketIcon,
 } from '@/components/icons/office-icons';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +33,6 @@ import {
   type PrioriteTache,
   type Tache,
 } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { useConfirm } from '@/lib/confirm-context';
 import {
   PRIORITE_TONE,
@@ -44,15 +44,6 @@ import {
 import { useToast } from '@/lib/toast-context';
 
 const TITLE_MAX_CHARS = 28;
-
-function initials(nom: string) {
-  return nom
-    .split(' ')
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
 
 function truncateTitle(title: string) {
   return title.length > TITLE_MAX_CHARS ? `${title.slice(0, TITLE_MAX_CHARS - 1)}…` : title;
@@ -335,19 +326,17 @@ export function TaskItem({
                 onClick={(e) => e.stopPropagation()}
                 title={tache.assigneA.nom}
               >
-                {/* Sur mobile, le nom complet écrase le titre de la tâche — juste les
-                    initiales, pas de survol possible au doigt pour compenser. */}
-                <span
-                  className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold sm:hidden',
-                    isAssignee ? 'bg-indigo-100 text-indigo-700' : 'bg-surface-muted text-muted-foreground',
-                  )}
-                >
-                  {initials(tache.assigneA.nom)}
+                {/* Sur mobile, le nom complet écrase le titre de la tâche — juste l'avatar,
+                    pas de survol possible au doigt pour compenser. Le wrapper (pas le Badge
+                    lui-même) porte le hidden/sm: : le Badge a déjà "inline-flex" en dur dans
+                    ses propres classes, donc lui coller "hidden" en plus se joue à l'ordre
+                    des règles dans la feuille Tailwind généré et perd à tous les coups. */}
+                <span className="sm:hidden">
+                  <Avatar nom={tache.assigneA.nom} photoUrl={tache.assigneA.photoUrl} size="sm" tone={isAssignee ? 'indigo' : 'muted'} />
                 </span>
-                <Badge tone={isAssignee ? 'indigo' : 'neutral'} className="hidden sm:inline-flex">
-                  {tache.assigneA.nom}
-                </Badge>
+                <span className="hidden sm:inline-flex">
+                  <Badge tone={isAssignee ? 'indigo' : 'neutral'}>{tache.assigneA.nom}</Badge>
+                </span>
               </Link>
             ) : (
               <Badge tone="neutral">Unassigned</Badge>
@@ -399,6 +388,11 @@ export function TaskItem({
 
       {expanded && (
         <div className={!isPersonal ? 'mt-2 border-t border-border pt-2.5' : 'mt-1'}>
+          {/* Le titre dans l'en-tête reste tronqué pour la liste compacte - une fois ouverte,
+              la carte a la place de le montrer en entier, sur sa propre ligne. */}
+          {!isPersonal && (
+            <p className="pl-6 text-sm font-medium text-foreground">{tache.titre}</p>
+          )}
           {/* min-h réserve la ligne même vide (rien à afficher) — sinon les boutons du
               dessous remontent d'une carte à l'autre selon ce qu'il y a à montrer ici. */}
           <div className="flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-xs text-muted-foreground">

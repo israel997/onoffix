@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { ChairIcon, ExitIcon, KeyIcon } from '@/components/icons/office-icons';
 import { MemberDetailPanel } from '@/components/offices/member-detail-panel';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,6 @@ import {
   listOrganisationInvitations,
   listOrganisationMembres,
   removeOrganisationMembre,
-  resolveAssetUrl,
   transferOwnership,
   updateMembrePoste,
   updateOrganisationMembreRole,
@@ -33,27 +33,6 @@ const ROLE_LABEL: Record<'ADMIN' | 'MANAGER' | 'MEMBRE', string> = {
   MEMBRE: 'Collaborator',
 };
 
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
-
-function MemberAvatar({ nom, photoUrl }: { nom: string; photoUrl: string | null }) {
-  const src = resolveAssetUrl(photoUrl);
-  if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={nom} className="h-9 w-9 shrink-0 rounded-full object-cover" />;
-  }
-  return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white">
-      {initials(nom)}
-    </span>
-  );
-}
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
@@ -318,11 +297,8 @@ function MembersPageContent() {
                     className="flex min-w-0 items-center gap-3 text-left"
                     aria-label={`View ${m.nom}'s profile`}
                   >
-                    <MemberAvatar nom={m.nom} photoUrl={m.photoUrl} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground hover:underline">{m.nom}</p>
-                      <p className="truncate text-xs text-muted-foreground">{m.email}</p>
-                    </div>
+                    <Avatar nom={m.nom} photoUrl={m.photoUrl} />
+                    <p className="truncate text-sm font-medium text-foreground hover:underline">{m.nom}</p>
                   </button>
                   <div className="flex shrink-0 items-center gap-2">
                     {m.id === user?.organisation.proprietaireId ? (
@@ -404,20 +380,11 @@ function MembersPageContent() {
                     )
                   )}
                   {!isAdmin && m.poste && <p className="text-xs text-muted-foreground">{m.poste}</p>}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 pl-12">
-                  <Badge tone="validated">Joined</Badge>
-                  {m.bureaux.slice(0, 3).map((b) => (
-                    <Badge key={b.bureau.id} tone="neutral">
-                      {b.bureau.nom}
-                    </Badge>
-                  ))}
-                  {m.bureaux.length > 3 && (
-                    <button onClick={() => setDetailMembre(m)}>
-                      <Badge tone="neutral">+{m.bureaux.length - 3} more</Badge>
-                    </button>
-                  )}
+                  {/* Email, date d'entrée et la liste complète des bureaux vivent dans le
+                      détail (au clic) — la ligne de liste ne montre que l'essentiel. */}
+                  <button onClick={() => setDetailMembre(m)} className="mt-1 block text-xs text-muted-foreground hover:underline">
+                    {m.bureaux.length} office{m.bureaux.length === 1 ? '' : 's'}
+                  </button>
                 </div>
               </div>
             ))}

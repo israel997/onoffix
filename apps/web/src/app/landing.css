@@ -1247,30 +1247,12 @@ html {
   color: var(--ink);
   grid-column: 1 / -1;
 }
-@media (max-width: 760px) {
-  .landing .docs-body {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-  .landing .docs-mobile-menu-toggle {
-    display: flex;
-  }
-  /* position: sticky n'a plus de sens une fois la sidebar empilée au-dessus du
-     contenu (une seule colonne) — elle restait "collée" en scrollant et
-     recouvrait le texte en dessous. Repliée par défaut derrière le bouton
-     "Menu" (façon Next.js) plutôt que de pousser tout le contenu en dessous. */
-  .landing .docs-sidebar {
-    display: none;
-    position: static;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--lp-line);
-  }
-  .landing .docs-sidebar.open {
-    display: flex;
-  }
-}
 
+/* Cette règle de base doit précéder la media query mobile ci-dessous : même
+   sélecteur des deux côtés (.landing .docs-sidebar), donc à spécificité égale
+   c'est l'ordre dans le fichier qui décide, pas la media query en elle-même.
+   Elle était après avant — la media query n'avait jamais gain de cause, la
+   sidebar restait sticky/flex sur mobile et recouvrait le contenu au scroll. */
 .landing .docs-sidebar {
   position: sticky;
   top: 96px;
@@ -1303,6 +1285,29 @@ html {
   background: #eaf0ff;
   color: var(--blue);
   font-weight: 600;
+}
+
+/* Doit venir après les règles de base .docs-body/.docs-sidebar ci-dessus (même
+   sélecteur, priorité à l'ordre dans le fichier) pour effectivement les
+   remplacer sur mobile plutôt que l'inverse. */
+@media (max-width: 760px) {
+  .landing .docs-body {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .landing .docs-mobile-menu-toggle {
+    display: flex;
+  }
+  .landing .docs-sidebar {
+    display: none;
+    position: static;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--lp-line);
+  }
+  .landing .docs-sidebar.open {
+    display: flex;
+  }
 }
 
 .landing .docs-crumbs {

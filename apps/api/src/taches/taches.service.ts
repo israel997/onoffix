@@ -18,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlocageDto } from './dto/create-blocage.dto';
 
 const TACHE_INCLUDE = {
-  assigneA: { select: { id: true, nom: true } },
+  assigneA: { select: { id: true, nom: true, photoUrl: true } },
   assignePar: { select: { id: true, nom: true } },
   valideur: { select: { id: true, nom: true } },
   conversation: { select: { id: true, nom: true } },

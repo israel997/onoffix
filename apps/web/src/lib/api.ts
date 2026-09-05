@@ -793,7 +793,7 @@ export interface Tache {
   valideParId: string | null;
   dateCible: string | null;
   createdAt: string;
-  assigneA: { id: string; nom: string } | null;
+  assigneA: { id: string; nom: string; photoUrl: string | null } | null;
   assignePar: { id: string; nom: string } | null;
   valideur: { id: string; nom: string } | null;
   conversation: { id: string; nom: string } | null;
