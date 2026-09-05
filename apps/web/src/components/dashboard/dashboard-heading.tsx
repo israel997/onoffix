@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import {
+  AlarmIcon,
   ClipboardIcon,
   HeadphonesIcon,
-  LaserEyesIcon,
   MountainPeakIcon,
   ReceptionIcon,
 } from '@/components/icons/office-icons';
@@ -82,8 +82,12 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
     return () => clearTimeout(id);
   }, [checkInIndex, checkInActive]);
 
-  const iconClass = 'h-6 w-6 shrink-0 sm:h-8 sm:w-8';
-  const lineClass = 'inline-flex animate-fade-in-up items-start gap-2 sm:gap-3';
+  // Ni l'un ni l'autre en flex : les phrases longues (les 3 du mode check-in) doivent
+  // pouvoir passer à la ligne comme du texte normal. Avec inline-flex, chaque bout de
+  // texte devient son propre "item" qui se replie sur lui-même au lieu de s'enchaîner —
+  // d'où l'effet "deux colonnes" au lieu d'un paragraphe qui s'enroule normalement.
+  const iconClass = 'mr-2 inline-block h-6 w-6 align-text-top sm:mr-3 sm:h-8 sm:w-8';
+  const lineClass = 'inline-block animate-fade-in-up';
 
   if (checkInActive) {
     const mode = CHECKIN_SEQUENCE[checkInIndex];
@@ -110,7 +114,7 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
     return (
       <h1 className="text-2xl font-bold text-foreground sm:text-4xl">
         <span key="declare" className={lineClass}>
-          <LaserEyesIcon className={cn(iconClass, 'text-indigo-600')} />
+          <AlarmIcon className={cn(iconClass, 'text-indigo-600')} />
           Time to <span className="text-indigo-600">declare your day</span>.
         </span>
       </h1>
