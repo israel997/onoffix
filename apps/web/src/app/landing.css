@@ -179,9 +179,63 @@ html {
   color: var(--ink);
   border-color: var(--slate-soft);
 }
+.landing .nav-dashboard-icon {
+  display: none;
+}
+.landing .nav-burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--lp-line);
+  background: transparent;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.landing .nav-mobile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 32px 20px;
+  border-top: 1px solid var(--lp-line);
+  background: var(--lp-bg);
+}
+.landing .nav-mobile-panel a {
+  padding: 11px 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.landing .nav-mobile-panel a:hover {
+  background: var(--lp-surface);
+}
 @media (max-width: 840px) {
   .landing .nav-links {
     display: none;
+  }
+  .landing .nav-burger {
+    display: inline-flex;
+  }
+}
+@media (max-width: 480px) {
+  .landing .nav-dashboard-label {
+    display: none;
+  }
+  .landing .nav-dashboard-icon {
+    display: inline-flex;
+  }
+  .landing .nav-dashboard-btn {
+    padding: 10px;
+  }
+  .landing .nav-auth-btn {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .landing .lang-switch {
+    padding: 6px 8px;
   }
 }
 
@@ -1169,7 +1223,28 @@ html {
 @media (max-width: 760px) {
   .landing .docs-body {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 20px;
+  }
+  /* position: sticky n'a plus de sens une fois la sidebar empilée au-dessus du
+     contenu (une seule colonne) — elle restait "collée" en scrollant et
+     recouvrait le texte en dessous. */
+  .landing .docs-sidebar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .landing .docs-sidebar-title {
+    display: none;
+  }
+  .landing .docs-sidebar a {
+    flex-shrink: 0;
+    white-space: nowrap;
+    border: 1px solid var(--lp-line);
+    background: var(--lp-surface);
   }
 }
 
