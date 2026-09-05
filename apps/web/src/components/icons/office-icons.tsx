@@ -593,3 +593,16 @@ export function ClipboardIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Visage avec un rayon laser qui sort de chaque œil — demandé tel quel, pour "declare your day". */
+export function LaserEyesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <circle cx="12" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="9.5" cy="10" r="1" fill="currentColor" />
+      <circle cx="14.5" cy="10" r="1" fill="currentColor" />
+      <path d="M11 13.5c.6.5 1.4.5 2 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9.5 10L3 15.5M14.5 10L21 15.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}

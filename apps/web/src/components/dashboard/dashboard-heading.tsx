@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AlarmIcon,
   ClipboardIcon,
   HeadphonesIcon,
+  LaserEyesIcon,
   MountainPeakIcon,
   ReceptionIcon,
 } from '@/components/icons/office-icons';
@@ -82,14 +82,14 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
     return () => clearTimeout(id);
   }, [checkInIndex, checkInActive]);
 
-  const iconClass = 'h-8 w-8';
-  const lineClass = 'inline-flex animate-fade-in-up items-center gap-3';
+  const iconClass = 'h-6 w-6 shrink-0 sm:h-8 sm:w-8';
+  const lineClass = 'inline-flex animate-fade-in-up items-start gap-2 sm:gap-3';
 
   if (checkInActive) {
     const mode = CHECKIN_SEQUENCE[checkInIndex];
     if (mode === 'hello') {
       return (
-        <h1 className="text-4xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold text-foreground sm:text-4xl">
           <span key="hello" className={lineClass}>
             <ReceptionIcon className={cn(iconClass, 'text-brand-blue')} />
             Hello, <span className="text-brand-blue">{name}</span>!
@@ -99,7 +99,7 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
     }
     if (mode === 'progress') {
       return (
-        <h1 className="text-4xl font-bold text-foreground">
+        <h1 className="text-2xl font-bold text-foreground sm:text-4xl">
           <span key="progress" className={lineClass}>
             <ClipboardIcon className={cn(iconClass, 'text-status-declared')} />
             Have you made progress on <span className="text-status-declared">your tasks</span>?
@@ -108,9 +108,9 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
       );
     }
     return (
-      <h1 className="text-4xl font-bold text-foreground">
+      <h1 className="text-2xl font-bold text-foreground sm:text-4xl">
         <span key="declare" className={lineClass}>
-          <AlarmIcon className={cn(iconClass, 'text-indigo-600')} />
+          <LaserEyesIcon className={cn(iconClass, 'text-indigo-600')} />
           Time to <span className="text-indigo-600">declare your day</span>.
         </span>
       </h1>
@@ -119,7 +119,7 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
 
   if (normalMode === 'welcome') {
     return (
-      <h1 className="text-4xl font-bold text-foreground">
+      <h1 className="text-2xl font-bold text-foreground sm:text-4xl">
         <span key="welcome" className={lineClass}>
           <ReceptionIcon className={cn(iconClass, 'text-brand-blue')} />
           Welcome, <span className="text-brand-blue">{name}</span>
@@ -133,7 +133,7 @@ export function DashboardHeading({ name, bureaux }: { name: string; bureaux: Bur
   // deux — seul le span intérieur (le mot qui change) a sa propre clé et s'anime.
   const isFocus = normalMode === 'focus';
   return (
-    <h1 className="text-4xl font-bold text-foreground">
+    <h1 className="text-2xl font-bold text-foreground sm:text-4xl">
       <span key="meetings" className={lineClass}>
         {isFocus ? (
           <HeadphonesIcon className={cn(iconClass, 'text-status-review')} />
