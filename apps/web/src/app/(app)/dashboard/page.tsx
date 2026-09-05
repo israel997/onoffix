@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTaskRow } from '@/components/dashboard/alert-task-row';
 import { CurrentPlanModal } from '@/components/dashboard/current-plan-modal';
+import { RotatingSubtitle } from '@/components/dashboard/rotating-subtitle';
 import {
   AlarmIcon,
   BriefcaseIcon,
@@ -50,9 +51,13 @@ export default function DashboardPage() {
           <ReceptionIcon className="h-6 w-6 text-brand-blue" />
           Welcome, {user.nom.split(' ')[0]}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Know exactly how your team is progressing on their tasks.
-        </p>
+        <RotatingSubtitle
+          className="mt-1 text-sm text-muted-foreground"
+          lines={[
+            'Know exactly how your team is progressing on their tasks.',
+            'Fewer meetings, more focus, more results.',
+          ]}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:max-w-sm">
