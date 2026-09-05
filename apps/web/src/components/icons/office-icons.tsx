@@ -561,3 +561,24 @@ export function RocketIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Casque audio — mode focus, "ne pas déranger". */
+export function HeadphonesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M4 14v-2a8 8 0 0 1 16 0v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="2.5" y="13" width="4" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="17.5" y="13" width="4" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+/** Sommet de montagne — un résultat concret atteint. */
+export function MountainPeakIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M2 19L8 9l3 4 4-7 5 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 19h20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}

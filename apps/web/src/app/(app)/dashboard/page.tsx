@@ -13,6 +13,8 @@ import {
   BuildingIcon,
   ChairIcon,
   DeskIcon,
+  HeadphonesIcon,
+  MountainPeakIcon,
   ReceptionIcon,
   StairsIcon,
 } from '@/components/icons/office-icons';
@@ -50,15 +52,19 @@ export default function DashboardPage() {
         <RotatingSubtitle
           as="h1"
           intervalMs={2500}
-          className="flex items-center gap-2.5 text-3xl font-bold text-foreground"
+          className="flex items-center gap-3 text-4xl font-bold text-foreground"
           lines={[
             <>
-              <ReceptionIcon className="h-7 w-7 text-brand-blue" />
+              <ReceptionIcon className="h-8 w-8 text-brand-blue" />
               Welcome, <span className="text-brand-blue">{user.nom.split(' ')[0]}</span>
             </>,
             <>
-              <ReceptionIcon className="h-7 w-7 text-brand-blue" />
-              Fewer meetings, more focus, more results.
+              <HeadphonesIcon className="h-8 w-8 text-status-review" />
+              Fewer meetings, <span className="text-status-review">more focus</span>.
+            </>,
+            <>
+              <MountainPeakIcon className="h-8 w-8 text-indigo-600" />
+              Fewer meetings, <span className="text-indigo-600">more results</span>.
             </>,
           ]}
         />
