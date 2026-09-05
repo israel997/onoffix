@@ -1,17 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ElementType, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-/** Fait alterner une ligne de texte parmi plusieurs, même animation douce que les modales/toasts. */
+/**
+ * Fait alterner un contenu parmi plusieurs, même animation douce que les modales/toasts.
+ * Une seule entrée dans `lines` = pas de rotation (utile pour réutiliser le même composant
+ * pour une ligne qui doit rester statique, sans code séparé).
+ */
 export function RotatingSubtitle({
   lines,
   intervalMs = 4500,
   className,
+  as: Tag = 'p',
 }: {
-  lines: string[];
+  lines: ReactNode[];
   intervalMs?: number;
   className?: string;
+  as?: ElementType;
 }) {
   const [index, setIndex] = useState(0);
 
@@ -22,8 +28,8 @@ export function RotatingSubtitle({
   }, [lines.length, intervalMs]);
 
   return (
-    <p key={index} className={cn('animate-fade-in-up', className)}>
+    <Tag key={index} className={cn('animate-fade-in-up', className)}>
       {lines[index]}
-    </p>
+    </Tag>
   );
 }

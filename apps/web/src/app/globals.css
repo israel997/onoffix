@@ -40,8 +40,9 @@
   --color-status-declared: var(--status-declared);
   --color-status-validated: var(--status-validated);
   --color-status-review: var(--status-review);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body-src);
+  --font-mono: var(--font-mono-src);
+  --font-display: var(--font-display-src);
 }
 
 html {
@@ -52,6 +53,15 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Même duo que la landing page : Space Grotesk pour les titres, IBM Plex Sans pour le
+   corps de texte — une seule règle ici plutôt que de retoucher chaque <h1>/<h2>/CardTitle. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Native <select>/<button> don't always show a pointer cursor across browsers/OSes. */
