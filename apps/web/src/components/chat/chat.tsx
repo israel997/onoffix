@@ -50,19 +50,43 @@ function colorForUser(userId: string) {
 
 // Sélection restreinte à des émojis modernes et sobres (pas de doublons datés) —
 // pas de librairie externe, ce sont de simples glyphes Unicode rendus par l'OS.
-const EMOJI_LIST = [
-  '😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😍', '🥰', '😘',
-  '😗', '😙', '😋', '😛', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏',
-  '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢',
-  '😭', '😤', '😠', '😡', '🤬', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥',
-  '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
-  '😴', '🤤', '😪', '😵', '🤯', '🥴', '😷', '🤒', '🤕', '🤢', '🤮', '🥱',
-  '👍', '👎', '👏', '🙌', '🙏', '🤝', '💪', '👋', '🤙', '👌', '✌️', '🤞',
-  '🫡', '🤟', '🖤', '❤️', '🧡', '💛', '💚', '💙', '💜', '🤍', '🤎', '💔',
-  '💯', '🔥', '✨', '🎉', '🎊', '👀', '💤', '💬', '✅', '❌', '⚠️', '❓',
-  '🐶', '🐱', '🐼', '🦁', '🐸', '🐵', '🦄', '🐝', '🌸', '🌞', '🌙', '⭐',
-  '🍕', '🍔', '🍟', '🍎', '🍩', '☕', '🍺', '🎂', '⚽', '🏆', '🎮', '🎵',
-  '🚀', '✈️', '🚗', '🏠', '💡', '📌', '📎', '🔔', '🔒', '💰', '🎁', '📅',
+const EMOJI_CATEGORIES: { label: string; tab: string; emojis: string[] }[] = [
+  {
+    label: 'Smileys & emotions',
+    tab: '😀',
+    emojis: [
+      '😀', '😁', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😍', '🥰', '😘',
+      '😗', '😙', '😋', '😛', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏',
+      '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫', '😩', '🥺', '😢',
+      '😭', '😤', '😠', '😡', '🤬', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥',
+      '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
+      '😴', '🤤', '😪', '😵', '🤯', '🥴', '😷', '🤒', '🤕', '🤢', '🤮', '🥱',
+    ],
+  },
+  {
+    label: 'Gestures & hearts',
+    tab: '👍',
+    emojis: [
+      '👍', '👎', '👏', '🙌', '🙏', '🤝', '💪', '👋', '🤙', '👌', '✌️', '🤞',
+      '🫡', '🤟', '🖤', '❤️', '🧡', '💛', '💚', '💙', '💜', '🤍', '🤎', '💔',
+      '💯', '🔥', '✨', '🎉', '🎊', '👀', '💤', '💬', '✅', '❌', '⚠️', '❓',
+    ],
+  },
+  {
+    label: 'Animals & nature',
+    tab: '🐶',
+    emojis: ['🐶', '🐱', '🐼', '🦁', '🐸', '🐵', '🦄', '🐝', '🌸', '🌞', '🌙', '⭐'],
+  },
+  {
+    label: 'Food & activities',
+    tab: '🍕',
+    emojis: ['🍕', '🍔', '🍟', '🍎', '🍩', '☕', '🍺', '🎂', '⚽', '🏆', '🎮', '🎵'],
+  },
+  {
+    label: 'Objects & travel',
+    tab: '🚀',
+    emojis: ['🚀', '✈️', '🚗', '🏠', '💡', '📌', '📎', '🔔', '🔒', '💰', '🎁', '📅'],
+  },
 ];
 
 function quotePreview(message: { contenu: string | null; fichierNom: string | null }) {
@@ -203,6 +227,7 @@ export function Chat({
   const [pickedMentionIds, setPickedMentionIds] = useState<Map<string, string>>(new Map());
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiCategory, setEmojiCategory] = useState(0);
   const [otherReadAt, setOtherReadAt] = useState<Date | null>(
     otherLastReadAt ? new Date(otherLastReadAt) : null,
   );
@@ -734,20 +759,6 @@ export function Chat({
             ))}
           </div>
         )}
-        {showEmojiPicker && (
-          <div className="animate-fade-in-up absolute bottom-full right-0 z-10 mb-1 grid max-h-56 w-64 grid-cols-8 gap-1 overflow-y-auto rounded-lg border border-border bg-surface p-2 shadow-lg">
-            {EMOJI_LIST.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => insertEmoji(emoji)}
-                className="rounded p-1 text-lg hover:bg-surface-muted"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -767,17 +778,48 @@ export function Chat({
         >
           <PaperclipIcon className="h-4 w-4" />
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowEmojiPicker((v) => !v)}
-          aria-label="Insert an emoji"
-          title="Insert an emoji"
-          className="shrink-0 !px-2.5"
-        >
-          <SmileyIcon className="h-4 w-4" />
-        </Button>
+        <div className="relative shrink-0">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowEmojiPicker((v) => !v)}
+            aria-label="Insert an emoji"
+            title="Insert an emoji"
+            className="!px-2.5"
+          >
+            <SmileyIcon className="h-4 w-4" />
+          </Button>
+          {showEmojiPicker && (
+            <div className="animate-fade-in-up absolute bottom-full left-0 z-10 mb-1 w-64 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+              <div className="flex border-b border-border">
+                {EMOJI_CATEGORIES.map((cat, i) => (
+                  <button
+                    key={cat.label}
+                    type="button"
+                    title={cat.label}
+                    onClick={() => setEmojiCategory(i)}
+                    className={`flex-1 py-1.5 text-center text-base hover:bg-surface-muted ${i === emojiCategory ? 'bg-surface-muted' : ''}`}
+                  >
+                    {cat.tab}
+                  </button>
+                ))}
+              </div>
+              <div className="grid max-h-48 grid-cols-8 gap-1 overflow-y-auto p-2">
+                {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => insertEmoji(emoji)}
+                    className="rounded p-1 text-lg hover:bg-surface-muted"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <textarea
           ref={textareaRef}
           value={draft}
