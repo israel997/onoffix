@@ -100,6 +100,7 @@ function TasksPageContent() {
     isStatusFilter(initialStatus) ? initialStatus : 'ALL',
   );
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [showArchived, setShowArchived] = useState(false);
 
   async function load() {
     const [t, bur, org] = await Promise.all([
@@ -175,6 +176,17 @@ function TasksPageContent() {
     }
   }
 
+  async function handleUnarchiveSubject(subjectId: string) {
+    if (!organizer) return;
+    try {
+      await archiveOrganizerSubject(organizer.id, subjectId, false);
+      await load();
+      toast('Subject unarchived');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    }
+  }
+
   function toggleGroup(key: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -210,6 +222,7 @@ function TasksPageContent() {
 
   const filtered = applyFilter(taches, statusFilter);
   const groups = groupBySubject(filtered);
+  const archivedSubjects = organizer.conversations.filter((c) => c.estArchive);
   // Toutes les subjects du projet, pas seulement celles qui ont déjà une tâche —
   // sinon impossible de déplacer une tâche vers une subject encore vide.
   const moveTargets = [
@@ -356,6 +369,31 @@ function TasksPageContent() {
             </Card>
           );
         })
+      )}
+
+      {isManager && archivedSubjects.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => setShowArchived((v) => !v)}
+            className="self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            {showArchived ? 'Hide' : 'Show'} archived ({archivedSubjects.length})
+          </button>
+          {showArchived &&
+            archivedSubjects.map((s) => (
+              <Card key={s.id} className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">{s.nom}</h2>
+                <button
+                  type="button"
+                  onClick={() => handleUnarchiveSubject(s.id)}
+                  className="rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Unarchive
+                </button>
+              </Card>
+            ))}
+        </div>
       )}
     </div>
   );
