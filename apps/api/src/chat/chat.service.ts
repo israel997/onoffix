@@ -173,7 +173,18 @@ export class ChatService {
     const messages = await this.prisma.message.findMany({
       where: {
         conversationId,
-        ...(before ? { createdAt: { lt: (await this.prisma.message.findUnique({ where: { id: before }, select: { createdAt: true } }))?.createdAt } } : {}),
+        ...(before
+          ? {
+              createdAt: {
+                lt: (
+                  await this.prisma.message.findUnique({
+                    where: { id: before },
+                    select: { createdAt: true },
+                  })
+                )?.createdAt,
+              },
+            }
+          : {}),
       },
       orderBy: { createdAt: 'desc' },
       take: limit,

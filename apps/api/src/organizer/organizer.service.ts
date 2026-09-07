@@ -112,7 +112,9 @@ export class OrganizerService {
     const taches = await this.prisma.tache.findMany({ where: { conversationId: subjectId } });
 
     return this.prisma.$transaction(async (tx) => {
-      const newSubject = await tx.conversation.create({ data: { projetId, nom: `${subject.nom} (copy)` } });
+      const newSubject = await tx.conversation.create({
+        data: { projetId, nom: `${subject.nom} (copy)` },
+      });
       if (taches.length > 0) {
         await tx.tache.createMany({
           data: taches.map((t) => ({

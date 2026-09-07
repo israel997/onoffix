@@ -10,8 +10,8 @@ import {
   FlagIcon,
   HandStopIcon,
   InfoIcon,
+  PencilIcon,
   RocketIcon,
-  SatelliteIcon,
 } from '@/components/icons/office-icons';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Avatar } from '@/components/ui/avatar';
@@ -114,7 +114,7 @@ export function TaskItem({
   // Une tâche d'équipe est fermée par défaut (juste titre + statut) pour ne pas noyer
   // la liste — une tâche personnelle reste toujours "ouverte", c'est déjà compact.
   const [open, setOpen] = useState(false);
-  const [alerteOpen, setAlerteOpen] = useState(false);
+  const [alerteMinutes, setAlerteMinutes] = useState('');
 
   const isAssignee = tache.assigneAId === currentUserId;
   const canDeleteTask = isAdmin || isManager || (isPersonal && isAssignee);
@@ -151,7 +151,12 @@ export function TaskItem({
       if (assigneeId && assigneeId !== tache.assigneAId) {
         await assignerTache(tache.id, assigneeId);
       }
+      const minutes = Number(alerteMinutes);
+      if (alerteMinutes.trim() && minutes > 0) {
+        await setTacheAlerte(tache.id, minutes);
+      }
     }, 'Task updated');
+    setAlerteMinutes('');
     setEditing(false);
   }
 
@@ -215,6 +220,67 @@ export function TaskItem({
               </select>
             </Label>
           )}
+          {!isPersonal && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Co-assigned</Label>
+              {tache.coAssignes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tache.coAssignes.map((c) => (
+                    <span
+                      key={c.user.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-xs text-foreground"
+                    >
+                      {c.user.nom}
+                      <button
+                        type="button"
+                        onClick={() => run(() => retirerAssigneTache(tache.id, c.user.id), 'Co-assignee removed')}
+                        aria-label={`Remove ${c.user.nom}`}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <SearchableSelect
+                placeholder="Add co-assignee…"
+                disabled={busy}
+                options={assignableMembres
+                  .filter(
+                    (m) =>
+                      m.user.id !== tache.assigneAId &&
+                      !tache.coAssignes.some((c) => c.user.id === m.user.id),
+                  )
+                  .map((m) => ({ value: m.user.id, label: m.user.nom }))}
+                onSelect={(userId) => run(() => assignerTache(tache.id, userId), 'Co-assignee added')}
+              />
+            </div>
+          )}
+          <Label>
+            Alert (independent of status)
+            {tache.alerteA ? (
+              <div className="flex items-center justify-between rounded-lg border border-status-review px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Alert armed</span>
+                <button
+                  type="button"
+                  onClick={() => run(() => cancelTacheAlerte(tache.id), 'Alert cancelled')}
+                  className="text-xs font-medium text-status-review hover:opacity-75"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <Input
+                type="number"
+                min="1"
+                value={alerteMinutes}
+                onChange={(e) => setAlerteMinutes(e.target.value)}
+                placeholder="Minutes, e.g. 20"
+                className="!border-status-review"
+              />
+            )}
+          </Label>
           {error && <p className="text-xs text-status-review">{error}</p>}
           <div className="flex gap-2">
             <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
@@ -233,6 +299,7 @@ export function TaskItem({
                   tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
                 );
                 setAssigneeId(tache.assigneAId ?? '');
+                setAlerteMinutes('');
                 setEditing(false);
               }}
             >
@@ -378,45 +445,15 @@ export function TaskItem({
               <InfoIcon className="h-4 w-4" />
             </button>
           )}
-          {expanded && (isManager || isAssignee) && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  if (tache.alerteA) {
-                    run(() => cancelTacheAlerte(tache.id), 'Alert cancelled');
-                    return;
-                  }
-                  setAlerteOpen((v) => !v);
-                }}
-                aria-label={tache.alerteA ? 'Cancel alert' : 'Set alert'}
-                title={tache.alerteA ? 'Alert armed — click to cancel' : 'Set an alert (independent of task status)'}
-                className={`rounded px-1 ${tache.alerteA ? 'text-indigo-600' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                <SatelliteIcon className="h-4 w-4" />
-              </button>
-              {alerteOpen && !tache.alerteA && (
-                <input
-                  type="number"
-                  min={1}
-                  autoFocus
-                  placeholder="min"
-                  className="h-6 w-14 rounded border border-border bg-surface px-1 text-xs"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const n = Number((e.target as HTMLInputElement).value);
-                      if (n > 0) run(() => setTacheAlerte(tache.id, n), 'Alert set');
-                      setAlerteOpen(false);
-                    }
-                    if (e.key === 'Escape') setAlerteOpen(false);
-                  }}
-                />
-              )}
-            </div>
-          )}
           {expanded && isManager && (
             <button
-              onClick={() => run(() => dupliquerTache(tache.id), 'Task duplicated')}
+              onClick={async () => {
+                const ok = await confirmDialog({
+                  title: `Duplicate "${tache.titre}"?`,
+                  confirmLabel: 'Duplicate',
+                });
+                if (ok) run(() => dupliquerTache(tache.id), 'Task duplicated');
+              }}
               aria-label="Duplicate task"
               title="Duplicate task"
               className="rounded px-1 text-muted-foreground hover:text-foreground"
@@ -431,7 +468,7 @@ export function TaskItem({
               title="Edit task"
               className="rounded px-1 text-muted-foreground hover:text-foreground"
             >
-              ✎
+              <PencilIcon className="h-4 w-4" />
             </button>
           )}
           {expanded && canDeleteTask && (

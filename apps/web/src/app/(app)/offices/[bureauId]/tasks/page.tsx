@@ -191,6 +191,12 @@ function TasksPageContent() {
 
   async function handleDuplicateSubject(g: Group) {
     if (!organizer || !g.conversationId) return;
+    const ok = await confirm({
+      title: `Duplicate "${g.nom}"?`,
+      description: `This creates a copy of the subject and its ${g.taches.length} task${g.taches.length > 1 ? 's' : ''}.`,
+      confirmLabel: 'Duplicate',
+    });
+    if (!ok) return;
     try {
       await dupliquerOrganizerSubject(organizer.id, g.conversationId);
       await load();

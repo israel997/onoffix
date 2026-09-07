@@ -664,3 +664,14 @@ export function CopyIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Crayon droit, pointe vers le bas — éditer. */
+export function PencilIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="9.5" y="2.5" width="5" height="13" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9.5 6.5h5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M9.5 15.5h5L12 21z" fill="currentColor" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
