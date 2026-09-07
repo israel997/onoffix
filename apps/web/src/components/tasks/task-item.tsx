@@ -361,7 +361,7 @@ export function TaskItem({
   const canReport = (isAssignee || isManager) && tache.statut === 'EN_COURS';
 
   return (
-    <div className="rounded-lg border border-border p-2.5">
+    <div className={`rounded-lg border p-2.5 ${open ? 'border-indigo-600' : 'border-border'}`}>
       <div className="flex items-start gap-2">
         {isPersonal && (checkboxInteractive || isChecked) && (
           <input
