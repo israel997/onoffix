@@ -454,6 +454,7 @@ export class TachesService {
           { projet: { bureau: { organisationId: user.organisationId } } },
           { projet: { proprietaire: { organisationId: user.organisationId } } },
         ],
+        AND: [{ OR: [{ conversationId: null }, { conversation: { estArchive: false } }] }],
       },
       orderBy: { dateEcheance: 'asc' },
       include: {
@@ -473,9 +474,17 @@ export class TachesService {
   async mesTaches(user: AuthenticatedUser) {
     return this.prisma.tache.findMany({
       where: {
-        OR: [
-          { assigneAId: user.userId, projet: { bureau: { organisationId: user.organisationId } } },
-          { projet: { proprietaireId: user.userId } },
+        AND: [
+          {
+            OR: [
+              {
+                assigneAId: user.userId,
+                projet: { bureau: { organisationId: user.organisationId } },
+              },
+              { projet: { proprietaireId: user.userId } },
+            ],
+          },
+          { OR: [{ conversationId: null }, { conversation: { estArchive: false } }] },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -527,6 +536,7 @@ export class TachesService {
             ? [{ projet: { bureauId: { in: [...managedBureauIds] } } }]
             : []),
         ],
+        AND: [{ OR: [{ conversationId: null }, { conversation: { estArchive: false } }] }],
       },
       include: {
         assigneA: { select: { id: true, nom: true, email: true } },
@@ -641,7 +651,10 @@ export class TachesService {
   async listForBureau(bureauId: string, user: AuthenticatedUser) {
     await this.assertBureauMember(bureauId, user);
     return this.prisma.tache.findMany({
-      where: { projet: { bureauId } },
+      where: {
+        projet: { bureauId },
+        OR: [{ conversationId: null }, { conversation: { estArchive: false } }],
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         ...TACHE_INCLUDE,

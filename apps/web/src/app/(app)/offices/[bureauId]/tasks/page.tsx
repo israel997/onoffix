@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { ChevronIcon, FilterIcon } from '@/components/icons/office-icons';
+import { ArchiveIcon, ChevronIcon, FilterIcon, TrashIcon } from '@/components/icons/office-icons';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -10,7 +10,9 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageSkeleton, Skeleton } from '@/components/ui/skeleton';
 import {
+  archiveOrganizerSubject,
   createOrganizerSubject,
+  deleteOrganizerSubject,
   getBureau,
   getBureauOrganizer,
   listBureauTaches,
@@ -21,6 +23,7 @@ import {
   type Tache,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
 interface Group {
@@ -87,6 +90,7 @@ function TasksPageContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [taches, setTaches] = useState<Tache[] | null>(null);
   const [bureau, setBureau] = useState<BureauDetail | null>(null);
@@ -136,6 +140,41 @@ function TasksPageContent() {
     }
   }
 
+  async function handleDeleteSubject(g: Group) {
+    if (!organizer || !g.conversationId) return;
+    const ok = await confirm({
+      title: `Delete "${g.nom}"?`,
+      description: `This deletes the subject and its ${g.taches.length} task${g.taches.length > 1 ? 's' : ''}. This can't be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteOrganizerSubject(organizer.id, g.conversationId);
+      await load();
+      toast('Subject deleted');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    }
+  }
+
+  async function handleArchiveSubject(g: Group) {
+    if (!organizer || !g.conversationId) return;
+    const ok = await confirm({
+      title: `Archive "${g.nom}"?`,
+      description: `This hides the subject and its ${g.taches.length} task${g.taches.length > 1 ? 's' : ''} from this list. Nothing is deleted.`,
+      confirmLabel: 'Archive',
+    });
+    if (!ok) return;
+    try {
+      await archiveOrganizerSubject(organizer.id, g.conversationId, true);
+      await load();
+      toast('Subject archived');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    }
+  }
+
   function toggleGroup(key: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -175,7 +214,9 @@ function TasksPageContent() {
   // sinon impossible de déplacer une tâche vers une subject encore vide.
   const moveTargets = [
     { conversationId: null as string | null, nom: 'No subject' },
-    ...organizer.conversations.map((c) => ({ conversationId: c.id as string | null, nom: c.nom })),
+    ...organizer.conversations
+      .filter((c) => !c.estArchive)
+      .map((c) => ({ conversationId: c.id as string | null, nom: c.nom })),
   ];
 
   return (
@@ -226,11 +267,19 @@ function TasksPageContent() {
           const open = openGroups.has(key);
           return (
             <Card key={key} id={`subject-${g.nom}`}>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleGroup(key)}
-                className="flex w-full items-center justify-between gap-3 text-left"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleGroup(key);
+                  }
+                }}
+                className="flex w-full flex-wrap items-center justify-between gap-2 text-left cursor-pointer"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <ChevronIcon
                     className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
                   />
@@ -251,11 +300,39 @@ function TasksPageContent() {
                       ✎
                     </button>
                   )}
+                  {isManager && g.conversationId !== null && (
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveSubject(g);
+                        }}
+                        aria-label="Archive subject"
+                        title="Archive subject"
+                        className="rounded p-1.5 text-indigo-600 hover:text-indigo-700"
+                      >
+                        <ArchiveIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSubject(g);
+                        }}
+                        aria-label="Delete subject"
+                        title="Delete subject"
+                        className="rounded p-1.5 text-red-600 hover:text-red-700"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {enCours} in progress · {termine} done · {nonCommence} not started
                 </p>
-              </button>
+              </div>
               {open && (
                 <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {user &&

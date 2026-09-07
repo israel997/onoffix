@@ -146,6 +146,8 @@ model Conversation {
   // Dernier échec définitif (toutes tentatives épuisées) — permet d'afficher un état
   // d'erreur au lieu de rester bloqué sur "Not processed yet" en silence pour toujours.
   dernierEchecTraitement   DateTime? @map("dernier_echec_traitement")
+  // Subject archivé : masqué des Tasks (lui et ses tâches) sans rien supprimer.
+  estArchive               Boolean   @default(false) @map("est_archive")
   createdAt                DateTime  @default(now()) @map("created_at")
 
   // Message direct 1:1 (ni bureau ni organizer). userAId < userBId par convention
@@ -367,7 +369,8 @@ model Tache {
   createdAt DateTime @default(now()) @map("created_at")
 
   projet            Projet             @relation(fields: [projetId], references: [id], onDelete: Cascade)
-  conversation      Conversation?      @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  // Cascade : supprimer un Subject supprime les tâches qu'il a générées (cf. deleteSubject).
+  conversation      Conversation?      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   assigneA          User?              @relation("TachesAssignees", fields: [assigneAId], references: [id], onDelete: SetNull)
   assignePar        User?              @relation("TachesAttribuees", fields: [assigneParId], references: [id], onDelete: SetNull)
   valideur          User?              @relation("TachesValidees", fields: [valideParId], references: [id], onDelete: SetNull)

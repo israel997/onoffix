@@ -161,6 +161,13 @@ export class ChatService {
     return this.prisma.conversation.delete({ where: { id: subjectId } });
   }
 
+  setSubjectArchived(subjectId: string, archived: boolean) {
+    return this.prisma.conversation.update({
+      where: { id: subjectId },
+      data: { estArchive: archived },
+    });
+  }
+
   async listMessages(conversationId: string, limit = 50) {
     const messages = await this.prisma.message.findMany({
       where: { conversationId },

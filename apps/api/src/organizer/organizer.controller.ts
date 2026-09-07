@@ -22,6 +22,7 @@ import { StorageService } from '../common/storage.service';
 import { assertImageWeight, messageFileMulterOptions } from '../chat/chat-file.config';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatService } from '../chat/chat.service';
+import { ArchiveSubjectDto } from './dto/archive-subject.dto';
 import { ConvertPlanDto } from './dto/convert-plan.dto';
 import { CreateTacheDto } from './dto/create-tache.dto';
 import { SubjectDto } from './dto/subject.dto';
@@ -86,6 +87,15 @@ export class OrganizerController {
   @HttpCode(204)
   async deleteSubject(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
     await this.organizerService.deleteSubject(projetId, subjectId);
+  }
+
+  @Patch('subjects/:subjectId/archive')
+  archiveSubject(
+    @Param('projetId') projetId: string,
+    @Param('subjectId') subjectId: string,
+    @Body() dto: ArchiveSubjectDto,
+  ) {
+    return this.organizerService.setSubjectArchived(projetId, subjectId, dto.archived);
   }
 
   @Post('subjects/:subjectId/retry')

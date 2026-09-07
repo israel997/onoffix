@@ -91,6 +91,19 @@ export class OrganizerService {
     await this.chatService.deleteSubject(subjectId);
   }
 
+  /** Archiver masque le Subject (et les tâches qu'il contient) sans rien supprimer. */
+  async setSubjectArchived(projetId: string, subjectId: string, archived: boolean) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+    if (archived) {
+      const subjects = await this.chatService.listSubjects(projetId);
+      const stillActive = subjects.filter((s) => !s.estArchive && s.id !== subjectId);
+      if (stillActive.length === 0) {
+        throw new ForbiddenException('Un organizer doit garder au moins un Subject actif');
+      }
+    }
+    return this.chatService.setSubjectArchived(subjectId, archived);
+  }
+
   /** Relance le traitement IA des messages de ce Subject restés en échec définitif. */
   async retryProcessing(projetId: string, subjectId: string) {
     await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);

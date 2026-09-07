@@ -907,6 +907,7 @@ export interface Subject {
   nom: string;
   derniereGenerationTaches: string | null;
   dernierEchecTraitement: string | null;
+  estArchive: boolean;
   createdAt: string;
 }
 
@@ -938,6 +939,13 @@ export function renameOrganizerSubject(projetId: string, subjectId: string, nom:
 
 export function deleteOrganizerSubject(projetId: string, subjectId: string) {
   return authFetch<void>(`/organizers/${projetId}/subjects/${subjectId}`, { method: 'DELETE' });
+}
+
+export function archiveOrganizerSubject(projetId: string, subjectId: string, archived: boolean) {
+  return authFetch<Subject>(`/organizers/${projetId}/subjects/${subjectId}/archive`, {
+    method: 'PATCH',
+    body: { archived },
+  });
 }
 
 export function retryOrganizerProcessing(projetId: string, subjectId: string) {
