@@ -99,6 +99,7 @@ function TasksPageContent() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
     isStatusFilter(initialStatus) ? initialStatus : 'ALL',
   );
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('ALL');
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
 
@@ -220,7 +221,9 @@ function TasksPageContent() {
     );
   }
 
-  const filtered = applyFilter(taches, statusFilter);
+  const byStatus = applyFilter(taches, statusFilter);
+  const filtered =
+    assigneeFilter === 'ALL' ? byStatus : byStatus.filter((t) => t.assigneAId === assigneeFilter);
   const groups = groupBySubject(filtered);
   const archivedSubjects = organizer.conversations.filter((c) => c.estArchive);
   // Toutes les subjects du projet, pas seulement celles qui ont déjà une tâche —
@@ -257,6 +260,18 @@ function TasksPageContent() {
             {STATUS_FILTERS.map((f) => (
               <option key={f.value} value={f.value}>
                 {f.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            className="h-9 rounded-lg border border-border bg-surface px-3 text-sm"
+          >
+            <option value="ALL">Assigned to: anyone</option>
+            {bureau.membres.map((m) => (
+              <option key={m.user.id} value={m.user.id}>
+                {m.user.nom}
               </option>
             ))}
           </select>
