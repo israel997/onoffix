@@ -82,6 +82,17 @@ export class RituelsScheduler implements OnModuleInit {
     const toRemove = jobs.filter((job) => job.id?.startsWith(`${bureauId}:`));
     await Promise.all(toRemove.map((job) => this.queue.removeRepeatableByKey(job.key)));
   }
+
+  /** Programme (ou reprogramme) l'alerte différée d'une tâche — un seul job actif par tâche. */
+  async scheduleTacheAlerte(tacheId: string, delayMs: number) {
+    const jobId = `alerte:${tacheId}`;
+    await this.queue.remove(jobId);
+    await this.queue.add(RituelJob.ALERTE_TACHE, { tacheId }, { jobId, delay: delayMs });
+  }
+
+  async cancelTacheAlerte(tacheId: string) {
+    await this.queue.remove(`alerte:${tacheId}`);
+  }
 }
 
 function cronPlusMinutes(heure: number, minute: number, delaiMinutes: number): string {

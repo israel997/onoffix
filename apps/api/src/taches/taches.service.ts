@@ -15,6 +15,7 @@ import {
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RituelsScheduler } from '../queue/rituels.scheduler';
 import { CreateBlocageDto } from './dto/create-blocage.dto';
 
 const TACHE_INCLUDE = {
@@ -32,6 +33,7 @@ export class TachesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly rituelsScheduler: RituelsScheduler,
   ) {}
 
   /** Charge une tâche accessible à l'utilisateur : soit via son bureau, soit via son Organizer personnel. */
@@ -670,6 +672,36 @@ export class TachesService {
       throw new ForbiddenException('Seul un manager du bureau peut supprimer cette tâche');
     }
     await this.prisma.tache.delete({ where: { id: tacheId } });
+  }
+
+  /** Rappel indépendant du statut de la tâche — assigné ou manager peuvent la programmer. */
+  async setAlerte(tacheId: string, user: AuthenticatedUser, minutes: number) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      throw new BadRequestException('Durée invalide');
+    }
+    const manager = await this.isManager(tache.projet.bureauId, user);
+    if (tache.assigneAId !== user.userId && !manager) {
+      throw new ForbiddenException("Seuls l'assigné ou un manager peuvent programmer une alerte");
+    }
+    const alerteA = new Date(Date.now() + minutes * 60_000);
+    const updated = await this.prisma.tache.update({
+      where: { id: tacheId },
+      data: { alerteA },
+      include: TACHE_INCLUDE,
+    });
+    await this.rituelsScheduler.scheduleTacheAlerte(tacheId, minutes * 60_000);
+    return updated;
+  }
+
+  async cancelAlerte(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    const manager = await this.isManager(tache.projet.bureauId, user);
+    if (tache.assigneAId !== user.userId && !manager) {
+      throw new ForbiddenException("Seuls l'assigné ou un manager peuvent annuler l'alerte");
+    }
+    await this.prisma.tache.update({ where: { id: tacheId }, data: { alerteA: null } });
+    await this.rituelsScheduler.cancelTacheAlerte(tacheId);
   }
 
   // ---------- Blocages ----------

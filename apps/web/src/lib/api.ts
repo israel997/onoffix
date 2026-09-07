@@ -793,12 +793,22 @@ export interface Tache {
   valideParId: string | null;
   dateCible: string | null;
   createdAt: string;
+  /** Rappel indépendant du statut — notif push programmée à cette heure-là. */
+  alerteA: string | null;
   assigneA: { id: string; nom: string; photoUrl: string | null } | null;
   assignePar: { id: string; nom: string } | null;
   valideur: { id: string; nom: string } | null;
   conversation: { id: string; nom: string } | null;
   /** Session ouverte (chrono actif) s'il y en a une — vide = tâche en pause. */
   sessions: { debut: string }[];
+}
+
+export function setTacheAlerte(tacheId: string, minutes: number) {
+  return authFetch<Tache>(`/taches/${tacheId}/alerte`, { method: 'POST', body: { minutes } });
+}
+
+export function cancelTacheAlerte(tacheId: string) {
+  return authFetch<void>(`/taches/${tacheId}/alerte`, { method: 'DELETE' });
 }
 
 export function assignerTache(tacheId: string, userId: string) {

@@ -162,6 +162,21 @@ export class TachesController {
     return this.tachesService.chronoStatut(tacheId, user);
   }
 
+  @Post('alerte')
+  setAlerte(
+    @Param('tacheId') tacheId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('minutes') minutes: number,
+  ) {
+    return this.tachesService.setAlerte(tacheId, user, minutes);
+  }
+
+  @Delete('alerte')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async cancelAlerte(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.tachesService.cancelAlerte(tacheId, user);
+  }
+
   @Delete()
   @HttpCode(204)
   async supprimer(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {

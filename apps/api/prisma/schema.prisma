@@ -365,6 +365,8 @@ model Tache {
   priorite            PrioriteTache @default(NORMALE)
   dateEcheance        DateTime?     @map("date_echeance")
   dureeEstimeeMinutes Int?          @map("duree_estimee_minutes")
+  // Rappel indépendant du statut : notif push à cette heure-là (cf. queue "alerte-tache").
+  alerteA             DateTime?     @map("alerte_a")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -503,6 +505,7 @@ enum NotificationType {
   INVITATION_BUREAU
   MENTION
   NOUVEAU_MESSAGE
+  ALERTE_TACHE
 }
 
 model Notification {

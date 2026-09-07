@@ -22,12 +22,14 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
   accepterTache,
   assignerTache,
+  cancelTacheAlerte,
   declarerTache,
   deleteTache,
   demarrerTache,
   pauserTache,
   reouvrirTache,
   reprendreTache,
+  setTacheAlerte,
   updateTache,
   validerTache,
   type PrioriteTache,
@@ -354,6 +356,30 @@ export function TaskItem({
             >
               <InfoIcon className="h-4 w-4" />
             </button>
+          )}
+          {expanded && (isManager || isAssignee) && (
+            <select
+              key={tache.alerteA ?? 'no-alert'}
+              defaultValue=""
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                if (v === 'off') run(() => cancelTacheAlerte(tache.id), 'Alert cancelled');
+                else run(() => setTacheAlerte(tache.id, Number(v)), 'Alert set');
+              }}
+              aria-label="Task alert"
+              title="Alert — independent of task status"
+              className="rounded border border-border bg-surface px-1 py-0.5 text-xs text-muted-foreground"
+            >
+              <option value="" disabled>
+                {tache.alerteA ? '🔔 Alert on' : 'Alert'}
+              </option>
+              {tache.alerteA && <option value="off">Cancel alert</option>}
+              <option value="10">In 10 min</option>
+              <option value="20">In 20 min</option>
+              <option value="30">In 30 min</option>
+              <option value="60">In 60 min</option>
+            </select>
           )}
           {expanded && isManager && (
             <button
