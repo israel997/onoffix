@@ -67,6 +67,20 @@ export class TachesController {
     return this.tachesService.assigner(tacheId, user, dto.userId);
   }
 
+  @Delete('assignes/:userId')
+  retirerAssigne(
+    @Param('tacheId') tacheId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.tachesService.retirerAssigne(tacheId, user, userId);
+  }
+
+  @Post('dupliquer')
+  dupliquer(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.dupliquer(tacheId, user);
+  }
+
   @Patch()
   modifier(
     @Param('tacheId') tacheId: string,

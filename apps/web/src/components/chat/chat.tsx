@@ -11,6 +11,9 @@ import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
 import { getSocket } from '@/lib/socket';
 
+// Doit matcher la limite par défaut de chat.service.ts#listMessages côté API.
+const PAGE_SIZE = 50;
+
 function initials(name: string) {
   return name
     .split(' ')
@@ -182,7 +185,7 @@ export interface ChatProps {
   joinEvent: string;
   leaveEvent: string;
   messageEvent: string;
-  fetchHistory: (roomId: string) => Promise<ChatMessage[]>;
+  fetchHistory: (roomId: string, before?: string) => Promise<ChatMessage[]>;
   uploadFile: (roomId: string, file: File, contenu?: string, replyToId?: string) => Promise<ChatMessage>;
   title: ReactNode;
   description: string;
@@ -214,6 +217,8 @@ export function Chat({
   const { user } = useAuth();
   const confirmDialog = useConfirm();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [draft, setDraft] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -333,7 +338,10 @@ export function Chat({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMessages(null);
     fetchHistory(roomId).then((history) => {
-      if (active) setMessages(history);
+      if (active) {
+        setMessages(history);
+        setHasMore(history.length >= PAGE_SIZE);
+      }
     });
 
     const socket = getSocket();
@@ -345,7 +353,10 @@ export function Chat({
       socket.emit(joinEvent, { [roomKey]: roomId });
       // On a pu manquer des messages pendant la coupure : on resynchronise l'historique.
       fetchHistory(roomId).then((history) => {
-        if (active) setMessages(history);
+        if (active) {
+          setMessages(history);
+          setHasMore(history.length >= PAGE_SIZE);
+        }
       });
     }
     socket.emit(joinEvent, { [roomKey]: roomId });
@@ -395,6 +406,18 @@ export function Chat({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
+
+  async function handleLoadMore() {
+    if (!messages || messages.length === 0 || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const older = await fetchHistory(roomId, messages[0].id);
+      setMessages((prev) => [...older, ...(prev ?? [])]);
+      setHasMore(older.length >= PAGE_SIZE);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -550,6 +573,15 @@ export function Chat({
           <p className="text-sm text-muted-foreground">No messages yet - say hello.</p>
         ) : (
           <div className="flex flex-col">
+            {hasMore && (
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="mx-auto mb-2 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            )}
             {messages.map((m, index) => {
               const mine = m.auteurId === user?.id;
               const isEditing = editingId === m.id;

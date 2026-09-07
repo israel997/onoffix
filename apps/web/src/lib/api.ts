@@ -457,8 +457,8 @@ export interface ChatMessage {
   } | null;
 }
 
-export function listMessages(bureauId: string) {
-  return authFetch<ChatMessage[]>(`/bureaux/${bureauId}/messages`);
+export function listMessages(bureauId: string, before?: string) {
+  return authFetch<ChatMessage[]>(`/bureaux/${bureauId}/messages${before ? `?before=${before}` : ''}`);
 }
 
 function sendFile(path: string, file: File, contenu?: string, replyToId?: string): Promise<ChatMessage> {
@@ -801,6 +801,16 @@ export interface Tache {
   conversation: { id: string; nom: string } | null;
   /** Session ouverte (chrono actif) s'il y en a une — vide = tâche en pause. */
   sessions: { debut: string }[];
+  /** Assignés en plus de assigneA (le principal, qui pilote statut/chrono). */
+  coAssignes: { user: { id: string; nom: string; photoUrl: string | null } }[];
+}
+
+export function dupliquerTache(tacheId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/dupliquer`, { method: 'POST' });
+}
+
+export function retirerAssigneTache(tacheId: string, userId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/assignes/${userId}`, { method: 'DELETE' });
 }
 
 export function setTacheAlerte(tacheId: string, minutes: number) {
@@ -958,6 +968,10 @@ export function archiveOrganizerSubject(projetId: string, subjectId: string, arc
   });
 }
 
+export function dupliquerOrganizerSubject(projetId: string, subjectId: string) {
+  return authFetch<Subject>(`/organizers/${projetId}/subjects/${subjectId}/dupliquer`, { method: 'POST' });
+}
+
 export function retryOrganizerProcessing(projetId: string, subjectId: string) {
   return authFetch<void>(`/organizers/${projetId}/subjects/${subjectId}/retry`, { method: 'POST' });
 }
@@ -1113,8 +1127,10 @@ export function getDailyBrief(bureauId: string) {
   return authFetch<DailyBrief>(`/bureaux/${bureauId}/rituel/brief`);
 }
 
-export function listOrganizerMessages(projetId: string, subjectId: string) {
-  return authFetch<ChatMessage[]>(`/organizers/${projetId}/subjects/${subjectId}/messages`);
+export function listOrganizerMessages(projetId: string, subjectId: string, before?: string) {
+  return authFetch<ChatMessage[]>(
+    `/organizers/${projetId}/subjects/${subjectId}/messages${before ? `?before=${before}` : ''}`,
+  );
 }
 
 export function sendOrganizerFile(
@@ -1148,8 +1164,10 @@ export function startDirectConversation(otherUserId: string) {
   return authFetch<{ id: string }>(`/me/direct-messages/${otherUserId}`, { method: 'POST' });
 }
 
-export function listDirectMessages(conversationId: string) {
-  return authFetch<ChatMessage[]>(`/direct-messages/${conversationId}/messages`);
+export function listDirectMessages(conversationId: string, before?: string) {
+  return authFetch<ChatMessage[]>(
+    `/direct-messages/${conversationId}/messages${before ? `?before=${before}` : ''}`,
+  );
 }
 
 export function sendDirectFile(conversationId: string, file: File, contenu?: string, replyToId?: string) {

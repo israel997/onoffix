@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { ArchiveIcon, ChevronIcon, FilterIcon, TrashIcon } from '@/components/icons/office-icons';
+import { ArchiveIcon, ChevronIcon, CopyIcon, FilterIcon, TrashIcon } from '@/components/icons/office-icons';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -12,6 +12,7 @@ import { PageSkeleton, Skeleton } from '@/components/ui/skeleton';
 import {
   archiveOrganizerSubject,
   createOrganizerSubject,
+  dupliquerOrganizerSubject,
   deleteOrganizerSubject,
   getBureau,
   getBureauOrganizer,
@@ -188,6 +189,17 @@ function TasksPageContent() {
     }
   }
 
+  async function handleDuplicateSubject(g: Group) {
+    if (!organizer || !g.conversationId) return;
+    try {
+      await dupliquerOrganizerSubject(organizer.id, g.conversationId);
+      await load();
+      toast('Subject duplicated');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    }
+  }
+
   function toggleGroup(key: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -223,7 +235,11 @@ function TasksPageContent() {
 
   const byStatus = applyFilter(taches, statusFilter);
   const filtered =
-    assigneeFilter === 'ALL' ? byStatus : byStatus.filter((t) => t.assigneAId === assigneeFilter);
+    assigneeFilter === 'ALL'
+      ? byStatus
+      : byStatus.filter(
+          (t) => t.assigneAId === assigneeFilter || t.coAssignes.some((c) => c.user.id === assigneeFilter),
+        );
   const groups = groupBySubject(filtered);
   const archivedSubjects = organizer.conversations.filter((c) => c.estArchive);
   // Toutes les subjects du projet, pas seulement celles qui ont déjà une tâche —
@@ -330,6 +346,18 @@ function TasksPageContent() {
                   )}
                   {isManager && g.conversationId !== null && (
                     <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateSubject(g);
+                        }}
+                        aria-label="Duplicate subject"
+                        title="Duplicate subject"
+                        className="rounded p-1.5 text-muted-foreground hover:text-foreground"
+                      >
+                        <CopyIcon className="h-4 w-4" />
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => {

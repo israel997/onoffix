@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -32,10 +33,14 @@ export class ChatController {
 
   @BureauRole(...ANY_MEMBER)
   @Get()
-  async list(@Param('bureauId') bureauId: string, @CurrentUser() user: AuthenticatedUser) {
+  async list(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('before') before?: string,
+  ) {
     const conversation = await this.chatService.ensureConversationForBureau(bureauId);
     await this.chatService.markConversationRead(conversation.id, user.userId);
-    return this.chatService.listMessages(conversation.id);
+    return this.chatService.listMessages(conversation.id, 50, before);
   }
 
   @BureauRole(...ANY_MEMBER)

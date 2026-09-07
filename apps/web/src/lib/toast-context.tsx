@@ -29,10 +29,25 @@ let nextId = 0;
 // Une erreur mérite plus de temps de lecture qu'une simple confirmation.
 const DURATION_MS: Record<ToastTone, number> = { success: 3500, warning: 4500, error: 5500 };
 
-const TONE_STYLE: Record<ToastTone, { border: string; icon: string; Icon: typeof CheckCircleIcon }> = {
-  success: { border: 'border-status-validated', icon: 'text-status-validated', Icon: CheckCircleIcon },
-  warning: { border: 'border-status-declared', icon: 'text-status-declared', Icon: AlertTriangleIcon },
-  error: { border: 'border-status-review', icon: 'text-status-review', Icon: XCircleIcon },
+const TONE_STYLE: Record<ToastTone, { border: string; bg: string; icon: string; Icon: typeof CheckCircleIcon }> = {
+  success: {
+    border: 'border-status-validated',
+    bg: 'bg-status-validated/10',
+    icon: 'text-status-validated',
+    Icon: CheckCircleIcon,
+  },
+  warning: {
+    border: 'border-status-declared',
+    bg: 'bg-status-declared/10',
+    icon: 'text-status-declared',
+    Icon: AlertTriangleIcon,
+  },
+  error: {
+    border: 'border-status-review',
+    bg: 'bg-status-review/10',
+    icon: 'text-status-review',
+    Icon: XCircleIcon,
+  },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -85,13 +100,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
         {items.map((t) => {
-          const { border, icon, Icon } = TONE_STYLE[t.tone];
+          const { border, bg, icon, Icon } = TONE_STYLE[t.tone];
           return (
             <div
               key={t.id}
               onMouseEnter={() => pause(t.id)}
               onMouseLeave={() => resume(t.id, t.tone, t.persistent)}
-              className={`animate-fade-in-up pointer-events-auto flex w-80 items-start gap-2.5 rounded-lg border-l-4 bg-surface px-3.5 py-3 text-sm text-foreground shadow-lg ${border}`}
+              className={`animate-fade-in-up pointer-events-auto flex w-80 items-start gap-2.5 rounded-lg border-l-4 px-3.5 py-3 text-sm text-foreground shadow-lg ${border} ${bg}`}
             >
               <Icon className={`h-4 w-4 shrink-0 translate-y-0.5 ${icon}`} />
               <span className="min-w-0 flex-1">{t.message}</span>

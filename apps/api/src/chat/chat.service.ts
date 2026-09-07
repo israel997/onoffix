@@ -168,9 +168,13 @@ export class ChatService {
     });
   }
 
-  async listMessages(conversationId: string, limit = 50) {
+  /** `before`: id d'un message déjà chargé — sert au bouton "Charger plus" pour remonter l'historique. */
+  async listMessages(conversationId: string, limit = 50, before?: string) {
     const messages = await this.prisma.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        ...(before ? { createdAt: { lt: (await this.prisma.message.findUnique({ where: { id: before }, select: { createdAt: true } }))?.createdAt } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: MESSAGE_INCLUDE,

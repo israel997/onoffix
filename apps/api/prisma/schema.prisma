@@ -260,6 +260,7 @@ model User {
   tachesAssignees          Tache[]                  @relation("TachesAssignees")
   tachesAttribuees         Tache[]                  @relation("TachesAttribuees")
   tachesValidees           Tache[]                  @relation("TachesValidees")
+  tachesCoAssignees        TacheAssignee[]          @relation("TachesCoAssignees")
   declarationsJournalieres DeclarationJournaliere[]
   scoresFiabilite          ScoreFiabilite[]
   refreshTokens            RefreshToken[]
@@ -381,11 +382,28 @@ model Tache {
   blocages          TacheBlocage[]     @relation("TacheBlocages")
   bloqueTaches      TacheBlocage[]     @relation("TacheBloquantes")
   sessions          TacheSession[]
+  // Assignés en plus de assigneA (qui reste le "principal" — pilote le statut/chrono).
+  coAssignes        TacheAssignee[]
 
   @@index([projetId])
   @@index([assigneAId])
   @@index([conversationId])
   @@map("taches")
+}
+
+/** Assignés supplémentaires d'une tâche, en plus de assigneA (le principal). */
+model TacheAssignee {
+  id        String   @id @default(uuid())
+  tacheId   String   @map("tache_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tache Tache @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+  user  User  @relation("TachesCoAssignees", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tacheId, userId])
+  @@index([userId])
+  @@map("taches_assignees")
 }
 
 /**

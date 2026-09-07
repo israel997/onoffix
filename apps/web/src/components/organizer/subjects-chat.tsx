@@ -216,7 +216,7 @@ export function SubjectsChat({
           joinEvent="organizer:join"
           leaveEvent="organizer:leave"
           messageEvent="organizer:message"
-          fetchHistory={(subjectId) => listOrganizerMessages(projetId, subjectId)}
+          fetchHistory={(subjectId, before) => listOrganizerMessages(projetId, subjectId, before)}
           uploadFile={(subjectId, file, contenu, replyToId) =>
             sendOrganizerFile(projetId, subjectId, file, contenu, replyToId)
           }

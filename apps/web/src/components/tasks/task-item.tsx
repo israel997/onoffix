@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react';
 import {
   AlertTriangleIcon,
   ChevronIcon,
+  CopyIcon,
   DoubleCheckIcon,
   FlagIcon,
   HandStopIcon,
   InfoIcon,
   RocketIcon,
+  SatelliteIcon,
 } from '@/components/icons/office-icons';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Avatar } from '@/components/ui/avatar';
@@ -26,9 +28,11 @@ import {
   declarerTache,
   deleteTache,
   demarrerTache,
+  dupliquerTache,
   pauserTache,
   reouvrirTache,
   reprendreTache,
+  retirerAssigneTache,
   setTacheAlerte,
   updateTache,
   validerTache,
@@ -110,6 +114,7 @@ export function TaskItem({
   // Une tâche d'équipe est fermée par défaut (juste titre + statut) pour ne pas noyer
   // la liste — une tâche personnelle reste toujours "ouverte", c'est déjà compact.
   const [open, setOpen] = useState(false);
+  const [alerteOpen, setAlerteOpen] = useState(false);
 
   const isAssignee = tache.assigneAId === currentUserId;
   const canDeleteTask = isAdmin || isManager || (isPersonal && isAssignee);
@@ -343,6 +348,22 @@ export function TaskItem({
             ) : (
               <Badge tone="neutral">Unassigned</Badge>
             ))}
+          {!isPersonal &&
+            tache.coAssignes.map((c) => (
+              <span key={c.user.id} className="hidden items-center gap-0.5 sm:inline-flex">
+                <Badge tone="neutral">{c.user.nom}</Badge>
+                {expanded && isManager && (
+                  <button
+                    onClick={() => run(() => retirerAssigneTache(tache.id, c.user.id), 'Assignee removed')}
+                    aria-label={`Remove ${c.user.nom}`}
+                    title={`Remove ${c.user.nom}`}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                )}
+              </span>
+            ))}
           <Badge tone={STATUT_TONE[tache.statut]}>{STATUT_LABEL[tache.statut]}</Badge>
           {tache.sante !== 'NORMAL' && (
             <Badge tone={SANTE_TONE[tache.sante]}>{SANTE_LABEL[tache.sante]}</Badge>
@@ -358,28 +379,50 @@ export function TaskItem({
             </button>
           )}
           {expanded && (isManager || isAssignee) && (
-            <select
-              key={tache.alerteA ?? 'no-alert'}
-              defaultValue=""
-              onChange={(e) => {
-                const v = e.target.value;
-                if (!v) return;
-                if (v === 'off') run(() => cancelTacheAlerte(tache.id), 'Alert cancelled');
-                else run(() => setTacheAlerte(tache.id, Number(v)), 'Alert set');
-              }}
-              aria-label="Task alert"
-              title="Alert — independent of task status"
-              className="rounded border border-border bg-surface px-1 py-0.5 text-xs text-muted-foreground"
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (tache.alerteA) {
+                    run(() => cancelTacheAlerte(tache.id), 'Alert cancelled');
+                    return;
+                  }
+                  setAlerteOpen((v) => !v);
+                }}
+                aria-label={tache.alerteA ? 'Cancel alert' : 'Set alert'}
+                title={tache.alerteA ? 'Alert armed — click to cancel' : 'Set an alert (independent of task status)'}
+                className={`rounded px-1 ${tache.alerteA ? 'text-indigo-600' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <SatelliteIcon className="h-4 w-4" />
+              </button>
+              {alerteOpen && !tache.alerteA && (
+                <input
+                  type="number"
+                  min={1}
+                  autoFocus
+                  placeholder="min"
+                  className="h-6 w-14 rounded border border-border bg-surface px-1 text-xs"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const n = Number((e.target as HTMLInputElement).value);
+                      if (n > 0) run(() => setTacheAlerte(tache.id, n), 'Alert set');
+                      setAlerteOpen(false);
+                    }
+                    if (e.key === 'Escape') setAlerteOpen(false);
+                  }}
+                />
+              )}
+            </div>
+          )}
+          {expanded && isManager && (
+            <button
+              onClick={() => run(() => dupliquerTache(tache.id), 'Task duplicated')}
+              aria-label="Duplicate task"
+              title="Duplicate task"
+              className="rounded px-1 text-muted-foreground hover:text-foreground"
             >
-              <option value="" disabled>
-                {tache.alerteA ? '🔔 Alert on' : 'Alert'}
-              </option>
-              {tache.alerteA && <option value="off">Cancel alert</option>}
-              <option value="10">In 10 min</option>
-              <option value="20">In 20 min</option>
-              <option value="30">In 30 min</option>
-              <option value="60">In 60 min</option>
-            </select>
+              <CopyIcon className="h-4 w-4" />
+            </button>
           )}
           {expanded && isManager && (
             <button

@@ -32,13 +32,17 @@ export class RituelsProcessor extends WorkerHost {
         await this.relanceRetard((job.data as { bureauId: string }).bureauId);
         break;
       case RituelJob.VALIDATION_LENDEMAIN:
-        this.logger.log(`Validation du lendemain — bureau ${(job.data as { bureauId: string }).bureauId}`);
+        this.logger.log(
+          `Validation du lendemain — bureau ${(job.data as { bureauId: string }).bureauId}`,
+        );
         break;
       case RituelJob.RESUME_QUOTIDIEN:
         this.logger.log(`Résumé quotidien — bureau ${(job.data as { bureauId: string }).bureauId}`);
         break;
       case RituelJob.RAPPORT_HEBDOMADAIRE:
-        this.logger.log(`Rapport hebdomadaire — bureau ${(job.data as { bureauId: string }).bureauId}`);
+        this.logger.log(
+          `Rapport hebdomadaire — bureau ${(job.data as { bureauId: string }).bureauId}`,
+        );
         break;
       case RituelJob.ALERTE_TACHE:
         await this.alerteTache((job.data as { tacheId: string }).tacheId);
@@ -52,7 +56,12 @@ export class RituelsProcessor extends WorkerHost {
   private async alerteTache(tacheId: string) {
     const tache = await this.prisma.tache.findUnique({
       where: { id: tacheId },
-      select: { titre: true, assigneAId: true, alerteA: true, projet: { select: { bureauId: true } } },
+      select: {
+        titre: true,
+        assigneAId: true,
+        alerteA: true,
+        projet: { select: { bureauId: true } },
+      },
     });
     // Alerte annulée ou remplacée entre-temps (alerteA vidé/changé) : ne rien envoyer.
     if (!tache || !tache.alerteA || !tache.assigneAId) return;

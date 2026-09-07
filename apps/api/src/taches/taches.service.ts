@@ -26,6 +26,7 @@ const TACHE_INCLUDE = {
   // Session ouverte (fin: null) : présente = chrono actif, absente = en pause. Sert au
   // bouton Break/Resume sans appel séparé pour chaque tâche affichée dans une liste.
   sessions: { where: { fin: null }, select: { debut: true } },
+  coAssignes: { select: { user: { select: { id: true, nom: true, photoUrl: true } } } },
 };
 
 @Injectable()
@@ -125,9 +126,22 @@ export class TachesService {
       }
     }
 
-    const updated = await this.prisma.tache.update({
+    // Plusieurs personnes peuvent être assignées à la même tâche : la première prise
+    // "assigneA" pilote statut/chrono comme avant, les suivantes s'ajoutent en co-assignés.
+    if (!tache.assigneAId || tache.assigneAId === assigneeUserId) {
+      await this.prisma.tache.update({
+        where: { id: tacheId },
+        data: { assigneAId: assigneeUserId, assigneParId: user.userId },
+      });
+    } else {
+      await this.prisma.tacheAssignee.upsert({
+        where: { tacheId_userId: { tacheId, userId: assigneeUserId } },
+        create: { tacheId, userId: assigneeUserId },
+        update: {},
+      });
+    }
+    const updated = await this.prisma.tache.findUniqueOrThrow({
       where: { id: tacheId },
-      data: { assigneAId: assigneeUserId, assigneParId: user.userId },
       include: TACHE_INCLUDE,
     });
 
@@ -139,6 +153,31 @@ export class TachesService {
     );
 
     return updated;
+  }
+
+  async retirerAssigne(tacheId: string, user: AuthenticatedUser, userId: string) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    const manager = await this.isManager(tache.projet.bureauId, user);
+    if (!manager && user.userId !== userId) {
+      throw new ForbiddenException(
+        'Seul un manager (ou la personne elle-même) peut retirer un assigné',
+      );
+    }
+    await this.prisma.tacheAssignee.deleteMany({ where: { tacheId, userId } });
+    return this.prisma.tache.findUniqueOrThrow({ where: { id: tacheId }, include: TACHE_INCLUDE });
+  }
+
+  /** Vrai si l'utilisateur est le principal (assigneA) ou un co-assigné de la tâche. */
+  private async estAssigne(
+    tacheId: string,
+    assigneAId: string | null,
+    userId: string,
+  ): Promise<boolean> {
+    if (assigneAId === userId) return true;
+    const co = await this.prisma.tacheAssignee.findUnique({
+      where: { tacheId_userId: { tacheId, userId } },
+    });
+    return !!co;
   }
 
   async accepter(tacheId: string, user: AuthenticatedUser) {
@@ -674,6 +713,26 @@ export class TachesService {
     await this.prisma.tache.delete({ where: { id: tacheId } });
   }
 
+  async dupliquer(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    const manager = await this.isManager(tache.projet.bureauId, user);
+    if (!manager) {
+      throw new ForbiddenException('Seul un manager du bureau peut dupliquer cette tâche');
+    }
+    return this.prisma.tache.create({
+      data: {
+        projetId: tache.projetId,
+        conversationId: tache.conversationId,
+        titre: tache.titre,
+        description: tache.description,
+        priorite: tache.priorite,
+        dateEcheance: tache.dateEcheance,
+        dureeEstimeeMinutes: tache.dureeEstimeeMinutes,
+      },
+      include: TACHE_INCLUDE,
+    });
+  }
+
   /** Rappel indépendant du statut de la tâche — assigné ou manager peuvent la programmer. */
   async setAlerte(tacheId: string, user: AuthenticatedUser, minutes: number) {
     const tache = await this.loadWithBureau(tacheId, user);
@@ -681,7 +740,7 @@ export class TachesService {
       throw new BadRequestException('Durée invalide');
     }
     const manager = await this.isManager(tache.projet.bureauId, user);
-    if (tache.assigneAId !== user.userId && !manager) {
+    if (!manager && !(await this.estAssigne(tacheId, tache.assigneAId, user.userId))) {
       throw new ForbiddenException("Seuls l'assigné ou un manager peuvent programmer une alerte");
     }
     const alerteA = new Date(Date.now() + minutes * 60_000);
@@ -697,7 +756,7 @@ export class TachesService {
   async cancelAlerte(tacheId: string, user: AuthenticatedUser) {
     const tache = await this.loadWithBureau(tacheId, user);
     const manager = await this.isManager(tache.projet.bureauId, user);
-    if (tache.assigneAId !== user.userId && !manager) {
+    if (!manager && !(await this.estAssigne(tacheId, tache.assigneAId, user.userId))) {
       throw new ForbiddenException("Seuls l'assigné ou un manager peuvent annuler l'alerte");
     }
     await this.prisma.tache.update({ where: { id: tacheId }, data: { alerteA: null } });

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -98,6 +99,11 @@ export class OrganizerController {
     return this.organizerService.setSubjectArchived(projetId, subjectId, dto.archived);
   }
 
+  @Post('subjects/:subjectId/dupliquer')
+  dupliquerSubject(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
+    return this.organizerService.dupliquerSubject(projetId, subjectId);
+  }
+
   @Post('subjects/:subjectId/retry')
   @HttpCode(204)
   async retryProcessing(
@@ -108,9 +114,13 @@ export class OrganizerController {
   }
 
   @Get('subjects/:subjectId/messages')
-  async messages(@Param('projetId') projetId: string, @Param('subjectId') subjectId: string) {
+  async messages(
+    @Param('projetId') projetId: string,
+    @Param('subjectId') subjectId: string,
+    @Query('before') before?: string,
+  ) {
     await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
-    return this.chatService.listMessages(subjectId);
+    return this.chatService.listMessages(subjectId, 50, before);
   }
 
   @Post('subjects/:subjectId/messages/fichier')

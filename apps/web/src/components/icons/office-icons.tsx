@@ -633,3 +633,34 @@ export function ArchiveIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Satellite — alerte programmée sur une tâche, indépendante de son statut. */
+export function SatelliteIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect
+        x="9.6"
+        y="9.6"
+        width="4.8"
+        height="4.8"
+        rx="1"
+        transform="rotate(45 12 12)"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <path d="M14.5 9.5l3-3M9.5 14.5l-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M15.5 3.5l2 2M20.5 6.5l-2-2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M3.5 19.5l3-1 1-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Deux rectangles superposés — dupliquer une tâche ou un subject. */
+export function CopyIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}

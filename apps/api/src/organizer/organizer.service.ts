@@ -14,6 +14,7 @@ const TACHE_INCLUDE = {
   assignePar: { select: { id: true, nom: true } },
   valideur: { select: { id: true, nom: true } },
   conversation: { select: { id: true, nom: true } },
+  coAssignes: { select: { user: { select: { id: true, nom: true, photoUrl: true } } } },
 };
 
 @Injectable()
@@ -102,6 +103,31 @@ export class OrganizerService {
       }
     }
     return this.chatService.setSubjectArchived(subjectId, archived);
+  }
+
+  /** Duplique un Subject et ses tâches actives dans un nouveau Subject "(copy)". */
+  async dupliquerSubject(projetId: string, subjectId: string) {
+    await this.chatService.assertSubjectBelongsToProjet(subjectId, projetId);
+    const subject = await this.prisma.conversation.findUniqueOrThrow({ where: { id: subjectId } });
+    const taches = await this.prisma.tache.findMany({ where: { conversationId: subjectId } });
+
+    return this.prisma.$transaction(async (tx) => {
+      const newSubject = await tx.conversation.create({ data: { projetId, nom: `${subject.nom} (copy)` } });
+      if (taches.length > 0) {
+        await tx.tache.createMany({
+          data: taches.map((t) => ({
+            projetId: t.projetId,
+            conversationId: newSubject.id,
+            titre: t.titre,
+            description: t.description,
+            priorite: t.priorite,
+            dateEcheance: t.dateEcheance,
+            dureeEstimeeMinutes: t.dureeEstimeeMinutes,
+          })),
+        });
+      }
+      return newSubject;
+    });
   }
 
   /** Relance le traitement IA des messages de ce Subject restés en échec définitif. */

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -51,10 +52,11 @@ export class DirectMessagesController {
   async messages(
     @Param('conversationId') conversationId: string,
     @CurrentUser() user: AuthenticatedUser,
+    @Query('before') before?: string,
   ) {
     await this.chatService.assertDirectAccess(conversationId, user.userId);
     await this.chatService.markDirectConversationRead(conversationId, user.userId);
-    return this.chatService.listMessages(conversationId);
+    return this.chatService.listMessages(conversationId, 50, before);
   }
 
   @Post('messages/fichier')
