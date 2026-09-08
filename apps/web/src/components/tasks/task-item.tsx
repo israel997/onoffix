@@ -67,6 +67,15 @@ function formatDuration(ms: number) {
 
 const PRIORITES: PrioriteTache[] = ['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'];
 
+// dateCible est une date "pure" (ancrée à minuit UTC côté API) — on la lit/écrit en
+// UTC pour éviter qu'un fuseau négatif ne la fasse paraître un jour plus tôt.
+function toDateOnly(iso: string | null) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
 function toDatetimeLocal(iso: string | null) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -110,7 +119,7 @@ export function TaskItem({
   const [focusReport, setFocusReport] = useState(false);
   const [titre, setTitre] = useState(tache.titre);
   const [description, setDescription] = useState(tache.description ?? '');
-  const [dateCible, setDateCible] = useState(tache.dateCible ?? '');
+  const [dateCible, setDateCible] = useState(toDateOnly(tache.dateCible));
   const [dateEcheance, setDateEcheance] = useState(toDatetimeLocal(tache.dateEcheance));
   const [priorite, setPriorite] = useState<PrioriteTache>(tache.priorite);
   const [dureeEstimeeHeures, setDureeEstimeeHeures] = useState(
@@ -310,7 +319,7 @@ export function TaskItem({
               onClick={() => {
                 setTitre(tache.titre);
                 setDescription(tache.description ?? '');
-                setDateCible(tache.dateCible ?? '');
+                setDateCible(toDateOnly(tache.dateCible));
                 setDateEcheance(toDatetimeLocal(tache.dateEcheance));
                 setPriorite(tache.priorite);
                 setDureeEstimeeHeures(
