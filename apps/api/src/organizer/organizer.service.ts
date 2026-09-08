@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationType, RoleGlobal } from '@prisma/client';
+import { RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { AiService } from '../ai/ai.service';
 import { ChatService } from '../chat/chat.service';
@@ -170,14 +170,8 @@ export class OrganizerService {
 
     await this.assertManager(projet.bureauId!, user);
 
-    // Une tâche de bureau créée sans assignation explicite passe par défaut au
-    // propriétaire de l'organisation, pour qu'elle ne reste jamais orpheline.
-    const bureau = await this.prisma.bureau.findUniqueOrThrow({
-      where: { id: projet.bureauId! },
-      select: { organisation: { select: { proprietaireId: true } } },
-    });
-    const proprietaireId = bureau.organisation.proprietaireId;
-
+    // Une tâche de bureau créée sans assignation explicite s'assigne à son créateur —
+    // modifiable ensuite depuis l'édition de la tâche.
     const tache = await this.prisma.tache.create({
       data: {
         projetId,
@@ -186,20 +180,11 @@ export class OrganizerService {
         priorite: dto.priorite,
         dateCible: todayDate(),
         conversationId: dto.conversationId,
-        assigneAId: proprietaireId,
+        assigneAId: user.userId,
         assigneParId: user.userId,
       },
       include: TACHE_INCLUDE,
     });
-
-    if (proprietaireId !== user.userId) {
-      await this.notifications.create(
-        proprietaireId,
-        NotificationType.TACHE_ASSIGNEE,
-        `On vous a assigné la tâche « ${tache.titre} »`,
-        `/offices/${projet.bureauId}/tasks`,
-      );
-    }
 
     return tache;
   }
