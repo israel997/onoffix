@@ -503,14 +503,13 @@ export class TachesService {
     }
     return this.prisma.tache.findMany({
       where: {
-        dateEcheance: { not: null },
         OR: [
           { projet: { bureau: { organisationId: user.organisationId } } },
           { projet: { proprietaire: { organisationId: user.organisationId } } },
         ],
         AND: [{ OR: [{ conversationId: null }, { conversation: { estArchive: false } }] }],
       },
-      orderBy: { dateEcheance: 'asc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         ...TACHE_INCLUDE,
         projet: {
