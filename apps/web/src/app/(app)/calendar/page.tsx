@@ -5,6 +5,7 @@ import { ListSkeleton } from '@/components/ui/skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { TaskCalendarModal } from '@/components/calendar/task-calendar-modal';
 import { AlarmIcon } from '@/components/icons/office-icons';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ export default function CalendarPage() {
   });
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
   const [modalState, setModalState] = useState<{ task?: MyTache } | null>(null);
+  const [detailTask, setDetailTask] = useState<MyTache | null>(null);
 
   async function load() {
     const [t, organizer] = await Promise.all([
@@ -114,19 +116,23 @@ export default function CalendarPage() {
     return map;
   }, [tasks]);
 
-  const upcoming = useMemo(() => {
+  // "Upcoming" = le prochain jour (strictement après aujourd'hui) qui a au moins une
+  // tâche, avec toutes ses entrées — pas un mélange des 5 prochaines échéances toutes
+  // dates confondues, et surtout pas les tâches du jour même (déjà dans le panneau du jour).
+  const nextUpcomingDay = useMemo(() => {
     const todayKey = dateKey(new Date());
-    const entries: { task: MyTache; date: string; kind: 'assigned' | 'due' }[] = [];
-    for (const t of tasks ?? []) {
-      if (t.dateCible && dateKeyFromIso(t.dateCible) >= todayKey) {
-        entries.push({ task: t, date: t.dateCible, kind: 'assigned' });
-      }
-      if (t.dateEcheance && dateKeyFromIso(t.dateEcheance) >= todayKey) {
-        entries.push({ task: t, date: t.dateEcheance, kind: 'due' });
-      }
-    }
-    return entries.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
-  }, [tasks]);
+    const futureKeys = Array.from(tasksByDay.keys())
+      .filter((k) => k > todayKey)
+      .sort();
+    if (futureKeys.length === 0) return null;
+    const key = futureKeys[0];
+    const day = tasksByDay.get(key)!;
+    const entries: { task: MyTache; date: string; kind: 'assigned' | 'due' }[] = [
+      ...day.assigned.map((t) => ({ task: t, date: t.dateCible!, kind: 'assigned' as const })),
+      ...day.due.map((t) => ({ task: t, date: t.dateEcheance!, kind: 'due' as const })),
+    ];
+    return { key, entries };
+  }, [tasksByDay]);
 
   function jumpToDate(key: string) {
     const [y, m] = key.split('-').map(Number);
@@ -264,12 +270,16 @@ export default function CalendarPage() {
               {selectedAssigned.length === 0 && selectedDue.length === 0 ? (
                 <CardDescription>Nothing scheduled this day.</CardDescription>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex max-h-96 flex-col gap-3 overflow-y-auto pr-1">
                   {selectedAssigned.length > 0 && (
                     <div className="flex flex-col gap-2">
                       <p className="text-xs font-semibold text-green-600">Assigned</p>
                       {selectedAssigned.map((t) => (
-                        <div key={t.id} className="rounded-lg border border-border p-2.5 text-sm">
+                        <button
+                          key={t.id}
+                          onClick={() => setDetailTask(t)}
+                          className="rounded-lg border border-border p-2.5 text-left text-sm hover:bg-surface-muted"
+                        >
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-medium text-foreground">{t.titre}</p>
@@ -279,7 +289,7 @@ export default function CalendarPage() {
                             </div>
                             <Badge tone={PRIORITE_BADGE_TONE[t.priorite]}>{t.priorite}</Badge>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -287,7 +297,16 @@ export default function CalendarPage() {
                     <div className="flex flex-col gap-2">
                       <p className="text-xs font-semibold text-status-review">Due</p>
                       {selectedDue.map((t) => (
-                        <div key={t.id} className="rounded-lg border border-border p-2.5 text-sm">
+                        <div
+                          key={t.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setDetailTask(t)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') setDetailTask(t);
+                          }}
+                          className="cursor-pointer rounded-lg border border-border p-2.5 text-sm hover:bg-surface-muted"
+                        >
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-medium text-foreground">{t.titre}</p>
@@ -301,14 +320,20 @@ export default function CalendarPage() {
                           </div>
                           <div className="mt-2 flex gap-2">
                             <button
-                              onClick={() => setModalState({ task: t })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalState({ task: t });
+                              }}
                               aria-label="Edit"
                               className="rounded px-1 text-xs text-muted-foreground hover:text-foreground"
                             >
                               ✎
                             </button>
                             <button
-                              onClick={() => handleDelete(t)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(t);
+                              }}
                               aria-label="Delete"
                               className="rounded px-1 text-xs text-muted-foreground hover:text-status-review"
                             >
@@ -325,18 +350,28 @@ export default function CalendarPage() {
           </div>
 
           <Card>
-            <CardTitle className="flex items-center gap-2">
-              <AlarmIcon className="h-5 w-5 text-brand-blue" />
-              Upcoming
-            </CardTitle>
-            {upcoming.length === 0 ? (
-              <CardDescription className="mt-2">Nothing coming up.</CardDescription>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <AlarmIcon className="h-5 w-5 text-brand-blue" />
+                Upcoming
+              </CardTitle>
+              {nextUpcomingDay && (
+                <button
+                  onClick={() => jumpToDate(nextUpcomingDay.key)}
+                  className="text-xs font-medium text-brand-blue hover:underline"
+                >
+                  {nextUpcomingDay.key}
+                </button>
+              )}
+            </div>
+            {!nextUpcomingDay ? (
+              <CardDescription className="mt-2">Nothing scheduled for the coming days.</CardDescription>
             ) : (
-              <div className="mt-3 flex flex-col divide-y divide-border">
-                {upcoming.map(({ task: t, date, kind }) => (
+              <div className="mt-3 flex max-h-80 flex-col divide-y divide-border overflow-y-auto">
+                {nextUpcomingDay.entries.map(({ task: t, date, kind }) => (
                   <button
                     key={`${kind}-${t.id}`}
-                    onClick={() => jumpToDate(dateKeyFromIso(date))}
+                    onClick={() => setDetailTask(t)}
                     className="flex items-center justify-between gap-2 py-2.5 text-left text-sm hover:bg-surface-muted"
                   >
                     <div className="flex items-center gap-2">
@@ -347,10 +382,7 @@ export default function CalendarPage() {
                         {t.projet.bureau?.nom ?? 'Personal'}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {dateKeyFromIso(date)}
-                      {kind === 'due' ? ` ${timeFromIso(date)}` : ''}
-                    </span>
+                    {kind === 'due' && <span className="text-xs text-muted-foreground">{timeFromIso(date)}</span>}
                   </button>
                 ))}
               </div>
@@ -369,6 +401,16 @@ export default function CalendarPage() {
             setModalState(null);
             load();
           }}
+        />
+      )}
+
+      {detailTask && user && (
+        <TaskDetailModal
+          tache={detailTask}
+          isManager={isAdmin}
+          currentUserId={user.id}
+          onClose={() => setDetailTask(null)}
+          onChange={load}
         />
       )}
     </div>
