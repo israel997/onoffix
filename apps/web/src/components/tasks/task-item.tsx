@@ -195,7 +195,7 @@ export function TaskItem({
             <select
               value={priorite}
               onChange={(e) => setPriorite(e.target.value as PrioriteTache)}
-              className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors hover:border-brand-blue/50 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
             >
               {PRIORITES.map((p) => (
                 <option key={p} value={p}>
@@ -233,7 +233,7 @@ export function TaskItem({
               <select
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors hover:border-brand-blue/50 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
               >
                 <option value="" disabled>
                   Unassigned
