@@ -794,13 +794,13 @@ export class TachesService {
 
   async creerBlocage(tacheId: string, user: AuthenticatedUser, dto: CreateBlocageDto) {
     const tache = await this.loadWithBureau(tacheId, user);
-    // La personne assignée doit pouvoir signaler elle-même un blocage sur sa propre
-    // tâche — pas seulement un manager, sinon elle n'a aucun moyen de le faire.
-    if (tache.assigneAId !== user.userId) {
-      await this.assertManager(tache.projet.bureauId, user);
-    } else {
-      await this.assertBureauMember(tache.projet.bureauId, user);
+    // Signaler un blocage déclare "je suis bloqué·e" — réservé aux personnes qui
+    // travaillent réellement sur la tâche (principal ou co-assigné), pas à un manager
+    // qui n'y est pour rien.
+    if (!(await this.estAssigne(tacheId, tache.assigneAId, user.userId))) {
+      throw new ForbiddenException('Seul un assigné de la tâche peut signaler un blocage');
     }
+    await this.assertBureauMember(tache.projet.bureauId, user);
 
     const [blocage] = await this.prisma.$transaction([
       this.prisma.tacheBlocage.create({

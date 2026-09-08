@@ -384,8 +384,11 @@ export function TaskItem({
   const checkboxInteractive = isPersonal ? isAssignee && !isChecked : canCheckDone;
   const expanded = isPersonal || open;
   const activeSession = tache.sessions?.[0] ?? null;
-  // Report a problem n'a de sens qu'une fois le travail réellement commencé.
-  const canReport = (isAssignee || isManager) && tache.statut === 'EN_COURS';
+  // Report a problem déclare "je suis bloqué·e" — n'a de sens que pour quelqu'un qui
+  // travaille réellement sur la tâche (principal ou co-assigné), pas pour un manager
+  // qui n'y est pour rien. Le statut doit aussi être en cours.
+  const isAnyAssignee = isAssignee || tache.coAssignes.some((c) => c.user.id === currentUserId);
+  const canReport = isAnyAssignee && tache.statut === 'EN_COURS';
 
   return (
     <div className={`rounded-lg border p-2.5 ${open ? 'border-indigo-600' : 'border-border'}`}>
