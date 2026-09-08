@@ -821,8 +821,8 @@ export function cancelTacheAlerte(tacheId: string) {
   return authFetch<void>(`/taches/${tacheId}/alerte`, { method: 'DELETE' });
 }
 
-export function assignerTache(tacheId: string, userId: string) {
-  return authFetch<Tache>(`/taches/${tacheId}/assigner`, { method: 'PATCH', body: { userId } });
+export function assignerTache(tacheId: string, userId: string, replace = false) {
+  return authFetch<Tache>(`/taches/${tacheId}/assigner`, { method: 'PATCH', body: { userId, replace } });
 }
 
 export function updateTache(

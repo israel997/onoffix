@@ -3,6 +3,7 @@ import { NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { AiService } from '../ai/ai.service';
 import { ChatService } from '../chat/chat.service';
+import { todayDate } from '../common/date.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConvertPlanDto } from './dto/convert-plan.dto';
@@ -158,6 +159,7 @@ export class OrganizerService {
           description: dto.description,
           priorite: dto.priorite,
           dateEcheance: dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
+          dateCible: todayDate(),
           conversationId: dto.conversationId,
           assigneAId: projet.proprietaireId,
           assigneParId: projet.proprietaireId,
@@ -182,6 +184,7 @@ export class OrganizerService {
         titre: dto.titre,
         description: dto.description,
         priorite: dto.priorite,
+        dateCible: todayDate(),
         conversationId: dto.conversationId,
         assigneAId: proprietaireId,
         assigneParId: user.userId,

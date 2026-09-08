@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { RoleGlobal } from '@prisma/client';
 import { AiService } from '../ai/ai.service';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { todayDate } from '../common/date.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjetDto } from './dto/create-projet.dto';
 import { CreateProjetTacheDto } from './dto/create-projet-tache.dto';
@@ -112,6 +113,7 @@ export class ProjetsService {
         assigneParId: dto.assigneAId ? user.userId : undefined,
         priorite: dto.priorite,
         dateEcheance: dto.dateEcheance ? new Date(dto.dateEcheance) : undefined,
+        dateCible: todayDate(),
         dureeEstimeeMinutes: dto.dureeEstimeeMinutes,
       },
       include: TACHE_INCLUDE,

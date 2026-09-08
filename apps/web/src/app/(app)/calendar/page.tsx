@@ -24,13 +24,6 @@ import { useToast } from '@/lib/toast-context';
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTH_LABEL = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' });
 
-const PRIORITE_DOT: Record<PrioriteTache, string> = {
-  BASSE: 'bg-status-todo',
-  NORMALE: 'bg-status-todo',
-  HAUTE: 'bg-status-declared',
-  URGENTE: 'bg-status-review',
-};
-
 const PRIORITE_BADGE_TONE: Record<PrioriteTache, 'neutral' | 'declared' | 'review'> = {
   BASSE: 'neutral',
   NORMALE: 'neutral',
@@ -105,26 +98,34 @@ export default function CalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope]);
 
+  // Un jour peut avoir des tâches qui lui sont attribuées (dateCible) et/ou des tâches
+  // dont l'échéance tombe ce jour-là (dateEcheance) — les deux sont affichées, distinguées
+  // par une pastille verte (attribuée) / rouge (échéance).
   const tasksByDay = useMemo(() => {
-    const map = new Map<string, MyTache[]>();
-    for (const t of tasks ?? []) {
-      if (!t.dateEcheance) continue;
-      const key = dateKeyFromIso(t.dateEcheance);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(t);
+    const map = new Map<string, { assigned: MyTache[]; due: MyTache[] }>();
+    function bucket(key: string) {
+      if (!map.has(key)) map.set(key, { assigned: [], due: [] });
+      return map.get(key)!;
     }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.dateEcheance!.localeCompare(b.dateEcheance!));
+    for (const t of tasks ?? []) {
+      if (t.dateCible) bucket(dateKeyFromIso(t.dateCible)).assigned.push(t);
+      if (t.dateEcheance) bucket(dateKeyFromIso(t.dateEcheance)).due.push(t);
     }
     return map;
   }, [tasks]);
 
   const upcoming = useMemo(() => {
     const todayKey = dateKey(new Date());
-    return (tasks ?? [])
-      .filter((t) => t.dateEcheance && dateKeyFromIso(t.dateEcheance) >= todayKey)
-      .sort((a, b) => a.dateEcheance!.localeCompare(b.dateEcheance!))
-      .slice(0, 5);
+    const entries: { task: MyTache; date: string; kind: 'assigned' | 'due' }[] = [];
+    for (const t of tasks ?? []) {
+      if (t.dateCible && dateKeyFromIso(t.dateCible) >= todayKey) {
+        entries.push({ task: t, date: t.dateCible, kind: 'assigned' });
+      }
+      if (t.dateEcheance && dateKeyFromIso(t.dateEcheance) >= todayKey) {
+        entries.push({ task: t, date: t.dateEcheance, kind: 'due' });
+      }
+    }
+    return entries.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
   }, [tasks]);
 
   function jumpToDate(key: string) {
@@ -152,7 +153,9 @@ export default function CalendarPage() {
 
   const weeks = buildWeeks(monthStart);
   const todayKey = dateKey(new Date());
-  const selectedTasks = tasksByDay.get(selectedDate) ?? [];
+  const selectedDay = tasksByDay.get(selectedDate);
+  const selectedAssigned = selectedDay?.assigned ?? [];
+  const selectedDue = selectedDay?.due ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -160,7 +163,10 @@ export default function CalendarPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your tasks with a due date, at a glance.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Your tasks by assigned date (<span className="text-green-600">green</span>) and due date (
+            <span className="text-status-review">red</span>), at a glance.
+          </p>
         </div>
         {isAdmin && (
           <select
@@ -214,8 +220,9 @@ export default function CalendarPage() {
                 {weeks.flat().map((day) => {
                   const key = dateKey(day);
                   const inMonth = day.getMonth() === monthStart.getMonth();
-                  const dayTasks = tasksByDay.get(key) ?? [];
-                  const priorities = Array.from(new Set(dayTasks.map((t) => t.priorite)));
+                  const dayData = tasksByDay.get(key);
+                  const hasAssigned = !!dayData?.assigned.length;
+                  const hasDue = !!dayData?.due.length;
                   const isToday = key === todayKey;
                   const isSelected = key === selectedDate;
 
@@ -234,15 +241,11 @@ export default function CalendarPage() {
                       <span className={`text-xs font-semibold ${isToday ? 'text-brand-blue' : 'text-foreground'}`}>
                         {day.getDate()}
                       </span>
-                      {dayTasks.length > 0 && (
-                        <>
-                          <div className="flex gap-0.5">
-                            {priorities.map((p) => (
-                              <span key={p} className={`h-1.5 w-1.5 rounded-full ${PRIORITE_DOT[p]}`} />
-                            ))}
-                          </div>
-                          <span className="text-[10px] text-muted-foreground">{dayTasks.length} evt</span>
-                        </>
+                      {(hasAssigned || hasDue) && (
+                        <div className="flex gap-0.5">
+                          {hasAssigned && <span className="h-1.5 w-1.5 rounded-full bg-green-500" />}
+                          {hasDue && <span className="h-1.5 w-1.5 rounded-full bg-status-review" />}
+                        </div>
                       )}
                     </button>
                   );
@@ -258,41 +261,64 @@ export default function CalendarPage() {
                 </Button>
               </div>
 
-              {selectedTasks.length === 0 ? (
+              {selectedAssigned.length === 0 && selectedDue.length === 0 ? (
                 <CardDescription>Nothing scheduled this day.</CardDescription>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {selectedTasks.map((t) => (
-                    <div key={t.id} className="rounded-lg border border-border p-2.5 text-sm">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium text-foreground">{t.titre}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {timeFromIso(t.dateEcheance!)} · {t.assigneA?.nom ?? 'Unassigned'} ·{' '}
-                            {t.projet.bureau?.nom ?? 'Personal'}
-                          </p>
-                          {t.description && <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>}
+                <div className="flex flex-col gap-3">
+                  {selectedAssigned.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-semibold text-green-600">Assigned</p>
+                      {selectedAssigned.map((t) => (
+                        <div key={t.id} className="rounded-lg border border-border p-2.5 text-sm">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-medium text-foreground">{t.titre}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {t.assigneA?.nom ?? 'Unassigned'} · {t.projet.bureau?.nom ?? 'Personal'}
+                              </p>
+                            </div>
+                            <Badge tone={PRIORITE_BADGE_TONE[t.priorite]}>{t.priorite}</Badge>
+                          </div>
                         </div>
-                        <Badge tone={PRIORITE_BADGE_TONE[t.priorite]}>{t.priorite}</Badge>
-                      </div>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          onClick={() => setModalState({ task: t })}
-                          aria-label="Edit"
-                          className="rounded px-1 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          onClick={() => handleDelete(t)}
-                          aria-label="Delete"
-                          className="rounded px-1 text-xs text-muted-foreground hover:text-status-review"
-                        >
-                          🗑
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  {selectedDue.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-semibold text-status-review">Due</p>
+                      {selectedDue.map((t) => (
+                        <div key={t.id} className="rounded-lg border border-border p-2.5 text-sm">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-medium text-foreground">{t.titre}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {timeFromIso(t.dateEcheance!)} · {t.assigneA?.nom ?? 'Unassigned'} ·{' '}
+                                {t.projet.bureau?.nom ?? 'Personal'}
+                              </p>
+                              {t.description && <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>}
+                            </div>
+                            <Badge tone={PRIORITE_BADGE_TONE[t.priorite]}>{t.priorite}</Badge>
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              onClick={() => setModalState({ task: t })}
+                              aria-label="Edit"
+                              className="rounded px-1 text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              onClick={() => handleDelete(t)}
+                              aria-label="Delete"
+                              className="rounded px-1 text-xs text-muted-foreground hover:text-status-review"
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
@@ -307,21 +333,23 @@ export default function CalendarPage() {
               <CardDescription className="mt-2">Nothing coming up.</CardDescription>
             ) : (
               <div className="mt-3 flex flex-col divide-y divide-border">
-                {upcoming.map((t) => (
+                {upcoming.map(({ task: t, date, kind }) => (
                   <button
-                    key={t.id}
-                    onClick={() => jumpToDate(dateKeyFromIso(t.dateEcheance!))}
+                    key={`${kind}-${t.id}`}
+                    onClick={() => jumpToDate(dateKeyFromIso(date))}
                     className="flex items-center justify-between gap-2 py-2.5 text-left text-sm hover:bg-surface-muted"
                   >
                     <div className="flex items-center gap-2">
-                      <span className={`h-1.5 w-1.5 rounded-full ${PRIORITE_DOT[t.priorite]}`} />
+                      <span className={`h-1.5 w-1.5 rounded-full ${kind === 'assigned' ? 'bg-green-500' : 'bg-status-review'}`} />
                       <span className="font-medium text-foreground">{t.titre}</span>
                       <span className="text-xs text-muted-foreground">
-                        {t.assigneA?.nom ?? 'Unassigned'} · {t.projet.bureau?.nom ?? 'Personal'}
+                        {kind === 'assigned' ? 'Assigned' : 'Due'} · {t.assigneA?.nom ?? 'Unassigned'} ·{' '}
+                        {t.projet.bureau?.nom ?? 'Personal'}
                       </span>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {dateKeyFromIso(t.dateEcheance!)} {timeFromIso(t.dateEcheance!)}
+                      {dateKeyFromIso(date)}
+                      {kind === 'due' ? ` ${timeFromIso(date)}` : ''}
                     </span>
                   </button>
                 ))}

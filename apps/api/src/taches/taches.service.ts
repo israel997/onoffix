@@ -13,6 +13,7 @@ import {
   StatutTache,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { todayDate } from '../common/date.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RituelsScheduler } from '../queue/rituels.scheduler';
@@ -92,7 +93,12 @@ export class TachesService {
     return bureauId ? `/offices/${bureauId}/tasks` : '/my-space?tab=tasks';
   }
 
-  async assigner(tacheId: string, user: AuthenticatedUser, assigneeUserId: string) {
+  async assigner(
+    tacheId: string,
+    user: AuthenticatedUser,
+    assigneeUserId: string,
+    replace = false,
+  ) {
     const tache = await this.loadWithBureau(tacheId, user);
 
     if (tache.projet.bureauId === null) {
@@ -127,8 +133,11 @@ export class TachesService {
     }
 
     // Plusieurs personnes peuvent être assignées à la même tâche : la première prise
-    // "assigneA" pilote statut/chrono comme avant, les suivantes s'ajoutent en co-assignés.
-    if (!tache.assigneAId || tache.assigneAId === assigneeUserId) {
+    // "assigneA" pilote statut/chrono comme avant, les suivantes s'ajoutent en co-assignés
+    // — sauf si `replace` est demandé explicitement (select "Assigned to"), qui remplace
+    // toujours le principal, quel qu'il soit.
+    if (replace || !tache.assigneAId || tache.assigneAId === assigneeUserId) {
+      await this.prisma.tacheAssignee.deleteMany({ where: { tacheId, userId: assigneeUserId } });
       await this.prisma.tache.update({
         where: { id: tacheId },
         data: { assigneAId: assigneeUserId, assigneParId: user.userId },
@@ -436,7 +445,11 @@ export class TachesService {
           })
         : await this.prisma.tache.update({
             where: { id: tacheId },
-            data: { statut: StatutTache.A_REVOIR, commentaireDeclaration: null },
+            data: {
+              statut: StatutTache.A_REVOIR,
+              commentaireDeclaration: null,
+              dateRenvoiRework: new Date(),
+            },
             include: TACHE_INCLUDE,
           });
 
@@ -727,6 +740,7 @@ export class TachesService {
         description: tache.description,
         priorite: tache.priorite,
         dateEcheance: tache.dateEcheance,
+        dateCible: todayDate(),
         dureeEstimeeMinutes: tache.dureeEstimeeMinutes,
       },
       include: TACHE_INCLUDE,

@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { NotificationType } from '@prisma/client';
 import { AiService, type SuggestedTask } from '../ai/ai.service';
+import { todayDate } from '../common/date.util';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ORGANIZER_QUEUE } from './organizer.constants';
@@ -63,6 +64,7 @@ export class OrganizerProcessor extends WorkerHost {
           conversationId: message.conversationId,
           titre: s.titre,
           description: s.description,
+          dateCible: todayDate(),
           assigneAId: assigneeId,
           assigneParId: assigneeId,
         })),

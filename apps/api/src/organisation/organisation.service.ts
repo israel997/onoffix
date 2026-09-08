@@ -121,7 +121,7 @@ export class OrganisationService {
         where: {
           ...baseWhere,
           statut: 'A_REVOIR',
-          ...(range ? { createdAt: { gte: range.from, lte: range.to } } : {}),
+          dateRenvoiRework: range ? { gte: range.from, lte: range.to } : { not: null },
         },
       }),
       this.prisma.tache.findMany({

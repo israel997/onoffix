@@ -67,6 +67,13 @@ function formatDuration(ms: number) {
 
 const PRIORITES: PrioriteTache[] = ['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'];
 
+function toDatetimeLocal(iso: string | null) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function LiveTimer({ since }: { since: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -104,6 +111,7 @@ export function TaskItem({
   const [titre, setTitre] = useState(tache.titre);
   const [description, setDescription] = useState(tache.description ?? '');
   const [dateCible, setDateCible] = useState(tache.dateCible ?? '');
+  const [dateEcheance, setDateEcheance] = useState(toDatetimeLocal(tache.dateEcheance));
   const [priorite, setPriorite] = useState<PrioriteTache>(tache.priorite);
   const [dureeEstimeeHeures, setDureeEstimeeHeures] = useState(
     tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
@@ -144,12 +152,13 @@ export function TaskItem({
         titre,
         description: description || undefined,
         dateCible: dateCible || null,
+        dateEcheance: dateEcheance ? new Date(dateEcheance).toISOString() : null,
         priorite,
         dureeEstimeeMinutes:
           dureeEstimeeHeures.trim() && !Number.isNaN(heures) ? Math.round(heures * 60) : null,
       });
       if (assigneeId && assigneeId !== tache.assigneAId) {
-        await assignerTache(tache.id, assigneeId);
+        await assignerTache(tache.id, assigneeId, true);
       }
       const minutes = Number(alerteMinutes);
       if (alerteMinutes.trim() && minutes > 0) {
@@ -198,8 +207,16 @@ export function TaskItem({
             />
           </Label>
           <Label>
-            Target date (daily ritual)
+            Assigned date
             <Input type="date" value={dateCible} onChange={(e) => setDateCible(e.target.value)} />
+          </Label>
+          <Label>
+            Due date
+            <Input
+              type="datetime-local"
+              value={dateEcheance}
+              onChange={(e) => setDateEcheance(e.target.value)}
+            />
           </Label>
           {!isPersonal && (
             <Label>
@@ -294,6 +311,7 @@ export function TaskItem({
                 setTitre(tache.titre);
                 setDescription(tache.description ?? '');
                 setDateCible(tache.dateCible ?? '');
+                setDateEcheance(toDatetimeLocal(tache.dateEcheance));
                 setPriorite(tache.priorite);
                 setDureeEstimeeHeures(
                   tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',

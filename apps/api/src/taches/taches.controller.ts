@@ -64,7 +64,7 @@ export class TachesController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: AssignTacheDto,
   ) {
-    return this.tachesService.assigner(tacheId, user, dto.userId);
+    return this.tachesService.assigner(tacheId, user, dto.userId, dto.replace);
   }
 
   @Delete('assignes/:userId')

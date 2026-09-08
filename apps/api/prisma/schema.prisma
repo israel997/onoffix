@@ -368,6 +368,9 @@ model Tache {
   dureeEstimeeMinutes Int?          @map("duree_estimee_minutes")
   // Rappel indépendant du statut : notif push à cette heure-là (cf. queue "alerte-tache").
   alerteA             DateTime?     @map("alerte_a")
+  // Dernier renvoi en rework (decision "litige") — source de vérité pour la stat "Needs rework",
+  // distincte de createdAt.
+  dateRenvoiRework    DateTime?     @map("date_renvoi_rework")
 
   createdAt DateTime @default(now()) @map("created_at")
 
