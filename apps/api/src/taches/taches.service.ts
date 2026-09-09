@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -32,6 +33,8 @@ const TACHE_INCLUDE = {
 
 @Injectable()
 export class TachesService {
+  private readonly logger = new Logger(TachesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
@@ -762,7 +765,13 @@ export class TachesService {
       data: { alerteA },
       include: TACHE_INCLUDE,
     });
-    await this.rituelsScheduler.scheduleTacheAlerte(tacheId, minutes * 60_000);
+    // Un souci Redis/BullMQ ne doit pas faire échouer l'action pour l'utilisateur —
+    // l'alerte reste enregistrée même si sa programmation en file a un accroc.
+    try {
+      await this.rituelsScheduler.scheduleTacheAlerte(tacheId, minutes * 60_000);
+    } catch (error) {
+      this.logger.error(`Échec de programmation de l'alerte pour la tâche ${tacheId}`, error);
+    }
     return updated;
   }
 
@@ -773,7 +782,11 @@ export class TachesService {
       throw new ForbiddenException("Seuls l'assigné ou un manager peuvent annuler l'alerte");
     }
     await this.prisma.tache.update({ where: { id: tacheId }, data: { alerteA: null } });
-    await this.rituelsScheduler.cancelTacheAlerte(tacheId);
+    try {
+      await this.rituelsScheduler.cancelTacheAlerte(tacheId);
+    } catch (error) {
+      this.logger.error(`Échec d'annulation de l'alerte pour la tâche ${tacheId}`, error);
+    }
   }
 
   // ---------- Blocages ----------

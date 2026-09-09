@@ -181,7 +181,7 @@ export function TaskItem({
   if (editing) {
     return (
       <div className="rounded-lg border border-border p-3">
-        <div className="flex flex-col gap-2">
+        <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1">
           <Label>
             Title
             <Input value={titre} onChange={(e) => setTitre(e.target.value)} />
@@ -308,31 +308,31 @@ export function TaskItem({
             )}
           </Label>
           {error && <p className="text-xs text-status-review">{error}</p>}
-          <div className="flex gap-2">
-            <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
-              Save
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => {
-                setTitre(tache.titre);
-                setDescription(tache.description ?? '');
-                setDateCible(toDateOnly(tache.dateCible));
-                setDateEcheance(toDatetimeLocal(tache.dateEcheance));
-                setPriorite(tache.priorite);
-                setDureeEstimeeHeures(
-                  tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
-                );
-                setAssigneeId(tache.assigneAId ?? '');
-                setAlerteMinutes('');
-                setEditing(false);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
+        </div>
+        <div className="mt-3 flex gap-2 border-t border-border pt-3">
+          <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
+            Save
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => {
+              setTitre(tache.titre);
+              setDescription(tache.description ?? '');
+              setDateCible(toDateOnly(tache.dateCible));
+              setDateEcheance(toDatetimeLocal(tache.dateEcheance));
+              setPriorite(tache.priorite);
+              setDureeEstimeeHeures(
+                tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
+              );
+              setAssigneeId(tache.assigneAId ?? '');
+              setAlerteMinutes('');
+              setEditing(false);
+            }}
+          >
+            Cancel
+          </Button>
         </div>
       </div>
     );

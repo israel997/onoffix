@@ -51,10 +51,11 @@ function breakdown(taches: Tache[]) {
   return { termine, enCours, nonCommence };
 }
 
-type StatusFilter = 'ALL' | 'IN_PROGRESS' | 'UNASSIGNED' | 'DECLARE' | 'VALIDE' | 'BLOCKED';
+type StatusFilter = 'ALL' | 'TODO' | 'IN_PROGRESS' | 'UNASSIGNED' | 'DECLARE' | 'VALIDE' | 'BLOCKED';
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'ALL', label: 'All' },
+  { value: 'TODO', label: 'To do' },
   { value: 'IN_PROGRESS', label: 'In progress' },
   { value: 'UNASSIGNED', label: 'Unassigned' },
   { value: 'DECLARE', label: 'Waiting for validation' },
@@ -66,6 +67,8 @@ const IN_PROGRESS_STATUSES: StatutTache[] = ['ACCEPTEE', 'EN_COURS', 'A_REVOIR']
 
 function applyFilter(taches: Tache[], filter: StatusFilter) {
   switch (filter) {
+    case 'TODO':
+      return taches.filter((t) => t.statut === 'A_FAIRE');
     case 'IN_PROGRESS':
       return taches.filter((t) => IN_PROGRESS_STATUSES.includes(t.statut));
     case 'UNASSIGNED':
