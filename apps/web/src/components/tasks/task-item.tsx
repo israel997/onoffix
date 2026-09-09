@@ -178,165 +178,19 @@ export function TaskItem({
     setEditing(false);
   }
 
-  if (editing) {
-    return (
-      <div className="rounded-lg border border-border p-3">
-        <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1">
-          <Label>
-            Title
-            <Input value={titre} onChange={(e) => setTitre(e.target.value)} />
-          </Label>
-          <Label>
-            Description
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-          </Label>
-          <Label>
-            Priority
-            <select
-              value={priorite}
-              onChange={(e) => setPriorite(e.target.value as PrioriteTache)}
-              className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors hover:border-brand-blue/50 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-            >
-              {PRIORITES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </Label>
-          <Label>
-            Estimated time (hours)
-            <Input
-              type="number"
-              min="0"
-              step="0.5"
-              value={dureeEstimeeHeures}
-              onChange={(e) => setDureeEstimeeHeures(e.target.value)}
-              placeholder="e.g. 2"
-            />
-          </Label>
-          <Label>
-            Assigned date
-            <Input type="date" value={dateCible} onChange={(e) => setDateCible(e.target.value)} />
-          </Label>
-          <Label>
-            Due date
-            <Input
-              type="datetime-local"
-              value={dateEcheance}
-              onChange={(e) => setDateEcheance(e.target.value)}
-            />
-          </Label>
-          {!isPersonal && (
-            <Label>
-              Assigned to
-              <select
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors hover:border-brand-blue/50 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-              >
-                <option value="" disabled>
-                  Unassigned
-                </option>
-                {assignableMembres.map((m) => (
-                  <option key={m.user.id} value={m.user.id}>
-                    {m.user.nom}
-                  </option>
-                ))}
-              </select>
-            </Label>
-          )}
-          {!isPersonal && (
-            <div className="flex flex-col gap-1.5">
-              <Label>Co-assigned</Label>
-              {tache.coAssignes.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {tache.coAssignes.map((c) => (
-                    <span
-                      key={c.user.id}
-                      className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-xs text-foreground"
-                    >
-                      {c.user.nom}
-                      <button
-                        type="button"
-                        onClick={() => run(() => retirerAssigneTache(tache.id, c.user.id), 'Co-assignee removed')}
-                        aria-label={`Remove ${c.user.nom}`}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <SearchableSelect
-                placeholder="Add co-assignee…"
-                disabled={busy}
-                options={assignableMembres
-                  .filter(
-                    (m) =>
-                      m.user.id !== tache.assigneAId &&
-                      !tache.coAssignes.some((c) => c.user.id === m.user.id),
-                  )
-                  .map((m) => ({ value: m.user.id, label: m.user.nom }))}
-                onSelect={(userId) => run(() => assignerTache(tache.id, userId), 'Co-assignee added')}
-              />
-            </div>
-          )}
-          <Label>
-            Alert (independent of status)
-            {tache.alerteA ? (
-              <div className="flex items-center justify-between rounded-lg border border-status-review px-3 py-2 text-sm">
-                <span className="text-muted-foreground">Alert armed</span>
-                <button
-                  type="button"
-                  onClick={() => run(() => cancelTacheAlerte(tache.id), 'Alert cancelled')}
-                  className="text-xs font-medium text-status-review hover:opacity-75"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <Input
-                type="number"
-                min="1"
-                value={alerteMinutes}
-                onChange={(e) => setAlerteMinutes(e.target.value)}
-                placeholder="Minutes, e.g. 20"
-                className="!border-status-review"
-              />
-            )}
-          </Label>
-          {error && <p className="text-xs text-status-review">{error}</p>}
-        </div>
-        <div className="mt-3 flex gap-2 border-t border-border pt-3">
-          <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
-            Save
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => {
-              setTitre(tache.titre);
-              setDescription(tache.description ?? '');
-              setDateCible(toDateOnly(tache.dateCible));
-              setDateEcheance(toDatetimeLocal(tache.dateEcheance));
-              setPriorite(tache.priorite);
-              setDureeEstimeeHeures(
-                tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '',
-              );
-              setAssigneeId(tache.assigneAId ?? '');
-              setAlerteMinutes('');
-              setEditing(false);
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
+  function resetEditFields() {
+    setTitre(tache.titre);
+    setDescription(tache.description ?? '');
+    setDateCible(toDateOnly(tache.dateCible));
+    setDateEcheance(toDatetimeLocal(tache.dateEcheance));
+    setPriorite(tache.priorite);
+    setDureeEstimeeHeures(tache.dureeEstimeeMinutes ? String(tache.dureeEstimeeMinutes / 60) : '');
+    setAssigneeId(tache.assigneAId ?? '');
+    setAlerteMinutes('');
   }
+
+  const selectClass =
+    'h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors hover:border-brand-blue/50 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20';
 
   // Tâche personnelle : pas de workflow d'équipe (accepter/démarrer/valider séparément),
   // juste "fait ou pas" — la case coche enchaîne toutes les étapes nécessaires d'un coup.
@@ -692,6 +546,167 @@ export function TaskItem({
             </div>
           )}
         </div>
+      )}
+
+      {editing && (
+        <Modal
+          onClose={() => {
+            resetEditFields();
+            setEditing(false);
+          }}
+        >
+          <h2 className="text-lg font-bold text-foreground">Edit task</h2>
+          <div className="mt-4 flex flex-col gap-3">
+            <Label>
+              Title
+              <Input value={titre} onChange={(e) => setTitre(e.target.value)} />
+            </Label>
+            <Label>
+              Description
+              <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Label>
+                Priority
+                <select
+                  value={priorite}
+                  onChange={(e) => setPriorite(e.target.value as PrioriteTache)}
+                  className={selectClass}
+                >
+                  {PRIORITES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+              <Label>
+                Estimated time (hours)
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={dureeEstimeeHeures}
+                  onChange={(e) => setDureeEstimeeHeures(e.target.value)}
+                  placeholder="e.g. 2"
+                />
+              </Label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Label>
+                Assigned date
+                <Input type="date" value={dateCible} onChange={(e) => setDateCible(e.target.value)} />
+              </Label>
+              <Label>
+                Due date
+                <Input
+                  type="datetime-local"
+                  value={dateEcheance}
+                  onChange={(e) => setDateEcheance(e.target.value)}
+                />
+              </Label>
+            </div>
+            {!isPersonal && (
+              <Label>
+                Assigned to
+                <select
+                  value={assigneeId}
+                  onChange={(e) => setAssigneeId(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="" disabled>
+                    Unassigned
+                  </option>
+                  {assignableMembres.map((m) => (
+                    <option key={m.user.id} value={m.user.id}>
+                      {m.user.nom}
+                    </option>
+                  ))}
+                </select>
+              </Label>
+            )}
+            {!isPersonal && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Co-assigned</Label>
+                {tache.coAssignes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tache.coAssignes.map((c) => (
+                      <span
+                        key={c.user.id}
+                        className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-xs text-foreground"
+                      >
+                        {c.user.nom}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            run(() => retirerAssigneTache(tache.id, c.user.id), 'Co-assignee removed')
+                          }
+                          aria-label={`Remove ${c.user.nom}`}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <SearchableSelect
+                  placeholder="Add co-assignee…"
+                  disabled={busy}
+                  options={assignableMembres
+                    .filter(
+                      (m) =>
+                        m.user.id !== tache.assigneAId &&
+                        !tache.coAssignes.some((c) => c.user.id === m.user.id),
+                    )
+                    .map((m) => ({ value: m.user.id, label: m.user.nom }))}
+                  onSelect={(userId) => run(() => assignerTache(tache.id, userId), 'Co-assignee added')}
+                />
+              </div>
+            )}
+            <Label>
+              Alert (independent of status)
+              {tache.alerteA ? (
+                <div className="flex items-center justify-between rounded-lg border border-status-review px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Alert armed</span>
+                  <button
+                    type="button"
+                    onClick={() => run(() => cancelTacheAlerte(tache.id), 'Alert cancelled')}
+                    className="text-xs font-medium text-status-review hover:opacity-75"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <Input
+                  type="number"
+                  min="1"
+                  value={alerteMinutes}
+                  onChange={(e) => setAlerteMinutes(e.target.value)}
+                  placeholder="Minutes, e.g. 20"
+                  className="!border-status-review"
+                />
+              )}
+            </Label>
+            {error && <p className="text-xs text-status-review">{error}</p>}
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy} onClick={handleSaveEdit}>
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  resetEditFields();
+                  setEditing(false);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {showDetail && (
