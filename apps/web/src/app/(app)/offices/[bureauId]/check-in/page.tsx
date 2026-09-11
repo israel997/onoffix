@@ -79,12 +79,13 @@ function formatWhen(iso: string) {
 
 function PendingRow({ tache, onChange }: { tache: Tache; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [comment, setComment] = useState('');
   const toast = useToast();
 
   async function decide(decision: 'ok' | 'litige') {
     setBusy(true);
     try {
-      await validerTache(tache.id, decision);
+      await validerTache(tache.id, decision, comment.trim() || undefined);
       onChange();
       toast(decision === 'ok' ? 'Task approved' : 'Sent back for rework');
     } catch (err) {
@@ -116,6 +117,12 @@ function PendingRow({ tache, onChange }: { tache: Tache; onChange: () => void })
       <p className="text-xs italic text-muted-foreground">
         {tache.commentaireDeclaration ? `"${tache.commentaireDeclaration}"` : 'No comment'}
       </p>
+      <input
+        value={comment}
+        onChange={(e) => setComment(e.target.value.slice(0, 500))}
+        placeholder="Add a comment (optional)…"
+        className="mt-1 h-8 w-full rounded-lg border border-border bg-surface px-2 text-xs outline-none focus:border-brand-blue"
+      />
     </div>
   );
 }

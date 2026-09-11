@@ -391,10 +391,9 @@ export class BureauxService {
   }
 
   /**
-   * Classement de fiabilité de l'équipe sur une période : % de déclarations
-   * quotidiennes faites à temps, tâches validées en secondaire. Visible à toute
-   * l'équipe si classementFiabiliteVisible, sinon réservé aux managers/admin
-   * (vérifié par l'appelant, cf. controller).
+   * Classement de l'équipe sur une période : nombre de tâches validées, puis
+   * respect des échéances en secondaire. Visible à toute l'équipe si
+   * classementFiabiliteVisible, sinon réservé aux managers/admin (cf. controller).
    */
   async getClassementFiabilite(bureauId: string, from: Date, to: Date) {
     const membres = await this.prisma.userBureau.findMany({
@@ -404,14 +403,7 @@ export class BureauxService {
 
     const results = await Promise.all(
       membres.map(async ({ user }) => {
-        // "Complété" se compte sur dateValidation (quand le travail a réellement été
-        // fini), pas sur dateCible — sinon une tâche sans dateCible sur cette période
-        // disparaît du compteur alors qu'elle a bien été validée dans la fenêtre.
-        const [tachesCible, tachesValidees, declarations] = await Promise.all([
-          this.prisma.tache.findMany({
-            where: { assigneAId: user.id, projet: { bureauId }, dateCible: { gte: from, lte: to } },
-            select: { dateCible: true },
-          }),
+        const [tachesValidees, avecEcheance] = await Promise.all([
           this.prisma.tache.count({
             where: {
               assigneAId: user.id,
@@ -420,34 +412,32 @@ export class BureauxService {
               dateValidation: { gte: from, lte: to },
             },
           }),
-          this.prisma.declarationJournaliere.findMany({
-            where: { userId: user.id, date: { gte: from, lte: to } },
-            select: { date: true },
+          this.prisma.tache.findMany({
+            where: {
+              assigneAId: user.id,
+              projet: { bureauId },
+              dateEcheance: { gte: from, lte: to },
+            },
+            select: { dateEcheance: true, dateValidation: true },
           }),
         ]);
-        const joursAvecTache = new Set(
-          tachesCible
-            .filter((t) => t.dateCible)
-            .map((t) => t.dateCible!.toISOString().slice(0, 10)),
-        );
-        const joursDeclares = new Set(declarations.map((d) => d.date.toISOString().slice(0, 10)));
-        const joursDeclaresATemps = [...joursAvecTache].filter((d) => joursDeclares.has(d)).length;
+        const respectees = avecEcheance.filter(
+          (t) => t.dateValidation && t.dateEcheance && t.dateValidation <= t.dateEcheance,
+        ).length;
 
         return {
           user,
-          tauxDeclarationsATemps:
-            joursAvecTache.size === 0
-              ? null
-              : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
           tachesValidees,
+          respectDeadlines:
+            avecEcheance.length === 0 ? null : Math.round((respectees / avecEcheance.length) * 100),
         };
       }),
     );
 
     return results.sort(
       (a, b) =>
-        (b.tauxDeclarationsATemps ?? -1) - (a.tauxDeclarationsATemps ?? -1) ||
-        b.tachesValidees - a.tachesValidees,
+        b.tachesValidees - a.tachesValidees ||
+        (b.respectDeadlines ?? -1) - (a.respectDeadlines ?? -1),
     );
   }
 

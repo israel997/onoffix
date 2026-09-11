@@ -58,11 +58,6 @@ enum TypeBlocage {
   EXTERNE
 }
 
-enum StatutValidationDeclaration {
-  EN_ATTENTE
-  VALIDEE
-  LITIGE
-}
 
 model Organisation {
   id             String   @id @default(uuid())
@@ -261,7 +256,6 @@ model User {
   tachesAttribuees         Tache[]                  @relation("TachesAttribuees")
   tachesValidees           Tache[]                  @relation("TachesValidees")
   tachesCoAssignees        TacheAssignee[]          @relation("TachesCoAssignees")
-  declarationsJournalieres DeclarationJournaliere[]
   scoresFiabilite          ScoreFiabilite[]
   refreshTokens            RefreshToken[]
   notifications            Notification[]
@@ -358,6 +352,8 @@ model Tache {
   commentaireDeclaration String? @map("commentaire_declaration")
   dateValidation  DateTime?   @map("date_validation")
   valideParId     String?     @map("valide_par")
+  // Note optionnelle laissée par le validateur au moment de valider.
+  commentaireValidation String? @map("commentaire_validation")
   // Date cible du rituel quotidien (cf. 2.6) — définie par le manager, jamais par l'IA.
   dateCible       DateTime?   @map("date_cible") @db.Date
 
@@ -381,7 +377,6 @@ model Tache {
   assignePar        User?              @relation("TachesAttribuees", fields: [assigneParId], references: [id], onDelete: SetNull)
   valideur          User?              @relation("TachesValidees", fields: [valideParId], references: [id], onDelete: SetNull)
   sousTaches        SousTache[]
-  declarationTaches DeclarationTache[]
   blocages          TacheBlocage[]     @relation("TacheBlocages")
   bloqueTaches      TacheBlocage[]     @relation("TacheBloquantes")
   sessions          TacheSession[]
@@ -465,35 +460,6 @@ model SousTache {
 
   @@index([tacheId])
   @@map("sous_taches")
-}
-
-model DeclarationJournaliere {
-  id               String                      @id @default(uuid())
-  userId           String                      @map("user_id")
-  date             DateTime                    @db.Date
-  heureDeclaration DateTime?                   @map("heure_declaration")
-  statutValidation StatutValidationDeclaration @default(EN_ATTENTE) @map("statut_validation")
-
-  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  taches DeclarationTache[]
-
-  @@unique([userId, date])
-  @@index([userId])
-  @@map("declarations_journalieres")
-}
-
-model DeclarationTache {
-  declarationId  String  @map("declaration_id")
-  tacheId        String  @map("tache_id")
-  // Une tâche du jour ne compte comme faite que si le membre ET le manager l'ont cochée.
-  cocheParMembre Boolean @default(false) @map("coche_par_membre")
-  cocheParAdmin  Boolean @default(false) @map("coche_par_admin")
-
-  declaration DeclarationJournaliere @relation(fields: [declarationId], references: [id], onDelete: Cascade)
-  tache       Tache                  @relation(fields: [tacheId], references: [id], onDelete: Cascade)
-
-  @@id([declarationId, tacheId])
-  @@map("declarations_taches")
 }
 
 model ScoreFiabilite {

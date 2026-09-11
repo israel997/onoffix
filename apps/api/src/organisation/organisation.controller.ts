@@ -75,6 +75,40 @@ export class OrganisationController {
     return this.organisationService.getMembreStats(user.organisationId, userId, range);
   }
 
+  @Get('membres/:userId/evolution')
+  getMembreEvolution(
+    @Param('userId') userId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    if (userId !== user.userId && user.roleGlobal !== RoleGlobal.ADMIN) {
+      throw new ForbiddenException('Vous ne pouvez consulter que votre propre évolution');
+    }
+    return this.organisationService.getEvolution(
+      user.organisationId,
+      { userId },
+      new Date(from),
+      endOfDay(to),
+    );
+  }
+
+  @Roles(RoleGlobal.ADMIN)
+  @Get('bureaux/:bureauId/evolution')
+  getBureauEvolution(
+    @Param('bureauId') bureauId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.organisationService.getEvolution(
+      user.organisationId,
+      { bureauId },
+      new Date(from),
+      endOfDay(to),
+    );
+  }
+
   @Get('membres/:userId/journal')
   getMembreJournal(
     @Param('userId') userId: string,

@@ -95,6 +95,11 @@ export class TachesController {
     return this.tachesService.accepter(tacheId, user);
   }
 
+  @Post('retourner')
+  retourner(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.tachesService.retourner(tacheId, user);
+  }
+
   @Post('demarrer')
   demarrer(@Param('tacheId') tacheId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.tachesService.demarrer(tacheId, user);
@@ -130,7 +135,7 @@ export class TachesController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ValiderTacheDto,
   ) {
-    return this.tachesService.valider(tacheId, user, dto.decision);
+    return this.tachesService.valider(tacheId, user, dto.decision, dto.commentaire);
   }
 
   @Post('reouvrir')

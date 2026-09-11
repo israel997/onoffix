@@ -100,9 +100,7 @@ export class OrganisationService {
       tachesARevoir,
       avecEcheance,
       blocagesRencontres,
-      tachesAvecCible,
       sessions,
-      declarations,
     ] = await Promise.all([
       this.prisma.tache.count({
         where: {
@@ -137,13 +135,6 @@ export class OrganisationService {
           ...(range ? { dateDebut: { gte: range.from, lte: range.to } } : {}),
         },
       }),
-      this.prisma.tache.findMany({
-        where: {
-          ...baseWhere,
-          dateCible: range ? { gte: range.from, lte: range.to } : { not: null },
-        },
-        select: { dateCible: true },
-      }),
       this.prisma.tacheSession.findMany({
         where: {
           userId,
@@ -153,20 +144,10 @@ export class OrganisationService {
         },
         select: { debut: true, fin: true },
       }),
-      this.prisma.declarationJournaliere.findMany({
-        where: { userId, ...(range ? { date: { gte: range.from, lte: range.to } } : {}) },
-        select: { date: true },
-      }),
     ]);
 
     const respecteesDeadline = avecEcheance.filter(
       (t) => t.dateValidation && t.dateEcheance && t.dateValidation <= t.dateEcheance,
-    );
-
-    const joursAvecTache = new Set(
-      tachesAvecCible
-        .filter((t) => t.dateCible)
-        .map((t) => t.dateCible!.toISOString().slice(0, 10)),
     );
 
     const now = new Date();
@@ -182,18 +163,11 @@ export class OrganisationService {
           10,
       ) / 10;
 
-    const joursDeclares = new Set(declarations.map((d) => d.date.toISOString().slice(0, 10)));
-    const joursDeclaresATemps = [...joursAvecTache].filter((d) => joursDeclares.has(d)).length;
-
     return {
       tachesAssignees,
       tachesValidees,
       tachesARevoir,
       heuresTravaillees,
-      tauxDeclarationsATemps:
-        joursAvecTache.size === 0
-          ? null
-          : Math.round((joursDeclaresATemps / joursAvecTache.size) * 100),
       blocagesRencontres,
       respectDeadlines:
         avecEcheance.length === 0
@@ -235,6 +209,60 @@ export class OrganisationService {
       jours.push({ date: key, taches: parJour.get(key) ?? [] });
     }
     return jours.reverse();
+  }
+
+  /**
+   * Évolution jour par jour sur une période : tâches validées et heures travaillées.
+   * Cible soit une personne (`userId`), soit un bureau (`bureauId`) — exactement l'un des deux.
+   */
+  async getEvolution(
+    organisationId: string,
+    opts: { userId?: string; bureauId?: string },
+    from: Date,
+    to: Date,
+  ) {
+    const tacheWhere = opts.userId
+      ? { assigneAId: opts.userId, projet: { bureau: { organisationId } } }
+      : { projet: { bureauId: opts.bureauId } };
+
+    const [validees, sessions] = await Promise.all([
+      this.prisma.tache.findMany({
+        where: { ...tacheWhere, statut: 'VALIDE' as const, dateValidation: { gte: from, lte: to } },
+        select: { dateValidation: true },
+      }),
+      this.prisma.tacheSession.findMany({
+        where: {
+          ...(opts.userId
+            ? { userId: opts.userId }
+            : { tache: { projet: { bureauId: opts.bureauId } } }),
+          debut: { lte: to },
+          OR: [{ fin: { gte: from } }, { fin: null }],
+        },
+        select: { debut: true, fin: true },
+      }),
+    ]);
+
+    const now = new Date();
+    const jours: { date: string; tachesValidees: number; heures: number }[] = [];
+    for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+      const dayStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      const key = dayStart.toISOString().slice(0, 10);
+
+      const tachesValidees = validees.filter(
+        (t) => t.dateValidation && t.dateValidation >= dayStart && t.dateValidation < dayEnd,
+      ).length;
+
+      const ms = sessions.reduce((sum, s) => {
+        const start = s.debut > dayStart ? s.debut : dayStart;
+        const rawEnd = s.fin ?? now;
+        const end = rawEnd < dayEnd ? rawEnd : dayEnd;
+        return sum + Math.max(0, end.getTime() - start.getTime());
+      }, 0);
+
+      jours.push({ date: key, tachesValidees, heures: Math.round((ms / 3600000) * 10) / 10 });
+    }
+    return jours;
   }
 
   /**

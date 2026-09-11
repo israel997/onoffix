@@ -136,6 +136,12 @@ export function TaskDetailModal({
         <span className="text-foreground">{formatDate(tache.dateDeclaration)}</span>
         <span className="text-muted-foreground">Validated</span>
         <span className="text-foreground">{formatDate(tache.dateValidation)}</span>
+        {tache.commentaireValidation && (
+          <>
+            <span className="text-muted-foreground">Validator note</span>
+            <span className="text-foreground italic">&ldquo;{tache.commentaireValidation}&rdquo;</span>
+          </>
+        )}
         <span className="text-muted-foreground">Due</span>
         <span className="text-foreground">{formatDate(tache.dateEcheance)}</span>
         {tache.conversation && (

@@ -33,29 +33,7 @@ export class RituelsScheduler implements OnModuleInit {
   }
 
   async syncBureau(bureau: Bureau) {
-    const [heure, minute] = bureau.heureDeclaration.split(':').map(Number);
     const tz = bureau.fuseauHoraire;
-
-    await this.queue.add(
-      RituelJob.RAPPEL_DECLARATION,
-      { bureauId: bureau.id },
-      {
-        jobId: `${bureau.id}:rappel`,
-        repeat: { pattern: `${minute} ${heure} * * *`, tz },
-      },
-    );
-
-    await this.queue.add(
-      RituelJob.RELANCE_RETARD,
-      { bureauId: bureau.id },
-      {
-        jobId: `${bureau.id}:relance`,
-        repeat: {
-          pattern: cronPlusMinutes(heure, minute, bureau.delaiRelanceMinutes),
-          tz,
-        },
-      },
-    );
 
     await this.queue.add(
       RituelJob.VALIDATION_LENDEMAIN,
@@ -93,11 +71,4 @@ export class RituelsScheduler implements OnModuleInit {
   async cancelTacheAlerte(tacheId: string) {
     await this.queue.remove(`alerte:${tacheId}`);
   }
-}
-
-function cronPlusMinutes(heure: number, minute: number, delaiMinutes: number): string {
-  const total = heure * 60 + minute + delaiMinutes;
-  const h = Math.floor(total / 60) % 24;
-  const m = total % 60;
-  return `${m} ${h} * * *`;
 }

@@ -4,7 +4,6 @@ import { Loading } from '@/components/ui/loading';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { CheckinReminder } from '@/components/layout/checkin-reminder';
 import { Sidebar } from '@/components/layout/sidebar';
 import { TaskTimeWatcher } from '@/components/layout/task-time-watcher';
 import { Topbar } from '@/components/layout/topbar';
@@ -69,7 +68,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <CheckinReminder />
       <TaskTimeWatcher />
       <div className="flex min-h-0 flex-1">
         <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />

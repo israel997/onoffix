@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AlarmIcon } from '@/components/icons/office-icons';
-import { TodayChecklist } from '@/components/rituel/today-checklist';
 import { ValidationsToday } from '@/components/rituel/validations-today';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
@@ -37,10 +36,10 @@ export default function ValidationsPage() {
           <AlarmIcon className="h-6 w-6 text-brand-blue" />
           Validations
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">Declare what you got done today.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Review what got done across your offices today.
+        </p>
       </div>
-
-      <TodayChecklist />
 
       {managedBureaux.length > 0 && (
         <Card>

@@ -196,7 +196,9 @@ export class TachesService {
     const tache = await this.loadWithBureau(tacheId, user);
     await this.assertBureauMember(tache.projet.bureauId, user);
 
-    if (tache.assigneAId !== user.userId) {
+    // Une tâche sans assigné : n'importe quel membre du bureau peut l'accepter,
+    // ce qui la lui assigne directement. Sinon, seul l'assigné accepte.
+    if (tache.assigneAId && tache.assigneAId !== user.userId) {
       throw new ForbiddenException('Seule la personne assignée peut accepter cette tâche');
     }
     if (tache.statut !== StatutTache.A_FAIRE) {
@@ -205,7 +207,9 @@ export class TachesService {
 
     const updated = await this.prisma.tache.update({
       where: { id: tacheId },
-      data: { statut: StatutTache.ACCEPTEE },
+      data: tache.assigneAId
+        ? { statut: StatutTache.ACCEPTEE }
+        : { statut: StatutTache.ACCEPTEE, assigneAId: user.userId, assigneParId: user.userId },
       include: TACHE_INCLUDE,
     });
 
@@ -214,6 +218,43 @@ export class TachesService {
         tache.assigneParId,
         NotificationType.TACHE_ACCEPTEE,
         `${updated.assigneA?.nom ?? 'Un collaborateur'} a accepté la tâche « ${updated.titre} »`,
+        this.lienTache(tache.projet.bureauId),
+      );
+    }
+
+    return updated;
+  }
+
+  /** Rendre une tâche : elle repart chez la personne qui l'avait assignée (ou non-assignée
+   *  si personne), remise à "à faire". Possible à tout moment par un assigné. */
+  async retourner(tacheId: string, user: AuthenticatedUser) {
+    const tache = await this.loadWithBureau(tacheId, user);
+    if (!(await this.estAssigne(tacheId, tache.assigneAId, user.userId))) {
+      throw new ForbiddenException('Seul un assigné de la tâche peut la rendre');
+    }
+
+    await this.prisma.tacheAssignee.deleteMany({ where: { tacheId, userId: user.userId } });
+    await this.prisma.tacheSession.updateMany({
+      where: { tacheId, fin: null },
+      data: { fin: new Date() },
+    });
+    const updated = await this.prisma.tache.update({
+      where: { id: tacheId },
+      data: {
+        statut: StatutTache.A_FAIRE,
+        assigneAId: tache.assigneParId ?? null,
+        dateDebut: null,
+        dateDeclaration: null,
+        commentaireDeclaration: null,
+      },
+      include: TACHE_INCLUDE,
+    });
+
+    if (tache.assigneParId && tache.assigneParId !== user.userId) {
+      await this.notifications.create(
+        tache.assigneParId,
+        NotificationType.TACHE_ASSIGNEE,
+        `La tâche « ${updated.titre} » vous a été rendue`,
         this.lienTache(tache.projet.bureauId),
       );
     }
@@ -423,7 +464,12 @@ export class TachesService {
     return updated;
   }
 
-  async valider(tacheId: string, user: AuthenticatedUser, decision: 'ok' | 'litige') {
+  async valider(
+    tacheId: string,
+    user: AuthenticatedUser,
+    decision: 'ok' | 'litige',
+    commentaire?: string,
+  ) {
     const tache = await this.loadWithBureau(tacheId, user);
 
     const isAssigner = tache.assigneParId === user.userId;
@@ -435,6 +481,7 @@ export class TachesService {
       throw new BadRequestException('Cette tâche n’a pas encore été déclarée comme faite');
     }
 
+    const commentaireValidation = commentaire?.trim() || null;
     const updated =
       decision === 'ok'
         ? await this.prisma.tache.update({
@@ -443,6 +490,7 @@ export class TachesService {
               statut: StatutTache.VALIDE,
               dateValidation: new Date(),
               valideParId: user.userId,
+              commentaireValidation,
             },
             include: TACHE_INCLUDE,
           })
@@ -452,6 +500,7 @@ export class TachesService {
               statut: StatutTache.A_REVOIR,
               commentaireDeclaration: null,
               dateRenvoiRework: new Date(),
+              commentaireValidation,
             },
             include: TACHE_INCLUDE,
           });

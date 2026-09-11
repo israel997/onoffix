@@ -541,7 +541,6 @@ export interface MembreStats {
   tachesValidees: number;
   tachesARevoir: number;
   heuresTravaillees: number;
-  tauxDeclarationsATemps: number | null;
   blocagesRencontres: number;
   respectDeadlines: number | null;
 }
@@ -562,8 +561,8 @@ export function getMembreJournal(userId: string, from: string, to: string) {
 
 export interface ClassementEntry {
   user: { id: string; nom: string };
-  tauxDeclarationsATemps: number | null;
   tachesValidees: number;
+  respectDeadlines: number | null;
 }
 
 export function getBureauClassement(bureauId: string, from: string, to: string) {
@@ -789,6 +788,7 @@ export interface Tache {
   dateDebut: string | null;
   dateDeclaration: string | null;
   commentaireDeclaration: string | null;
+  commentaireValidation: string | null;
   dateValidation: string | null;
   valideParId: string | null;
   dateCible: string | null;
@@ -848,6 +848,10 @@ export function accepterTache(tacheId: string) {
   return authFetch<Tache>(`/taches/${tacheId}/accepter`, { method: 'POST' });
 }
 
+export function retournerTache(tacheId: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/retourner`, { method: 'POST' });
+}
+
 export function demarrerTache(tacheId: string) {
   return authFetch<Tache>(`/taches/${tacheId}/demarrer`, { method: 'POST' });
 }
@@ -871,8 +875,11 @@ export function annulerDeclarationTache(tacheId: string) {
   return authFetch<Tache>(`/taches/${tacheId}/annuler-declaration`, { method: 'POST' });
 }
 
-export function validerTache(tacheId: string, decision: 'ok' | 'litige') {
-  return authFetch<Tache>(`/taches/${tacheId}/valider`, { method: 'POST', body: { decision } });
+export function validerTache(tacheId: string, decision: 'ok' | 'litige', commentaire?: string) {
+  return authFetch<Tache>(`/taches/${tacheId}/valider`, {
+    method: 'POST',
+    body: commentaire ? { decision, commentaire } : { decision },
+  });
 }
 
 export function reouvrirTache(tacheId: string) {
@@ -1050,34 +1057,6 @@ export function getAlertes() {
   return authFetch<Alertes>('/taches/alertes');
 }
 
-export type StatutValidationDeclaration = 'EN_ATTENTE' | 'VALIDEE' | 'LITIGE';
-
-export interface RituelTache {
-  id: string;
-  titre: string;
-  description: string | null;
-  statut: StatutTache;
-  dateCible: string | null;
-  projet: { id: string; nom: string; bureau: { id: string; nom: string } | null };
-  cocheParMembre: boolean;
-  cocheParAdmin: boolean;
-}
-
-export interface Journee {
-  taches: RituelTache[];
-  declare: boolean;
-  statutValidation: StatutValidationDeclaration | null;
-  pourcentage: number | null;
-}
-
-export interface Aujourdhui extends Journee {
-  date: string;
-}
-
-export function getAujourdhui() {
-  return authFetch<Aujourdhui>('/rituel/aujourdhui');
-}
-
 export interface ValidationAujourdhui {
   user: { id: string; nom: string };
   taches: { id: string; titre: string }[];
@@ -1087,23 +1066,22 @@ export function getValidationsAujourdhui() {
   return authFetch<ValidationAujourdhui[]>('/rituel/validations-aujourdhui');
 }
 
-export function declarerRituel(tacheIds: string[]) {
-  return authFetch<Aujourdhui>('/rituel/declarer', { method: 'POST', body: { tacheIds } });
+export interface EvolutionPoint {
+  date: string;
+  tachesValidees: number;
+  heures: number;
 }
 
-export interface BureauRituelMembre extends Journee {
-  user: { id: string; nom: string };
+export function getMembreEvolution(userId: string, from: string, to: string) {
+  return authFetch<EvolutionPoint[]>(
+    `/organisation/membres/${userId}/evolution?from=${from}&to=${to}`,
+  );
 }
 
-export function getBureauRituel(bureauId: string) {
-  return authFetch<BureauRituelMembre[]>(`/bureaux/${bureauId}/rituel`);
-}
-
-export function validerRituelMembre(bureauId: string, userId: string, tacheIds: string[]) {
-  return authFetch<BureauRituelMembre>(`/bureaux/${bureauId}/rituel/membres/${userId}/valider`, {
-    method: 'POST',
-    body: { tacheIds },
-  });
+export function getBureauEvolution(bureauId: string, from: string, to: string) {
+  return authFetch<EvolutionPoint[]>(
+    `/organisation/bureaux/${bureauId}/evolution?from=${from}&to=${to}`,
+  );
 }
 
 export interface DailyBrief {

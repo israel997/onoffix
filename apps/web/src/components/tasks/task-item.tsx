@@ -33,6 +33,7 @@ import {
   reouvrirTache,
   reprendreTache,
   retirerAssigneTache,
+  retournerTache,
   setTacheAlerte,
   updateTache,
   validerTache,
@@ -509,11 +510,19 @@ export function TaskItem({
                   size="sm"
                   variant="secondary"
                   disabled={busy}
-                  onClick={() =>
-                    run(() => assignerTache(tache.id, currentUserId), 'Assigned to you')
-                  }
+                  onClick={() => run(() => accepterTache(tache.id), 'Task accepted')}
                 >
-                  Assign to me
+                  Accept
+                </Button>
+              )}
+              {isAnyAssignee && tache.assigneAId && tache.statut !== 'VALIDE' && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => run(() => retournerTache(tache.id), 'Task returned')}
+                >
+                  Return
                 </Button>
               )}
               {!tache.assigneAId && isManager && (

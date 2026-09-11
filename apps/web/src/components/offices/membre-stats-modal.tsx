@@ -42,10 +42,6 @@ export function MembreStatsModal({
           <span className="font-semibold text-foreground">{stats.tachesARevoir}</span>
           <span className="text-muted-foreground">Hours worked</span>
           <span className="font-semibold text-foreground">{stats.heuresTravaillees}h</span>
-          <span className="text-muted-foreground">On-time declarations</span>
-          <span className="font-semibold text-foreground">
-            {stats.tauxDeclarationsATemps === null ? '-' : `${stats.tauxDeclarationsATemps}%`}
-          </span>
           <span className="text-muted-foreground">Blockers encountered</span>
           <span className="font-semibold text-foreground">{stats.blocagesRencontres}</span>
           <span className="text-muted-foreground">Deadlines met</span>

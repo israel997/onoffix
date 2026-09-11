@@ -3,6 +3,15 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { useEffect, useState } from 'react';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { ChevronIcon, ChartIcon } from '@/components/icons/office-icons';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -10,16 +19,47 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   getBureauClassement,
+  getBureauEvolution,
+  getMembreEvolution,
   getMembreJournal,
   getMembreStats,
   listBureaux,
   listOrganisationMembres,
   type ClassementEntry,
+  type EvolutionPoint,
   type JournalJour,
   type MembreStats,
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+
+function EvolutionCharts({ data }: { data: EvolutionPoint[] }) {
+  if (data.length === 0) return <EmptyState>No data for this range.</EmptyState>;
+  const rows = data.map((p) => ({ ...p, label: formatDay(p.date) }));
+  return (
+    <div className="grid gap-6 sm:grid-cols-2">
+      {(
+        [
+          { key: 'tachesValidees', title: 'Tasks completed', color: '#16a34a' },
+          { key: 'heures', title: 'Hours worked', color: '#0b63f6' },
+        ] as const
+      ).map(({ key, title, color }) => (
+        <div key={key}>
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">{title}</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e3e7f0" />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+              <YAxis allowDecimals={key === 'heures'} tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey={key} stroke={color} strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function formatDay(iso: string) {
   return new Date(iso).toLocaleDateString([], { weekday: 'short', day: '2-digit', month: 'short' });
@@ -75,11 +115,22 @@ export default function PerformancePage() {
     }
   }, [user, isAdmin]);
 
+  const [evolution, setEvolution] = useState<EvolutionPoint[] | null>(null);
+  const [bureauEvolution, setBureauEvolution] = useState<EvolutionPoint[] | null>(null);
+
   useEffect(() => {
     if (!targetUserId) return;
     getMembreStats(targetUserId, { from, to }).then(setStats);
     getMembreJournal(targetUserId, from, to).then(setJournal);
+    getMembreEvolution(targetUserId, from, to).then(setEvolution).catch(() => setEvolution([]));
   }, [targetUserId, from, to]);
+
+  useEffect(() => {
+    if (!bureauId || !isAdmin) return;
+    getBureauEvolution(bureauId, from, to)
+      .then(setBureauEvolution)
+      .catch(() => setBureauEvolution([]));
+  }, [bureauId, from, to, isAdmin]);
 
   useEffect(() => {
     if (!bureauId) return;
@@ -197,12 +248,6 @@ export default function PerformancePage() {
             </div>
             <div>
               <p className="text-lg font-bold text-foreground">
-                {stats.tauxDeclarationsATemps === null ? '-' : `${stats.tauxDeclarationsATemps}%`}
-              </p>
-              <p className="text-xs text-muted-foreground">On-time declarations</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-foreground">
                 {stats.respectDeadlines === null ? '-' : `${stats.respectDeadlines}%`}
               </p>
               <p className="text-xs text-muted-foreground">Deadlines met</p>
@@ -212,6 +257,30 @@ export default function PerformancePage() {
               <p className="text-xs text-muted-foreground">Blockers</p>
             </div>
           </div>
+        </Card>
+      )}
+
+      <Card>
+        <CardTitle>Evolution</CardTitle>
+        <p className="mb-3 mt-1 text-xs text-muted-foreground">Day-by-day, over the selected range.</p>
+        {evolution === null ? (
+          <Skeleton className="h-44 w-full" />
+        ) : (
+          <EvolutionCharts data={evolution} />
+        )}
+      </Card>
+
+      {isAdmin && bureauId && (
+        <Card>
+          <CardTitle>Office evolution</CardTitle>
+          <p className="mb-3 mt-1 text-xs text-muted-foreground">
+            Selected office, day-by-day over the range.
+          </p>
+          {bureauEvolution === null ? (
+            <Skeleton className="h-44 w-full" />
+          ) : (
+            <EvolutionCharts data={bureauEvolution} />
+          )}
         </Card>
       )}
 
@@ -311,9 +380,11 @@ export default function PerformancePage() {
                     </span>
                   </span>
                   <span className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>{entry.tachesValidees} completed</span>
                     <span className="font-semibold text-foreground">
-                      {entry.tauxDeclarationsATemps === null ? '-' : `${entry.tauxDeclarationsATemps}%`}
+                      {entry.tachesValidees} completed
+                    </span>
+                    <span>
+                      {entry.respectDeadlines === null ? '-' : `${entry.respectDeadlines}% on time`}
                     </span>
                   </span>
                 </div>
