@@ -47,6 +47,7 @@ export function SubjectsChat({
 }) {
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -131,16 +132,28 @@ export function SubjectsChat({
   }
 
   const active = subjects?.find((s) => s.id === activeId) ?? null;
+  const filteredSubjects = subjects?.filter((s) =>
+    s.nom.toLowerCase().includes(search.trim().toLowerCase()),
+  );
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {subjects?.map((s) => (
+      {subjects && subjects.length > 6 && (
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search subjects…"
+          className="h-8 w-full max-w-xs rounded-md border border-border bg-surface px-2 text-xs outline-none focus:border-brand-blue"
+        />
+      )}
+      <div className="flex max-h-36 flex-wrap items-start gap-2 overflow-y-auto">
+        {filteredSubjects?.map((s) => (
           <div key={s.id} className="group flex items-center gap-1">
             <Button
               type="button"
               size="sm"
               variant={s.id === activeId ? 'primary' : 'secondary'}
+              className={s.id === activeId ? undefined : 'hover:!border-indigo-600 hover:!text-indigo-600'}
               onClick={() => setActiveId(s.id)}
             >
               {s.nom}
@@ -155,7 +168,7 @@ export function SubjectsChat({
                 >
                   ✎
                 </button>
-                {subjects.length > 1 && (
+                {(subjects?.length ?? 0) > 1 && (
                   <button
                     type="button"
                     aria-label={`Delete ${s.nom}`}
@@ -169,6 +182,11 @@ export function SubjectsChat({
             )}
           </div>
         ))}
+        {filteredSubjects?.length === 0 && (
+          <p className="py-1 text-xs text-muted-foreground">No subject matches &quot;{search}&quot;.</p>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
         {canManage && (
           <form onSubmit={handleCreate} className="flex items-center gap-1">
             <input

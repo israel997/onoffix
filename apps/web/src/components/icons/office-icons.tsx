@@ -697,3 +697,13 @@ export function LockOpenIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Flèche en U — rendre/retourner une tâche à qui l'a assignée. */
+export function ReturnIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M9 8L4.5 12L9 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 12H14.5C17 12 19 10 19 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}

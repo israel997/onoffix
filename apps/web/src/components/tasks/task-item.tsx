@@ -11,6 +11,7 @@ import {
   HandStopIcon,
   InfoIcon,
   PencilIcon,
+  ReturnIcon,
   RocketIcon,
 } from '@/components/icons/office-icons';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
@@ -517,12 +518,15 @@ export function TaskItem({
               )}
               {isAnyAssignee && tache.assigneAId && tache.statut !== 'VALIDE' && (
                 <Button
-                  size="sm"
-                  variant="secondary"
+                  size="icon"
+                  variant="plain"
+                  className="text-status-declared"
                   disabled={busy}
+                  aria-label="Return task"
+                  title="Return - send it back to whoever assigned it"
                   onClick={() => run(() => retournerTache(tache.id), 'Task returned')}
                 >
-                  Return
+                  <ReturnIcon className="h-4 w-4" />
                 </Button>
               )}
               {!tache.assigneAId && isManager && (
