@@ -26,10 +26,70 @@ function escapeHtml(input: string): string {
     .replace(/'/g, '&#39;');
 }
 
+// Même convention de sérialisation que le front (report-content.ts) : du JSON dans les
+// champs texte existants, avec repli sur "texte brut = un seul item/bloc" pour rester
+// compatible avec un rapport enregistré avant l'ajout de ce format structuré.
+function parseList(value: string | null): string[] {
+  if (!value?.trim()) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string');
+  } catch {
+    // pas du JSON
+  }
+  return [value];
+}
+
+type ContentBlock = { type: 'heading' | 'subheading' | 'text'; content: string };
+
+function isContentBlock(value: unknown): value is ContentBlock {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { content?: unknown }).content === 'string'
+  );
+}
+
+function parseBlocks(value: string | null): ContentBlock[] {
+  if (!value?.trim()) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (Array.isArray(parsed) && parsed.every(isContentBlock)) {
+      return parsed;
+    }
+  } catch {
+    // pas du JSON
+  }
+  return [{ type: 'text', content: value }];
+}
+
 function textBlock(label: string, value: string | null) {
   if (!value?.trim()) return '';
   const escaped = escapeHtml(value).replace(/\n/g, '<br>');
   return `<div class="block"><p class="block-label">${label}</p><p class="block-text">${escaped}</p></div>`;
+}
+
+function listBlock(label: string, items: string[], tone: 'positive' | 'negative' | 'neutral') {
+  if (items.length === 0) return '';
+  const bullet = tone === 'positive' ? '✓' : tone === 'negative' ? '✕' : '•';
+  const color = tone === 'positive' ? '#16a34a' : tone === 'negative' ? '#dc2626' : '#0b63f6';
+  return `<div class="block">
+    <p class="block-label">${label}</p>
+    <ul class="bullet-list">
+      ${items.map((i) => `<li><span style="color:${color}">${bullet}</span> ${escapeHtml(i)}</li>`).join('')}
+    </ul>
+  </div>`;
+}
+
+function contentBlocks(blocks: ContentBlock[]) {
+  return blocks
+    .map((b) => {
+      const escaped = escapeHtml(b.content).replace(/\n/g, '<br>');
+      if (b.type === 'heading') return `<h2 class="content-heading">${escaped}</h2>`;
+      if (b.type === 'subheading') return `<h3 class="content-subheading">${escaped}</h3>`;
+      return `<p class="block-text">${escaped}</p>`;
+    })
+    .join('');
 }
 
 function imagesBlock(images: { url: string; nom: string }[]) {
@@ -48,20 +108,27 @@ export function buildRapportHtml(rapport: RapportPourPdf): string {
 
   const body =
     rapport.type === 'GENERAL'
-      ? `${textBlock('Contenu', rapport.contenu)}${imagesBlock(rapport.images)}`
+      ? `${contentBlocks(parseBlocks(rapport.contenu))}${imagesBlock(rapport.images)}`
       : [...rapport.jours]
           .sort((a, b) => a.jour - b.jour)
           .map((j) => {
+            const bonsPoints = parseList(j.bonsPoints);
+            const pointsNegatifs = parseList(j.pointsNegatifs);
+            const objectifs = parseList(j.objectifs);
             const hasContent =
-              j.contenu || j.bonsPoints || j.pointsNegatifs || j.objectifs || j.images.length > 0;
+              j.contenu ||
+              bonsPoints.length > 0 ||
+              pointsNegatifs.length > 0 ||
+              objectifs.length > 0 ||
+              j.images.length > 0;
             if (!hasContent) return '';
             return `
               <section class="jour">
                 <h2>${JOURS_LABEL[j.jour]}</h2>
                 ${textBlock('Notes', j.contenu)}
-                ${textBlock('Bons points', j.bonsPoints)}
-                ${textBlock('Points négatifs', j.pointsNegatifs)}
-                ${textBlock('Objectifs', j.objectifs)}
+                ${listBlock('Bons points', bonsPoints, 'positive')}
+                ${listBlock('Points négatifs', pointsNegatifs, 'negative')}
+                ${listBlock('Objectifs', objectifs, 'neutral')}
                 ${imagesBlock(j.images)}
               </section>`;
           })
@@ -100,7 +167,11 @@ export function buildRapportHtml(rapport: RapportPourPdf): string {
   }
   .block { margin-bottom: 10px; }
   .block-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: #5b6178; margin: 0 0 3px; }
-  .block-text { font-size: 12px; line-height: 1.5; margin: 0; white-space: pre-wrap; }
+  .block-text { font-size: 12px; line-height: 1.5; margin: 0 0 8px; white-space: pre-wrap; }
+  .bullet-list { list-style: none; margin: 0; padding: 0; font-size: 12px; line-height: 1.6; }
+  .bullet-list li { display: flex; gap: 6px; }
+  .content-heading { font-size: 18px; margin: 0 0 10px; color: #0a1440; }
+  .content-subheading { font-size: 14px; margin: 0 0 8px; color: #0b63f6; }
   .images { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
   .images img { max-width: 140px; max-height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #e3e7f0; }
   .footer {
