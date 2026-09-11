@@ -675,3 +675,25 @@ export function PencilIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Cadenas fermé — rapport privé. */
+export function LockIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="5" y="11" width="14" height="9.5" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="15.3" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Cadenas ouvert — rapport public. */
+export function LockOpenIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="5" y="11" width="14" height="9.5" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 11V8a4 4 0 0 1 7.4-2.1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="15.3" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}

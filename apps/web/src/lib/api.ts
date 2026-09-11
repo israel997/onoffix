@@ -1255,4 +1255,114 @@ export function adminDeleteAccount(accountId: string) {
   return authFetch<void>(`/admin/accounts/${accountId}`, { method: 'DELETE' });
 }
 
+export type TypeRapport = 'GENERAL' | 'WEEKLY';
+
+export interface RapportSummary {
+  id: string;
+  nom: string;
+  type: TypeRapport;
+  estPrive: boolean;
+  estArchive: boolean;
+  createur: { id: string; nom: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RapportImageItem {
+  id: string;
+  url: string;
+  nom: string;
+  ordre: number;
+}
+
+export interface RapportJourDetail {
+  id: string;
+  jour: number;
+  contenu: string | null;
+  bonsPoints: string | null;
+  pointsNegatifs: string | null;
+  objectifs: string | null;
+  images: RapportImageItem[];
+}
+
+export interface RapportDetail extends RapportSummary {
+  contenu: string | null;
+  jours: RapportJourDetail[];
+  images: RapportImageItem[];
+  mentions: { user: { id: string; nom: string } }[];
+}
+
+export function listRapports(archived = false) {
+  return authFetch<RapportSummary[]>(`/rapports?archived=${archived}`);
+}
+
+export function createRapport(nom: string, type: TypeRapport) {
+  return authFetch<RapportDetail>('/rapports', { method: 'POST', body: { nom, type } });
+}
+
+export function getRapport(id: string) {
+  return authFetch<RapportDetail>(`/rapports/${id}`);
+}
+
+export function updateRapport(
+  id: string,
+  data: {
+    nom?: string;
+    contenu?: string;
+    jours?: {
+      jour: number;
+      contenu?: string;
+      bonsPoints?: string;
+      pointsNegatifs?: string;
+      objectifs?: string;
+    }[];
+    mentionedUserIds?: string[];
+  },
+) {
+  return authFetch<RapportDetail>(`/rapports/${id}`, { method: 'PATCH', body: data });
+}
+
+export function deleteRapport(id: string) {
+  return authFetch<void>(`/rapports/${id}`, { method: 'DELETE' });
+}
+
+export function archiveRapport(id: string, archived: boolean) {
+  return authFetch<RapportDetail>(`/rapports/${id}/archive`, {
+    method: 'PATCH',
+    body: { archived },
+  });
+}
+
+export function setRapportVisibilite(id: string, prive: boolean) {
+  return authFetch<RapportDetail>(`/rapports/${id}/visibilite`, {
+    method: 'PATCH',
+    body: { prive },
+  });
+}
+
+export function uploadRapportImage(rapportId: string, file: File, jourId?: string) {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (jourId) formData.append('jourId', jourId);
+  return authFetchForm<RapportImageItem>(`/rapports/${rapportId}/images`, formData);
+}
+
+export function deleteRapportImage(rapportId: string, imageId: string) {
+  return authFetch<void>(`/rapports/${rapportId}/images/${imageId}`, { method: 'DELETE' });
+}
+
+export async function downloadRapportPdf(rapportId: string, filename: string) {
+  const res = await authorizedFetch(`/rapports/${rapportId}/pdf`, { method: 'GET' });
+  if (!res.ok) throw new ApiError(await parseErrorMessage(res), res.status);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
 export { ApiError };

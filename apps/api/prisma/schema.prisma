@@ -70,6 +70,7 @@ model Organisation {
   bureaux     Bureau[]
   users       User[]
   invitations Invitation[]
+  rapports    Rapport[]
 
   @@map("organisations")
 }
@@ -269,6 +270,8 @@ model User {
   blocagesSignales         TacheBlocage[]           @relation("BlocageSignalePar")
   tachesSessions           TacheSession[]
   pushSubscriptions        PushSubscription[]
+  rapportsCrees            Rapport[]                @relation("RapportsCrees")
+  rapportMentions          RapportMention[]
 
   @@unique([accountId, organisationId])
   @@index([organisationId])
@@ -493,6 +496,7 @@ enum NotificationType {
   MENTION
   NOUVEAU_MESSAGE
   ALERTE_TACHE
+  MENTION_RAPPORT
 }
 
 model Notification {
@@ -583,4 +587,80 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+enum TypeRapport {
+  GENERAL
+  WEEKLY
+}
+
+model Rapport {
+  id             String      @id @default(uuid())
+  organisationId String      @map("organisation_id")
+  nom            String
+  type           TypeRapport
+  // Contenu libre du rapport Général ; sans effet pour un Weekly (cf. jours).
+  contenu        String?
+  estPrive       Boolean     @default(false) @map("est_prive")
+  estArchive     Boolean     @default(false) @map("est_archive")
+  createurId     String      @map("createur_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createur     User             @relation("RapportsCrees", fields: [createurId], references: [id], onDelete: Cascade)
+  jours        RapportJour[]
+  images       RapportImage[]
+  mentions     RapportMention[]
+
+  @@index([organisationId])
+  @@map("rapports")
+}
+
+/** Une entrée par jour de la semaine (0 = Lundi ... 6 = Dimanche) pour un rapport Weekly. */
+model RapportJour {
+  id             String  @id @default(uuid())
+  rapportId      String  @map("rapport_id")
+  jour           Int
+  contenu        String?
+  bonsPoints     String? @map("bons_points")
+  pointsNegatifs String? @map("points_negatifs")
+  objectifs      String?
+
+  rapport Rapport        @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  images  RapportImage[]
+
+  @@unique([rapportId, jour])
+  @@map("rapports_jours")
+}
+
+/** Image insérée dans un rapport — au niveau du rapport (Général) ou d'un jour précis (Weekly). */
+model RapportImage {
+  id        String       @id @default(uuid())
+  rapportId String       @map("rapport_id")
+  jourId    String?      @map("jour_id")
+  url       String
+  nom       String
+  ordre     Int          @default(0)
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  rapport Rapport      @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  jour    RapportJour? @relation(fields: [jourId], references: [id], onDelete: Cascade)
+
+  @@index([rapportId])
+  @@index([jourId])
+  @@map("rapports_images")
+}
+
+model RapportMention {
+  id        String   @id @default(uuid())
+  rapportId String   @map("rapport_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  rapport Rapport @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([rapportId, userId])
+  @@map("rapports_mentions")
 }

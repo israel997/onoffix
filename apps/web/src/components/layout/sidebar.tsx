@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Notifications', href: '/notifications', available: true, unreadSource: 'notifications', icon: FolderIcon },
   { label: 'Chat', href: '/chat', available: true, unreadSource: 'chat', icon: MailIcon },
   { label: 'Calendar', href: '/calendar', available: true, icon: WallCalendarIcon },
-  { label: 'Reporting', href: '/reporting', available: false, icon: ChartIcon },
+  { label: 'Reporting', href: '/reporting', available: true, icon: ChartIcon },
   { label: 'My Space', href: '/my-space', available: true, icon: BriefcaseIcon },
   { label: 'Organisation settings', href: '/settings', available: true, adminOnly: true, icon: MasterKeyIcon },
   { label: 'Profile', href: '/profile', available: true, icon: IdBadgeIcon },
