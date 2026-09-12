@@ -1340,11 +1340,43 @@ export function setRapportVisibilite(id: string, prive: boolean) {
   });
 }
 
-export function uploadRapportImage(rapportId: string, file: File, jourId?: string) {
+/** Upload avec progression réelle (XHR — fetch n'expose pas d'événement de progression). */
+export function uploadRapportImage(
+  rapportId: string,
+  file: File,
+  jourId?: string,
+  onProgress?: (percent: number) => void,
+): Promise<RapportImageItem> {
   const formData = new FormData();
   formData.append('file', file);
   if (jourId) formData.append('jourId', jourId);
-  return authFetchForm<RapportImageItem>(`/rapports/${rapportId}/images`, formData);
+
+  const tokens = getStoredTokens();
+  if (!tokens) return Promise.reject(new ApiError('Non authentifié', 401));
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}/rapports/${rapportId}/images`);
+    xhr.setRequestHeader('Authorization', `Bearer ${tokens.accessToken}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        let message = 'Upload failed';
+        try {
+          message = JSON.parse(xhr.responseText).message ?? message;
+        } catch {
+          // réponse non-JSON, on garde le message générique
+        }
+        reject(new ApiError(message, xhr.status));
+      }
+    };
+    xhr.onerror = () => reject(new ApiError('Network error', 0));
+    xhr.send(formData);
+  });
 }
 
 export function deleteRapportImage(rapportId: string, imageId: string) {

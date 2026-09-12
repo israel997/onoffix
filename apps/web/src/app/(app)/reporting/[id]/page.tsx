@@ -3,6 +3,15 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LockIcon, LockOpenIcon } from '@/components/icons/office-icons';
+import { BlockEditor } from '@/components/reporting/block-editor';
+import { BulletListEditor } from '@/components/reporting/bullet-list-editor';
+import {
+  parseBlocks,
+  parseList,
+  stringifyBlocks,
+  stringifyList,
+  type ContentBlock,
+} from '@/components/reporting/report-content';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
@@ -24,26 +33,34 @@ import {
   type OrganisationMembre,
   type RapportDetail,
   type RapportImageItem,
-  type RapportJourDetail,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
 const JOURS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const NOTES_MAX_LENGTH = 2000;
+
+interface JourDraft {
+  contenu: string;
+  bonsPoints: string[];
+  pointsNegatifs: string[];
+  objectifs: string[];
+}
 
 function ImageGallery({
   images,
   editing,
   onUpload,
   onRemove,
-  uploading,
+  progress,
 }: {
   images: RapportImageItem[];
   editing: boolean;
   onUpload: (file: File) => void;
   onRemove: (imageId: string) => void;
-  uploading: boolean;
+  /** null = pas d'upload en cours ; 0-100 = progression. */
+  progress: number | null;
 }) {
   if (images.length === 0 && !editing) return null;
   return (
@@ -64,13 +81,25 @@ function ImageGallery({
         </div>
       ))}
       {editing && (
-        <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-brand-blue/50">
-          {uploading ? '…' : '+ Image'}
+        <label className="relative flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-brand-blue/50">
+          {progress === null ? (
+            '+ Image'
+          ) : (
+            <>
+              <span className="text-[11px] font-semibold text-brand-blue">{progress}%</span>
+              <div className="h-1 w-12 overflow-hidden rounded-full bg-surface-muted">
+                <div
+                  className="h-full rounded-full bg-brand-blue transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </>
+          )}
           <input
             type="file"
             accept="image/*"
             className="hidden"
-            disabled={uploading}
+            disabled={progress !== null}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) onUpload(file);
@@ -95,19 +124,31 @@ export default function ReportDetailPage() {
   const [members, setMembers] = useState<OrganisationMembre[] | null>(null);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   const [nom, setNom] = useState('');
-  const [contenu, setContenu] = useState('');
-  const [jours, setJours] = useState<Record<number, Partial<RapportJourDetail>>>({});
+  const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+  const [jours, setJours] = useState<Record<number, JourDraft>>({});
   const [mentionedIds, setMentionedIds] = useState<Set<string>>(new Set());
 
   async function load() {
     const data = await getRapport(rapportId);
     setRapport(data);
     setNom(data.nom);
-    setContenu(data.contenu ?? '');
-    setJours(Object.fromEntries(data.jours.map((j) => [j.jour, j])));
+    setBlocks(parseBlocks(data.contenu));
+    setJours(
+      Object.fromEntries(
+        data.jours.map((j) => [
+          j.jour,
+          {
+            contenu: j.contenu ?? '',
+            bonsPoints: parseList(j.bonsPoints),
+            pointsNegatifs: parseList(j.pointsNegatifs),
+            objectifs: parseList(j.objectifs),
+          },
+        ]),
+      ),
+    );
     setMentionedIds(new Set(data.mentions.map((m) => m.user.id)));
   }
 
@@ -123,8 +164,13 @@ export default function ReportDetailPage() {
   const isAdmin = user.roleGlobal === 'ADMIN';
   const canEdit = isAdmin || rapport.createur.id === user.id;
 
-  function updateJour(jour: number, patch: Partial<RapportJourDetail>) {
-    setJours((prev) => ({ ...prev, [jour]: { ...prev[jour], ...patch } }));
+  const EMPTY_JOUR: JourDraft = { contenu: '', bonsPoints: [], pointsNegatifs: [], objectifs: [] };
+
+  function updateJour(jour: number, patch: Partial<JourDraft>) {
+    setJours((prev) => {
+      const current = prev[jour] ?? EMPTY_JOUR;
+      return { ...prev, [jour]: { ...current, ...patch } };
+    });
   }
 
   async function handleSave() {
@@ -132,16 +178,19 @@ export default function ReportDetailPage() {
     try {
       await updateRapport(rapportId, {
         nom,
-        contenu: rapport!.type === 'GENERAL' ? contenu : undefined,
+        contenu: rapport!.type === 'GENERAL' ? stringifyBlocks(blocks) : undefined,
         jours:
           rapport!.type === 'WEEKLY'
-            ? Array.from({ length: 7 }, (_, jour) => ({
-                jour,
-                contenu: jours[jour]?.contenu ?? '',
-                bonsPoints: jours[jour]?.bonsPoints ?? '',
-                pointsNegatifs: jours[jour]?.pointsNegatifs ?? '',
-                objectifs: jours[jour]?.objectifs ?? '',
-              }))
+            ? Array.from({ length: 7 }, (_, jour) => {
+                const d = jours[jour];
+                return {
+                  jour,
+                  contenu: d?.contenu ?? '',
+                  bonsPoints: stringifyList(d?.bonsPoints ?? []),
+                  pointsNegatifs: stringifyList(d?.pointsNegatifs ?? []),
+                  objectifs: stringifyList(d?.objectifs ?? []),
+                };
+              })
             : undefined,
         mentionedUserIds: [...mentionedIds],
       });
@@ -196,31 +245,25 @@ export default function ReportDetailPage() {
     try {
       await downloadRapportPdf(rapportId, `${rapport!.nom}.pdf`);
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+      toast(err instanceof Error ? err.message : 'PDF export failed', 'error');
     }
   }
 
-  async function handleUploadGeneral(file: File) {
-    setUploadingKey('general');
+  async function handleUpload(key: string, file: File, jourId?: string) {
+    setUploadProgress((prev) => ({ ...prev, [key]: 0 }));
     try {
-      await uploadRapportImage(rapportId, file);
+      await uploadRapportImage(rapportId, file, jourId, (percent) =>
+        setUploadProgress((prev) => ({ ...prev, [key]: percent })),
+      );
       await load();
     } catch (err) {
-      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+      toast(err instanceof Error ? err.message : 'Image upload failed', 'error');
     } finally {
-      setUploadingKey(null);
-    }
-  }
-
-  async function handleUploadJour(jourId: string, file: File) {
-    setUploadingKey(jourId);
-    try {
-      await uploadRapportImage(rapportId, file, jourId);
-      await load();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : 'Something went wrong', 'error');
-    } finally {
-      setUploadingKey(null);
+      setUploadProgress((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
     }
   }
 
@@ -278,18 +321,18 @@ export default function ReportDetailPage() {
 
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
           {canEdit && !editing && (
-            <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+            <Button size="sm" variant="primary" onClick={() => setEditing(true)}>
               Edit
             </Button>
           )}
           {editing && (
             <>
-              <Button size="sm" disabled={busy} onClick={handleSave}>
+              <Button size="sm" variant="primary" disabled={busy} onClick={handleSave}>
                 {busy ? 'Saving…' : 'Save'}
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
+                variant="ghost"
                 disabled={busy}
                 onClick={() => {
                   setEditing(false);
@@ -304,7 +347,7 @@ export default function ReportDetailPage() {
             Export PDF
           </Button>
           {canEdit && (
-            <Button size="sm" variant="secondary" onClick={handleArchive}>
+            <Button size="sm" variant="warning" onClick={handleArchive}>
               {rapport.estArchive ? 'Unarchive' : 'Archive'}
             </Button>
           )}
@@ -319,31 +362,26 @@ export default function ReportDetailPage() {
       {rapport.type === 'GENERAL' ? (
         <Card>
           <CardTitle>Content</CardTitle>
-          {editing ? (
-            <textarea
-              value={contenu}
-              onChange={(e) => setContenu(e.target.value)}
-              rows={10}
-              className="mt-3 w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue"
-              placeholder="Write the report…"
-            />
-          ) : (
-            <p className="mt-3 whitespace-pre-wrap text-sm text-foreground">
-              {rapport.contenu || <span className="text-muted-foreground">No content yet.</span>}
-            </p>
-          )}
+          <div className="mt-3">
+            <BlockEditor blocks={blocks} onChange={setBlocks} editing={editing} />
+          </div>
           <ImageGallery
             images={rapport.images}
             editing={editing}
-            uploading={uploadingKey === 'general'}
-            onUpload={handleUploadGeneral}
+            progress={uploadProgress.general ?? null}
+            onUpload={(file) => handleUpload('general', file)}
             onRemove={handleRemoveImage}
           />
         </Card>
       ) : (
         rapport.jours.map((j) => {
-          const draft = jours[j.jour] ?? j;
-          const isEmpty = !j.contenu && !j.bonsPoints && !j.pointsNegatifs && !j.objectifs && j.images.length === 0;
+          const draft = jours[j.jour];
+          const isEmpty =
+            !j.contenu &&
+            !j.bonsPoints &&
+            !j.pointsNegatifs &&
+            !j.objectifs &&
+            j.images.length === 0;
           if (!editing && isEmpty) return null;
           return (
             <Card key={j.jour}>
@@ -353,61 +391,55 @@ export default function ReportDetailPage() {
                   Notes
                   {editing ? (
                     <textarea
-                      value={draft.contenu ?? ''}
-                      onChange={(e) => updateJour(j.jour, { contenu: e.target.value })}
+                      value={draft?.contenu ?? ''}
+                      onChange={(e) => updateJour(j.jour, { contenu: e.target.value.slice(0, NOTES_MAX_LENGTH) })}
                       rows={3}
-                      className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue"
+                      maxLength={NOTES_MAX_LENGTH}
+                      className="max-h-48 w-full resize-y overflow-y-auto rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue"
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm text-foreground">{j.contenu || '—'}</p>
+                    <p className="max-h-48 overflow-y-auto whitespace-pre-wrap text-sm text-foreground">
+                      {j.contenu || '—'}
+                    </p>
                   )}
                 </Label>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Label>
                     Good points
-                    {editing ? (
-                      <textarea
-                        value={draft.bonsPoints ?? ''}
-                        onChange={(e) => updateJour(j.jour, { bonsPoints: e.target.value })}
-                        rows={2}
-                        className="w-full resize-y rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand-blue"
-                      />
-                    ) : (
-                      <p className="text-xs text-foreground">{j.bonsPoints || '—'}</p>
-                    )}
+                    <BulletListEditor
+                      items={draft?.bonsPoints ?? parseList(j.bonsPoints)}
+                      onChange={(items) => updateJour(j.jour, { bonsPoints: items })}
+                      editing={editing}
+                      tone="positive"
+                      placeholder="A good point…"
+                    />
                   </Label>
                   <Label>
                     Negative points
-                    {editing ? (
-                      <textarea
-                        value={draft.pointsNegatifs ?? ''}
-                        onChange={(e) => updateJour(j.jour, { pointsNegatifs: e.target.value })}
-                        rows={2}
-                        className="w-full resize-y rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand-blue"
-                      />
-                    ) : (
-                      <p className="text-xs text-foreground">{j.pointsNegatifs || '—'}</p>
-                    )}
+                    <BulletListEditor
+                      items={draft?.pointsNegatifs ?? parseList(j.pointsNegatifs)}
+                      onChange={(items) => updateJour(j.jour, { pointsNegatifs: items })}
+                      editing={editing}
+                      tone="negative"
+                      placeholder="A negative point…"
+                    />
                   </Label>
                   <Label>
                     Objectives
-                    {editing ? (
-                      <textarea
-                        value={draft.objectifs ?? ''}
-                        onChange={(e) => updateJour(j.jour, { objectifs: e.target.value })}
-                        rows={2}
-                        className="w-full resize-y rounded-lg border border-border bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand-blue"
-                      />
-                    ) : (
-                      <p className="text-xs text-foreground">{j.objectifs || '—'}</p>
-                    )}
+                    <BulletListEditor
+                      items={draft?.objectifs ?? parseList(j.objectifs)}
+                      onChange={(items) => updateJour(j.jour, { objectifs: items })}
+                      editing={editing}
+                      tone="neutral"
+                      placeholder="An objective…"
+                    />
                   </Label>
                 </div>
                 <ImageGallery
                   images={j.images}
                   editing={editing}
-                  uploading={uploadingKey === j.id}
-                  onUpload={(file) => handleUploadJour(j.id, file)}
+                  progress={uploadProgress[j.id] ?? null}
+                  onUpload={(file) => handleUpload(j.id, file, j.id)}
                   onRemove={handleRemoveImage}
                 />
               </div>

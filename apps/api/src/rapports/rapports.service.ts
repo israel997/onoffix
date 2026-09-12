@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { NotificationType, RoleGlobal } from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { StorageService } from '../common/storage.service';
@@ -20,6 +26,8 @@ const DETAIL_INCLUDE = {
 
 @Injectable()
 export class RapportsService {
+  private readonly logger = new Logger(RapportsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
@@ -199,12 +207,16 @@ export class RapportsService {
       const jour = await this.prisma.rapportJour.findFirst({ where: { id: jourId, rapportId } });
       if (!jour) throw new NotFoundException('Jour introuvable');
     }
-    const url = await this.storage.upload(
-      file.buffer,
-      'rapports',
-      file.originalname,
-      file.mimetype,
-    );
+    let url: string;
+    try {
+      url = await this.storage.upload(file.buffer, 'rapports', file.originalname, file.mimetype);
+    } catch (error) {
+      this.logger.error(
+        `Échec d'upload d'image pour le rapport ${rapportId}`,
+        error instanceof Error ? error.stack : error,
+      );
+      throw new InternalServerErrorException('Image upload failed');
+    }
     return this.prisma.rapportImage.create({
       data: { rapportId, jourId: jourId ?? null, url, nom: file.originalname },
     });

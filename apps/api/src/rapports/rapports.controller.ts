@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Logger,
   Param,
   Patch,
   Post,
@@ -25,6 +26,8 @@ import { RapportsService } from './rapports.service';
 
 @Controller('rapports')
 export class RapportsController {
+  private readonly logger = new Logger(RapportsController.name);
+
   constructor(private readonly rapportsService: RapportsService) {}
 
   @Get()
@@ -99,11 +102,19 @@ export class RapportsController {
 
   @Get(':id/pdf')
   async pdf(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Res() res: Response) {
-    const { buffer, filename } = await this.rapportsService.generatePdf(id, user);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    });
-    res.send(buffer);
+    try {
+      const { buffer, filename } = await this.rapportsService.generatePdf(id, user);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      });
+      res.send(buffer);
+    } catch (error) {
+      this.logger.error(
+        `Échec de génération du PDF pour le rapport ${id}`,
+        error instanceof Error ? error.stack : error,
+      );
+      res.status(500).json({ message: 'PDF generation failed' });
+    }
   }
 }

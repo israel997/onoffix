@@ -13,8 +13,7 @@
       "bcrypt",
       "prisma",
       "msgpackr-extract",
-      "unrs-resolver",
-      "puppeteer"
+      "unrs-resolver"
     ]
   },
   "scripts": {

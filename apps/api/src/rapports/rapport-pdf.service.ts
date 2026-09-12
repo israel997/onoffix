@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import puppeteer, { type Browser } from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer, { type Browser } from 'puppeteer-core';
 import { buildRapportHtml } from './rapport-pdf.template';
 
 type RapportPourPdf = Parameters<typeof buildRapportHtml>[0];
@@ -15,7 +16,12 @@ function slugify(nom: string) {
   );
 }
 
-/** Rendu HTML → PDF via Chrome headless (Puppeteer). Un seul navigateur partagé, réutilisé entre exports. */
+/**
+ * Rendu HTML → PDF via Chrome headless. `@sparticuz/chromium` fournit un binaire
+ * statique conçu pour tourner sur des conteneurs Linux minimaux (Railway, Lambda…)
+ * sans dépendre des librairies système d'un Chrome "classique" — plus fiable que le
+ * Chromium téléchargé par `puppeteer` sur ce genre d'hébergement.
+ */
 @Injectable()
 export class RapportPdfService implements OnModuleDestroy {
   private readonly logger = new Logger(RapportPdfService.name);
@@ -24,8 +30,9 @@ export class RapportPdfService implements OnModuleDestroy {
   private async getBrowser(): Promise<Browser> {
     if (this.browser?.connected) return this.browser;
     this.browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
     return this.browser;
   }
