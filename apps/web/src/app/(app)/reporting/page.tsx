@@ -85,10 +85,16 @@ function NewReportModal({ onClose, onCreated }: { onClose: () => void; onCreated
   );
 }
 
+type TypeFilter = 'ALL' | TypeRapport;
+
 export default function ReportingPage() {
   const router = useRouter();
   const [reports, setReports] = useState<RapportSummary[] | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterCreatorId, setFilterCreatorId] = useState('');
+  const [filterType, setFilterType] = useState<TypeFilter>('ALL');
 
   async function load() {
     const data = await listRapports(false);
@@ -100,8 +106,23 @@ export default function ReportingPage() {
     load();
   }, []);
 
+  const creators = Array.from(new Map((reports ?? []).map((r) => [r.createur.id, r.createur])).values());
+
+  const filtered = (reports ?? []).filter((r) => {
+    if (filterType !== 'ALL' && r.type !== filterType) return false;
+    if (filterCreatorId && r.createur.id !== filterCreatorId) return false;
+    const created = r.createdAt.slice(0, 10);
+    if (filterFrom && created < filterFrom) return false;
+    if (filterTo && created > filterTo) return false;
+    return true;
+  });
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="relative flex flex-col gap-6 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 -top-40 -z-10 h-[420px] w-[420px] rounded-full bg-brand-blue/15 blur-3xl"
+      />
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Reporting' }]} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -114,6 +135,74 @@ export default function ReportingPage() {
         <Button onClick={() => setShowNew(true)}>New report</Button>
       </div>
 
+      {reports && reports.length > 0 && (
+        <Card>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              From
+              <input
+                type="date"
+                value={filterFrom}
+                max={filterTo || undefined}
+                onChange={(e) => setFilterFrom(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              To
+              <input
+                type="date"
+                value={filterTo}
+                min={filterFrom || undefined}
+                onChange={(e) => setFilterTo(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Person
+              <select
+                value={filterCreatorId}
+                onChange={(e) => setFilterCreatorId(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+              >
+                <option value="">Anyone</option>
+                {creators.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nom}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+              Type
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as TypeFilter)}
+                className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+              >
+                <option value="ALL">All</option>
+                <option value="GENERAL">General</option>
+                <option value="WEEKLY">Weekly</option>
+              </select>
+            </label>
+            {(filterFrom || filterTo || filterCreatorId || filterType !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterFrom('');
+                  setFilterTo('');
+                  setFilterCreatorId('');
+                  setFilterType('ALL');
+                }}
+                className="h-9 text-xs font-medium text-brand-blue hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </Card>
+      )}
+
       <Card>
         <CardTitle>Reports</CardTitle>
         {reports === null ? (
@@ -124,9 +213,13 @@ export default function ReportingPage() {
           <div className="mt-3">
             <EmptyState>No report yet.</EmptyState>
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="mt-3">
+            <EmptyState>No report matches these filters.</EmptyState>
+          </div>
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-border">
-            {reports.map((r) => (
+            {filtered.map((r) => (
               <button
                 key={r.id}
                 onClick={() => router.push(`/reporting/${r.id}`)}

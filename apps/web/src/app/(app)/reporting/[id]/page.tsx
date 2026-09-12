@@ -39,10 +39,9 @@ import { useConfirm } from '@/lib/confirm-context';
 import { useToast } from '@/lib/toast-context';
 
 const JOURS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const NOTES_MAX_LENGTH = 2000;
 
 interface JourDraft {
-  contenu: string;
+  contenu: ContentBlock[];
   bonsPoints: string[];
   pointsNegatifs: string[];
   objectifs: string[];
@@ -141,7 +140,7 @@ export default function ReportDetailPage() {
         data.jours.map((j) => [
           j.jour,
           {
-            contenu: j.contenu ?? '',
+            contenu: parseBlocks(j.contenu),
             bonsPoints: parseList(j.bonsPoints),
             pointsNegatifs: parseList(j.pointsNegatifs),
             objectifs: parseList(j.objectifs),
@@ -164,7 +163,7 @@ export default function ReportDetailPage() {
   const isAdmin = user.roleGlobal === 'ADMIN';
   const canEdit = isAdmin || rapport.createur.id === user.id;
 
-  const EMPTY_JOUR: JourDraft = { contenu: '', bonsPoints: [], pointsNegatifs: [], objectifs: [] };
+  const EMPTY_JOUR: JourDraft = { contenu: [], bonsPoints: [], pointsNegatifs: [], objectifs: [] };
 
   function updateJour(jour: number, patch: Partial<JourDraft>) {
     setJours((prev) => {
@@ -185,7 +184,7 @@ export default function ReportDetailPage() {
                 const d = jours[jour];
                 return {
                   jour,
-                  contenu: d?.contenu ?? '',
+                  contenu: stringifyBlocks(d?.contenu ?? []),
                   bonsPoints: stringifyList(d?.bonsPoints ?? []),
                   pointsNegatifs: stringifyList(d?.pointsNegatifs ?? []),
                   objectifs: stringifyList(d?.objectifs ?? []),
@@ -278,9 +277,14 @@ export default function ReportDetailPage() {
 
   const mentionedUsers = members?.filter((m) => mentionedIds.has(m.id)) ?? [];
   const mentionOptions = (members ?? []).filter((m) => !mentionedIds.has(m.id));
+  const lastModified = new Date(rapport.updatedAt);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="relative flex flex-col gap-6 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-40 -top-40 -z-10 h-[420px] w-[420px] rounded-full bg-brand-blue/15 blur-3xl"
+      />
       <Breadcrumbs
         items={[
           { label: 'Dashboard', href: '/dashboard' },
@@ -298,7 +302,8 @@ export default function ReportDetailPage() {
               <h1 className="text-2xl font-bold text-foreground">{rapport.nom}</h1>
             )}
             <p className="mt-1 text-sm text-muted-foreground">
-              {rapport.createur.nom} · {new Date(rapport.createdAt).toLocaleDateString()}
+              {rapport.createur.nom} · Last edited {lastModified.toLocaleDateString()} at{' '}
+              {lastModified.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -389,21 +394,25 @@ export default function ReportDetailPage() {
               <div className="mt-3 flex flex-col gap-3">
                 <Label>
                   Notes
-                  {editing ? (
-                    <textarea
-                      value={draft?.contenu ?? ''}
-                      onChange={(e) => updateJour(j.jour, { contenu: e.target.value.slice(0, NOTES_MAX_LENGTH) })}
-                      rows={3}
-                      maxLength={NOTES_MAX_LENGTH}
-                      className="max-h-48 w-full resize-y overflow-y-auto rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-blue"
+                  <div className="mt-1">
+                    <BlockEditor
+                      blocks={draft?.contenu ?? parseBlocks(j.contenu)}
+                      onChange={(b) => updateJour(j.jour, { contenu: b })}
+                      editing={editing}
                     />
-                  ) : (
-                    <p className="max-h-48 overflow-y-auto whitespace-pre-wrap text-sm text-foreground">
-                      {j.contenu || '—'}
-                    </p>
-                  )}
+                  </div>
                 </Label>
                 <div className="grid gap-3 sm:grid-cols-3">
+                  <Label>
+                    Objectives
+                    <BulletListEditor
+                      items={draft?.objectifs ?? parseList(j.objectifs)}
+                      onChange={(items) => updateJour(j.jour, { objectifs: items })}
+                      editing={editing}
+                      tone="neutral"
+                      placeholder="An objective…"
+                    />
+                  </Label>
                   <Label>
                     Good points
                     <BulletListEditor
@@ -422,16 +431,6 @@ export default function ReportDetailPage() {
                       editing={editing}
                       tone="negative"
                       placeholder="A negative point…"
-                    />
-                  </Label>
-                  <Label>
-                    Objectives
-                    <BulletListEditor
-                      items={draft?.objectifs ?? parseList(j.objectifs)}
-                      onChange={(items) => updateJour(j.jour, { objectifs: items })}
-                      editing={editing}
-                      tone="neutral"
-                      placeholder="An objective…"
                     />
                   </Label>
                 </div>

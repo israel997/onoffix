@@ -114,7 +114,10 @@ export class RapportsController {
         `Échec de génération du PDF pour le rapport ${id}`,
         error instanceof Error ? error.stack : error,
       );
-      res.status(500).json({ message: 'PDF generation failed' });
+      // Message précis (pas générique) tant qu'on traque ce bug — c'est un outil interne,
+      // pas une réponse exposée à un client externe.
+      const detail = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ message: `PDF generation failed: ${detail}` });
     }
   }
 }

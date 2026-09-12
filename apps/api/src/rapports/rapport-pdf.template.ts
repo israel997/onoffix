@@ -63,12 +63,6 @@ function parseBlocks(value: string | null): ContentBlock[] {
   return [{ type: 'text', content: value }];
 }
 
-function textBlock(label: string, value: string | null) {
-  if (!value?.trim()) return '';
-  const escaped = escapeHtml(value).replace(/\n/g, '<br>');
-  return `<div class="block"><p class="block-label">${label}</p><p class="block-text">${escaped}</p></div>`;
-}
-
 function listBlock(label: string, items: string[], tone: 'positive' | 'negative' | 'neutral') {
   if (items.length === 0) return '';
   const bullet = tone === 'positive' ? '✓' : tone === 'negative' ? '✕' : '•';
@@ -125,10 +119,10 @@ export function buildRapportHtml(rapport: RapportPourPdf): string {
             return `
               <section class="jour">
                 <h2>${JOURS_LABEL[j.jour]}</h2>
-                ${textBlock('Notes', j.contenu)}
+                ${contentBlocks(parseBlocks(j.contenu))}
+                ${listBlock('Objectifs', objectifs, 'neutral')}
                 ${listBlock('Bons points', bonsPoints, 'positive')}
                 ${listBlock('Points négatifs', pointsNegatifs, 'negative')}
-                ${listBlock('Objectifs', objectifs, 'neutral')}
                 ${imagesBlock(j.images)}
               </section>`;
           })
