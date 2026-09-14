@@ -707,3 +707,14 @@ export function ReturnIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Pile de couches — regrouper/trier les tâches d'un Subject par statut. */
+export function LayersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 3.5l8.5 4.3-8.5 4.3-8.5-4.3L12 3.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M3.5 12.3l8.5 4.3 8.5-4.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.5 16.3l8.5 4.3 8.5-4.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

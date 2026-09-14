@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { ArchiveIcon, ChevronIcon, CopyIcon, FilterIcon, TrashIcon } from '@/components/icons/office-icons';
+import { ArchiveIcon, ChevronIcon, CopyIcon, FilterIcon, LayersIcon, TrashIcon } from '@/components/icons/office-icons';
 import { OfficeNav } from '@/components/offices/office-nav';
 import { TaskItem } from '@/components/tasks/task-item';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -65,6 +65,17 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
 
 const IN_PROGRESS_STATUSES: StatutTache[] = ['ACCEPTEE', 'EN_COURS', 'A_REVOIR'];
 
+// Ordre du tri "par statut" (icône pile de couches) : à faire, en cours, en attente
+// de validation, renvoyées, puis validées.
+const STATUS_SORT_ORDER: Record<StatutTache, number> = {
+  A_FAIRE: 0,
+  ACCEPTEE: 1,
+  EN_COURS: 1,
+  DECLARE: 2,
+  A_REVOIR: 3,
+  VALIDE: 4,
+};
+
 function applyFilter(taches: Tache[], filter: StatusFilter) {
   switch (filter) {
     case 'TODO':
@@ -105,6 +116,7 @@ function TasksPageContent() {
   );
   const [assigneeFilter, setAssigneeFilter] = useState<string>('ALL');
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [sortedGroups, setSortedGroups] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
 
   async function load() {
@@ -218,6 +230,15 @@ function TasksPageContent() {
     });
   }
 
+  function toggleSort(key: string) {
+    setSortedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   const isAdmin = user?.roleGlobal === 'ADMIN';
   const isManager =
     isAdmin ||
@@ -318,6 +339,7 @@ function TasksPageContent() {
           const key = g.conversationId ?? 'none';
           const { termine, enCours, nonCommence } = breakdown(g.taches);
           const open = openGroups.has(key);
+          const sortByStatus = sortedGroups.has(key);
           return (
             <Card key={key} id={`subject-${g.nom}`}>
               <div
@@ -339,6 +361,18 @@ function TasksPageContent() {
                   <h2 className="text-sm font-semibold text-foreground">
                     {g.nom} ({g.taches.length} task{g.taches.length > 1 ? 's' : ''})
                   </h2>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSort(key);
+                    }}
+                    aria-label={sortByStatus ? 'Unsort by status' : 'Sort by status'}
+                    title={sortByStatus ? 'Sorted by status — click to turn off' : 'Sort tasks by status'}
+                    className={`rounded p-1.5 ${sortByStatus ? 'text-brand-blue' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    <LayersIcon className="h-4 w-4" />
+                  </button>
                   {isManager && g.conversationId === null && (
                     <button
                       type="button"
@@ -401,9 +435,13 @@ function TasksPageContent() {
               {open && (
                 <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
                   {user &&
-                    // Les tâches validées descendent en bas de liste.
                     [...g.taches]
-                      .sort((a, b) => Number(a.statut === 'VALIDE') - Number(b.statut === 'VALIDE'))
+                      .sort((a, b) =>
+                        sortByStatus
+                          ? STATUS_SORT_ORDER[a.statut] - STATUS_SORT_ORDER[b.statut]
+                          : // Par défaut : les tâches validées descendent en bas de liste.
+                            Number(a.statut === 'VALIDE') - Number(b.statut === 'VALIDE'),
+                      )
                       .map((t) => (
                       <TaskItem
                         key={t.id}
