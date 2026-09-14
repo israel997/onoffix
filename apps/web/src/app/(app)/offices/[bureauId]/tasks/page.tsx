@@ -65,16 +65,15 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
 
 const IN_PROGRESS_STATUSES: StatutTache[] = ['ACCEPTEE', 'EN_COURS', 'A_REVOIR'];
 
-// Ordre du tri "par statut" (icône pile de couches) : à faire, en cours, en attente
-// de validation, renvoyées, puis validées.
-const STATUS_SORT_ORDER: Record<StatutTache, number> = {
-  A_FAIRE: 0,
-  ACCEPTEE: 1,
-  EN_COURS: 1,
-  DECLARE: 2,
-  A_REVOIR: 3,
-  VALIDE: 4,
-};
+// Sous-groupes du tri "par statut" (icône pile de couches), dans cet ordre — un
+// groupe vide n'affiche rien.
+const STATUS_GROUPS: { label: string; statuses: StatutTache[] }[] = [
+  { label: 'To do', statuses: ['A_FAIRE'] },
+  { label: 'In progress', statuses: ['ACCEPTEE', 'EN_COURS'] },
+  { label: 'Waiting for validation', statuses: ['DECLARE'] },
+  { label: 'Returned for rework', statuses: ['A_REVOIR'] },
+  { label: 'Validated', statuses: ['VALIDE'] },
+];
 
 function applyFilter(taches: Tache[], filter: StatusFilter) {
   switch (filter) {
@@ -432,30 +431,51 @@ function TasksPageContent() {
                   {enCours} in progress · {termine} done · {nonCommence} not started
                 </p>
               </div>
-              {open && (
-                <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
-                  {user &&
-                    [...g.taches]
-                      .sort((a, b) =>
-                        sortByStatus
-                          ? STATUS_SORT_ORDER[a.statut] - STATUS_SORT_ORDER[b.statut]
-                          : // Par défaut : les tâches validées descendent en bas de liste.
-                            Number(a.statut === 'VALIDE') - Number(b.statut === 'VALIDE'),
-                      )
-                      .map((t) => (
-                      <TaskItem
-                        key={t.id}
-                        tache={t}
-                        currentUserId={user.id}
-                        isManager={isManager}
-                        isAdmin={isAdmin}
-                        assignableMembres={bureau.membres}
-                        moveTargets={moveTargets.filter((m) => m.conversationId !== g.conversationId)}
-                        onChange={load}
-                      />
-                    ))}
-                </div>
-              )}
+              {open && (() => {
+                const renderTask = (t: Tache) =>
+                  user && (
+                    <TaskItem
+                      key={t.id}
+                      tache={t}
+                      currentUserId={user.id}
+                      isManager={isManager}
+                      isAdmin={isAdmin}
+                      assignableMembres={bureau.membres}
+                      moveTargets={moveTargets.filter((m) => m.conversationId !== g.conversationId)}
+                      onChange={load}
+                    />
+                  );
+
+                if (!sortByStatus) {
+                  return (
+                    <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+                      {[...g.taches]
+                        // Par défaut : les tâches validées descendent en bas de liste.
+                        .sort((a, b) => Number(a.statut === 'VALIDE') - Number(b.statut === 'VALIDE'))
+                        .map(renderTask)}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="mt-3 flex flex-col gap-4">
+                    {STATUS_GROUPS.map((grp) => {
+                      const items = g.taches.filter((t) => grp.statuses.includes(t.statut));
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={grp.label}>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {grp.label} ({items.length})
+                          </p>
+                          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                            {items.map(renderTask)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </Card>
           );
         })
