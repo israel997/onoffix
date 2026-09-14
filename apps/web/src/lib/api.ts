@@ -461,16 +461,55 @@ export function listMessages(bureauId: string, before?: string) {
   return authFetch<ChatMessage[]>(`/bureaux/${bureauId}/messages${before ? `?before=${before}` : ''}`);
 }
 
-function sendFile(path: string, file: File, contenu?: string, replyToId?: string): Promise<ChatMessage> {
+/** XHR (pas fetch) pour exposer une vraie progression d'upload — cf. uploadRapportImage. */
+function sendFile(
+  path: string,
+  file: File,
+  contenu?: string,
+  replyToId?: string,
+  onProgress?: (percent: number) => void,
+): Promise<ChatMessage> {
   const formData = new FormData();
   formData.append('file', file);
   if (contenu) formData.append('contenu', contenu);
   if (replyToId) formData.append('replyToId', replyToId);
-  return authFetchForm<ChatMessage>(path, formData);
+
+  const tokens = getStoredTokens();
+  if (!tokens) return Promise.reject(new ApiError('Non authentifié', 401));
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}${path}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${tokens.accessToken}`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText));
+      } else {
+        let message = 'Upload failed';
+        try {
+          message = JSON.parse(xhr.responseText).message ?? message;
+        } catch {
+          // réponse non-JSON, on garde le message générique
+        }
+        reject(new ApiError(message, xhr.status));
+      }
+    };
+    xhr.onerror = () => reject(new ApiError('Network error', 0));
+    xhr.send(formData);
+  });
 }
 
-export function sendBureauFile(bureauId: string, file: File, contenu?: string, replyToId?: string) {
-  return sendFile(`/bureaux/${bureauId}/messages/fichier`, file, contenu, replyToId);
+export function sendBureauFile(
+  bureauId: string,
+  file: File,
+  contenu?: string,
+  replyToId?: string,
+  onProgress?: (percent: number) => void,
+) {
+  return sendFile(`/bureaux/${bureauId}/messages/fichier`, file, contenu, replyToId, onProgress);
 }
 
 export interface Organisation {
@@ -1117,8 +1156,15 @@ export function sendOrganizerFile(
   file: File,
   contenu?: string,
   replyToId?: string,
+  onProgress?: (percent: number) => void,
 ) {
-  return sendFile(`/organizers/${projetId}/subjects/${subjectId}/messages/fichier`, file, contenu, replyToId);
+  return sendFile(
+    `/organizers/${projetId}/subjects/${subjectId}/messages/fichier`,
+    file,
+    contenu,
+    replyToId,
+    onProgress,
+  );
 }
 
 export interface DirectConversation {
@@ -1148,8 +1194,14 @@ export function listDirectMessages(conversationId: string, before?: string) {
   );
 }
 
-export function sendDirectFile(conversationId: string, file: File, contenu?: string, replyToId?: string) {
-  return sendFile(`/direct-messages/${conversationId}/messages/fichier`, file, contenu, replyToId);
+export function sendDirectFile(
+  conversationId: string,
+  file: File,
+  contenu?: string,
+  replyToId?: string,
+  onProgress?: (percent: number) => void,
+) {
+  return sendFile(`/direct-messages/${conversationId}/messages/fichier`, file, contenu, replyToId, onProgress);
 }
 
 export function createTache(

@@ -235,8 +235,8 @@ export function SubjectsChat({
           leaveEvent="organizer:leave"
           messageEvent="organizer:message"
           fetchHistory={(subjectId, before) => listOrganizerMessages(projetId, subjectId, before)}
-          uploadFile={(subjectId, file, contenu, replyToId) =>
-            sendOrganizerFile(projetId, subjectId, file, contenu, replyToId)
+          uploadFile={(subjectId, file, contenu, replyToId, onProgress) =>
+            sendOrganizerFile(projetId, subjectId, file, contenu, replyToId, onProgress)
           }
           mentionableUsers={mentionableUsers}
           accentColor={couleur ? { bubble: BUREAU_COLORS[couleur].bubble, bubbleDark: BUREAU_COLORS[couleur].bubbleDark } : undefined}

@@ -186,7 +186,13 @@ export interface ChatProps {
   leaveEvent: string;
   messageEvent: string;
   fetchHistory: (roomId: string, before?: string) => Promise<ChatMessage[]>;
-  uploadFile: (roomId: string, file: File, contenu?: string, replyToId?: string) => Promise<ChatMessage>;
+  uploadFile: (
+    roomId: string,
+    file: File,
+    contenu?: string,
+    replyToId?: string,
+    onProgress?: (percent: number) => void,
+  ) => Promise<ChatMessage>;
   title: ReactNode;
   description: string;
   /** Personnes qu'on peut @mentionner ici — omis pour un chat sans notion d'équipe (DM, organizer perso). */
@@ -221,6 +227,7 @@ export function Chat({
   const [loadingMore, setLoadingMore] = useState(false);
   const [draft, setDraft] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
@@ -429,8 +436,9 @@ export function Chat({
       const file = pendingFile;
       setError(null);
       setUploading(true);
+      setUploadProgress(0);
       try {
-        await uploadFile(roomId, file, contenu || undefined, replyingTo?.id);
+        await uploadFile(roomId, file, contenu || undefined, replyingTo?.id, setUploadProgress);
         setPendingFile(null);
         setDraft('');
         setReplyingTo(null);
@@ -438,6 +446,7 @@ export function Chat({
         setError(err instanceof Error ? err.message : 'Upload failed');
       } finally {
         setUploading(false);
+        setUploadProgress(null);
       }
       return;
     }
@@ -761,13 +770,26 @@ export function Chat({
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-foreground">{pendingFile.name}</p>
-            <p className="text-muted-foreground">{formatFileSize(pendingFile.size)}</p>
+            {uploadProgress === null ? (
+              <p className="text-muted-foreground">{formatFileSize(pendingFile.size)}</p>
+            ) : (
+              <div className="mt-1 flex items-center gap-1.5">
+                <div className="h-1.5 w-full max-w-32 overflow-hidden rounded-full bg-surface">
+                  <div
+                    className="h-full rounded-full bg-status-validated transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <span className="shrink-0 font-medium text-status-validated">{uploadProgress}%</span>
+              </div>
+            )}
           </div>
           <button
             type="button"
             onClick={cancelPendingFile}
+            disabled={uploading}
             aria-label="Remove attachment"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40"
           >
             ✕
           </button>
