@@ -68,12 +68,27 @@ const IN_PROGRESS_STATUSES: StatutTache[] = ['ACCEPTEE', 'EN_COURS', 'A_REVOIR']
 // Sous-groupes du tri "par statut" (icône pile de couches), dans cet ordre — un
 // groupe vide n'affiche rien. Le libellé reprend la couleur du badge de statut
 // correspondant (cf. STATUT_TONE), pour repérer chaque section au premier coup d'œil.
-const STATUS_GROUPS: { label: string; statuses: StatutTache[]; textClass: string }[] = [
-  { label: 'To do', statuses: ['A_FAIRE'], textClass: 'text-muted-foreground' },
-  { label: 'In progress', statuses: ['ACCEPTEE', 'EN_COURS'], textClass: 'text-brand-blue-dark' },
-  { label: 'Waiting for validation', statuses: ['DECLARE'], textClass: 'text-status-declared' },
-  { label: 'Returned for rework', statuses: ['A_REVOIR'], textClass: 'text-status-review' },
-  { label: 'Validated', statuses: ['VALIDE'], textClass: 'text-status-validated' },
+const STATUS_GROUPS: { label: string; statuses: StatutTache[]; textClass: string; barClass: string }[] = [
+  { label: 'To do', statuses: ['A_FAIRE'], textClass: 'text-muted-foreground', barClass: 'bg-muted-foreground' },
+  {
+    label: 'In progress',
+    statuses: ['ACCEPTEE', 'EN_COURS'],
+    textClass: 'text-brand-blue-dark',
+    barClass: 'bg-brand-blue',
+  },
+  {
+    label: 'Waiting for validation',
+    statuses: ['DECLARE'],
+    textClass: 'text-status-declared',
+    barClass: 'bg-status-declared',
+  },
+  {
+    label: 'Returned for rework',
+    statuses: ['A_REVOIR'],
+    textClass: 'text-status-review',
+    barClass: 'bg-status-review',
+  },
+  { label: 'Validated', statuses: ['VALIDE'], textClass: 'text-status-validated', barClass: 'bg-status-validated' },
 ];
 
 function applyFilter(taches: Tache[], filter: StatusFilter) {
@@ -465,7 +480,10 @@ function TasksPageContent() {
                       if (items.length === 0) return null;
                       return (
                         <div key={grp.label}>
-                          <p className={`mb-2 text-xs font-semibold uppercase tracking-wide ${grp.textClass}`}>
+                          <p
+                            className={`mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${grp.textClass}`}
+                          >
+                            <span className={`h-2.5 w-1 shrink-0 rounded-full ${grp.barClass}`} />
                             {grp.label} ({items.length})
                           </p>
                           <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
