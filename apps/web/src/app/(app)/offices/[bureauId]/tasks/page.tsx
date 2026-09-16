@@ -25,6 +25,7 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
 
 interface Group {
@@ -122,9 +123,11 @@ function TasksPageContent() {
   const toast = useToast();
   const confirm = useConfirm();
 
-  const [taches, setTaches] = useState<Tache[] | null>(null);
-  const [bureau, setBureau] = useState<BureauDetail | null>(null);
-  const [organizer, setOrganizer] = useState<OrganizerDetail | null>(null);
+  const cacheKey = `tasks:${bureauId}`;
+  const cached = getCached<{ taches: Tache[]; bureau: BureauDetail; organizer: OrganizerDetail }>(cacheKey);
+  const [taches, setTaches] = useState<Tache[] | null>(cached?.taches ?? null);
+  const [bureau, setBureau] = useState<BureauDetail | null>(cached?.bureau ?? null);
+  const [organizer, setOrganizer] = useState<OrganizerDetail | null>(cached?.organizer ?? null);
   const initialStatus = searchParams.get('status');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
     isStatusFilter(initialStatus) ? initialStatus : 'ALL',
@@ -143,6 +146,7 @@ function TasksPageContent() {
     setTaches(t);
     setBureau(bur);
     setOrganizer(org);
+    setCached(cacheKey, { taches: t, bureau: bur, organizer: org });
   }
 
   useEffect(() => {

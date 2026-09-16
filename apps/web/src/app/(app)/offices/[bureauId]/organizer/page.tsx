@@ -20,14 +20,17 @@ import {
   type OrganizerDetail,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
 
 export default function OrganizerPage() {
   const params = useParams<{ bureauId: string }>();
   const bureauId = params.bureauId;
   const { user } = useAuth();
 
-  const [organizer, setOrganizer] = useState<OrganizerDetail | null>(null);
-  const [bureau, setBureau] = useState<BureauDetail | null>(null);
+  const cacheKey = `office-organizer:${bureauId}`;
+  const cached = getCached<{ organizer: OrganizerDetail; bureau: BureauDetail }>(cacheKey);
+  const [organizer, setOrganizer] = useState<OrganizerDetail | null>(cached?.organizer ?? null);
+  const [bureau, setBureau] = useState<BureauDetail | null>(cached?.bureau ?? null);
   const [titre, setTitre] = useState('');
   const [description, setDescription] = useState('');
   const [subjectId, setSubjectId] = useState('');
@@ -38,6 +41,7 @@ export default function OrganizerPage() {
     const [org, bur] = await Promise.all([getBureauOrganizer(bureauId), getBureau(bureauId)]);
     setOrganizer(org);
     setBureau(bur);
+    setCached(cacheKey, { organizer: org, bureau: bur });
   }
 
   useEffect(() => {

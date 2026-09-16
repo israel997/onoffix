@@ -21,6 +21,7 @@ import {
   type Tache,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
 
 function DailyBriefCard({ brief }: { brief: DailyBrief }) {
@@ -132,9 +133,11 @@ export default function CheckInPage() {
   const bureauId = params.bureauId;
   const { user } = useAuth();
 
-  const [bureau, setBureau] = useState<BureauDetail | null>(null);
-  const [brief, setBrief] = useState<DailyBrief | null>(null);
-  const [taches, setTaches] = useState<Tache[] | null>(null);
+  const cacheKey = `office-checkin:${bureauId}`;
+  const cached = getCached<{ bureau: BureauDetail; brief: DailyBrief; taches: Tache[] }>(cacheKey);
+  const [bureau, setBureau] = useState<BureauDetail | null>(cached?.bureau ?? null);
+  const [brief, setBrief] = useState<DailyBrief | null>(cached?.brief ?? null);
+  const [taches, setTaches] = useState<Tache[] | null>(cached?.taches ?? null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const [historyFrom, setHistoryFrom] = useState(today);
@@ -145,6 +148,7 @@ export default function CheckInPage() {
     setBureau(bur);
     setBrief(br);
     setTaches(t);
+    setCached(cacheKey, { bureau: bur, brief: br, taches: t });
   }
 
   useEffect(() => {

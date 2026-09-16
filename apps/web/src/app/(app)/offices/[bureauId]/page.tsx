@@ -30,6 +30,7 @@ import {
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
 
 function roleLabel(roleGlobal: 'ADMIN' | 'MANAGER' | 'MEMBRE' | undefined) {
@@ -44,10 +45,12 @@ export default function OfficeDetailPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  const [bureau, setBureau] = useState<BureauDetail | null>(null);
-  const [orgMembres, setOrgMembres] = useState<OrganisationMembre[] | null>(null);
+  const cacheKey = `office-overview:${bureauId}`;
+  const cached = getCached<{ bureau: BureauDetail; orgMembres: OrganisationMembre[]; stats: BureauStats }>(cacheKey);
+  const [bureau, setBureau] = useState<BureauDetail | null>(cached?.bureau ?? null);
+  const [orgMembres, setOrgMembres] = useState<OrganisationMembre[] | null>(cached?.orgMembres ?? null);
   const [invitations, setInvitations] = useState<BureauInvitation[]>([]);
-  const [stats, setStats] = useState<BureauStats | null>(null);
+  const [stats, setStats] = useState<BureauStats | null>(cached?.stats ?? null);
   const [statsMember, setStatsMember] = useState<{ id: string; nom: string } | null>(null);
   const [detailMembre, setDetailMembre] = useState<OrganisationMembre | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -73,6 +76,7 @@ export default function OfficeDetailPage() {
     setBureau(bureauData);
     setOrgMembres(membresData);
     setStats(statsData);
+    setCached(cacheKey, { bureau: bureauData, orgMembres: membresData, stats: statsData });
     if (isManagerOf(bureauData)) {
       setInvitations(await listBureauInvitations(bureauId));
     } else {

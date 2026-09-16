@@ -26,6 +26,7 @@ import {
 import { BUREAU_COLOR_KEYS, BUREAU_COLORS } from '@/lib/bureau-colors';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/cn';
+import { getCached, setCached } from '@/lib/page-cache';
 
 export default function OfficeSettingsPage() {
   const params = useParams<{ bureauId: string }>();
@@ -34,13 +35,17 @@ export default function OfficeSettingsPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [bureau, setBureau] = useState<BureauDetail | null>(null);
-  const [nom, setNom] = useState('');
-  const [heureDeclaration, setHeureDeclaration] = useState('18:30');
-  const [fuseauHoraire, setFuseauHoraire] = useState('UTC');
-  const [delaiRelanceMinutes, setDelaiRelanceMinutes] = useState(60);
-  const [classementFiabiliteVisible, setClassementFiabiliteVisible] = useState(true);
-  const [couleur, setCouleur] = useState<CouleurBureau>('BLUE');
+  const cacheKey = `office-settings:${bureauId}`;
+  const cached = getCached<BureauDetail>(cacheKey);
+  const [bureau, setBureau] = useState<BureauDetail | null>(cached ?? null);
+  const [nom, setNom] = useState(cached?.nom ?? '');
+  const [heureDeclaration, setHeureDeclaration] = useState(cached?.heureDeclaration ?? '18:30');
+  const [fuseauHoraire, setFuseauHoraire] = useState(cached?.fuseauHoraire ?? 'UTC');
+  const [delaiRelanceMinutes, setDelaiRelanceMinutes] = useState(cached?.delaiRelanceMinutes ?? 60);
+  const [classementFiabiliteVisible, setClassementFiabiliteVisible] = useState(
+    cached?.classementFiabiliteVisible ?? true,
+  );
+  const [couleur, setCouleur] = useState<CouleurBureau>(cached?.couleur ?? 'BLUE');
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -61,6 +66,7 @@ export default function OfficeSettingsPage() {
     setDelaiRelanceMinutes(data.delaiRelanceMinutes);
     setClassementFiabiliteVisible(data.classementFiabiliteVisible);
     setCouleur(data.couleur);
+    setCached(cacheKey, data);
   }
 
   useEffect(() => {
