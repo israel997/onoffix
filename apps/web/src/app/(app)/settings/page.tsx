@@ -22,14 +22,18 @@ import {
   type Organisation,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
+
+const ORG_SETTINGS_CACHE_KEY = 'org-settings';
 
 export default function OrganisationSettingsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [organisation, setOrganisation] = useState<Organisation | null>(null);
-  const [nom, setNom] = useState('');
+  const cached = getCached<Organisation>(ORG_SETTINGS_CACHE_KEY);
+  const [organisation, setOrganisation] = useState<Organisation | null>(cached ?? null);
+  const [nom, setNom] = useState(cached?.nom ?? '');
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,6 +45,7 @@ export default function OrganisationSettingsPage() {
     const data = await getOrganisation();
     setOrganisation(data);
     setNom(data.nom);
+    setCached(ORG_SETTINGS_CACHE_KEY, data);
   }
 
   useEffect(() => {
@@ -59,6 +64,7 @@ export default function OrganisationSettingsPage() {
     try {
       const updated = await updateOrganisation({ nom });
       setOrganisation(updated);
+      setCached(ORG_SETTINGS_CACHE_KEY, updated);
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -75,6 +81,7 @@ export default function OrganisationSettingsPage() {
     try {
       const updated = await uploadOrganisationLogo(file);
       setOrganisation(updated);
+      setCached(ORG_SETTINGS_CACHE_KEY, updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -88,6 +95,7 @@ export default function OrganisationSettingsPage() {
     try {
       const updated = await removeOrganisationLogo();
       setOrganisation(updated);
+      setCached(ORG_SETTINGS_CACHE_KEY, updated);
     } finally {
       setUploadingLogo(false);
     }

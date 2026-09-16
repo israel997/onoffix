@@ -20,6 +20,7 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -75,8 +76,12 @@ export default function CalendarPage() {
   const isAdmin = user?.roleGlobal === 'ADMIN';
 
   const [scope, setScope] = useState<'mine' | 'organisation'>('mine');
-  const [tasks, setTasks] = useState<MyTache[] | null>(null);
-  const [personalOrganizerId, setPersonalOrganizerId] = useState<string | null>(null);
+  const calendarCacheKey = `calendar:${scope}`;
+  const calendarCached = getCached<{ tasks: MyTache[]; personalOrganizerId: string }>(calendarCacheKey);
+  const [tasks, setTasks] = useState<MyTache[] | null>(calendarCached?.tasks ?? null);
+  const [personalOrganizerId, setPersonalOrganizerId] = useState<string | null>(
+    calendarCached?.personalOrganizerId ?? null,
+  );
   const [monthStart, setMonthStart] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -92,6 +97,7 @@ export default function CalendarPage() {
     ]);
     setTasks(t);
     setPersonalOrganizerId(organizer.id);
+    setCached(calendarCacheKey, { tasks: t, personalOrganizerId: organizer.id });
   }
 
   useEffect(() => {

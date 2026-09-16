@@ -36,6 +36,7 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
 
 const JOURS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -119,42 +120,66 @@ export default function ReportDetailPage() {
   const toast = useToast();
   const confirmDialog = useConfirm();
 
-  const [rapport, setRapport] = useState<RapportDetail | null>(null);
-  const [members, setMembers] = useState<OrganisationMembre[] | null>(null);
+  interface ReportCache {
+    rapport: RapportDetail | null;
+    members: OrganisationMembre[] | null;
+  }
+
+  const reportCacheKey = `reporting:${rapportId}`;
+  const reportCached = getCached<ReportCache>(reportCacheKey);
+  const [rapport, setRapport] = useState<RapportDetail | null>(reportCached?.rapport ?? null);
+  const [members, setMembers] = useState<OrganisationMembre[] | null>(reportCached?.members ?? null);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
-  const [nom, setNom] = useState('');
-  const [blocks, setBlocks] = useState<ContentBlock[]>([]);
-  const [jours, setJours] = useState<Record<number, JourDraft>>({});
-  const [mentionedIds, setMentionedIds] = useState<Set<string>>(new Set());
+  function patchReportCache(patch: Partial<ReportCache>) {
+    const prev = getCached<ReportCache>(reportCacheKey);
+    setCached(reportCacheKey, { rapport: prev?.rapport ?? null, members: prev?.members ?? null, ...patch });
+  }
+
+  function joursFromData(data: RapportDetail): Record<number, JourDraft> {
+    return Object.fromEntries(
+      data.jours.map((j) => [
+        j.jour,
+        {
+          contenu: parseBlocks(j.contenu),
+          bonsPoints: parseList(j.bonsPoints),
+          pointsNegatifs: parseList(j.pointsNegatifs),
+          objectifs: parseList(j.objectifs),
+        },
+      ]),
+    );
+  }
+
+  const [nom, setNom] = useState(reportCached?.rapport?.nom ?? '');
+  const [blocks, setBlocks] = useState<ContentBlock[]>(
+    reportCached?.rapport ? parseBlocks(reportCached.rapport.contenu) : [],
+  );
+  const [jours, setJours] = useState<Record<number, JourDraft>>(
+    reportCached?.rapport ? joursFromData(reportCached.rapport) : {},
+  );
+  const [mentionedIds, setMentionedIds] = useState<Set<string>>(
+    new Set(reportCached?.rapport?.mentions.map((m) => m.user.id) ?? []),
+  );
 
   async function load() {
     const data = await getRapport(rapportId);
     setRapport(data);
     setNom(data.nom);
     setBlocks(parseBlocks(data.contenu));
-    setJours(
-      Object.fromEntries(
-        data.jours.map((j) => [
-          j.jour,
-          {
-            contenu: parseBlocks(j.contenu),
-            bonsPoints: parseList(j.bonsPoints),
-            pointsNegatifs: parseList(j.pointsNegatifs),
-            objectifs: parseList(j.objectifs),
-          },
-        ]),
-      ),
-    );
+    setJours(joursFromData(data));
     setMentionedIds(new Set(data.mentions.map((m) => m.user.id)));
+    patchReportCache({ rapport: data });
   }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-    listOrganisationMembres().then(setMembers);
+    listOrganisationMembres().then((data) => {
+      setMembers(data);
+      patchReportCache({ members: data });
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rapportId]);
 

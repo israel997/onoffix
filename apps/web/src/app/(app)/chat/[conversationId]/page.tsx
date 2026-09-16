@@ -10,18 +10,24 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card } from '@/components/ui/card';
 import { listDirectConversations, listDirectMessages, sendDirectFile, type DirectConversation } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
+
+const DM_CONVERSATIONS_CACHE_KEY = 'dm-conversations';
 
 export default function DirectConversationPage() {
   const params = useParams<{ conversationId: string }>();
   const conversationId = params.conversationId;
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<DirectConversation[] | null>(null);
+  const [conversations, setConversations] = useState<DirectConversation[] | null>(
+    getCached<DirectConversation[]>(DM_CONVERSATIONS_CACHE_KEY) ?? null,
+  );
 
   useEffect(() => {
     let active = true;
     function load() {
       listDirectConversations().then((list) => {
         if (active) setConversations(list);
+        setCached(DM_CONVERSATIONS_CACHE_KEY, list);
       });
     }
     load();

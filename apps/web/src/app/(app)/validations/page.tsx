@@ -8,14 +8,22 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { listBureaux, type Bureau } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
+
+const VALIDATIONS_CACHE_KEY = 'validations-bureaux';
 
 export default function ValidationsPage() {
   const { user } = useAuth();
-  const [allBureaux, setAllBureaux] = useState<Bureau[] | null>(null);
+  const [allBureaux, setAllBureaux] = useState<Bureau[] | null>(getCached<Bureau[]>(VALIDATIONS_CACHE_KEY) ?? null);
   const isAdmin = user?.roleGlobal === 'ADMIN';
 
   useEffect(() => {
-    if (isAdmin) listBureaux().then(setAllBureaux);
+    if (isAdmin) {
+      listBureaux().then((data) => {
+        setAllBureaux(data);
+        setCached(VALIDATIONS_CACHE_KEY, data);
+      });
+    }
   }, [isAdmin]);
 
   if (!user) return null;

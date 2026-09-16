@@ -20,12 +20,15 @@ import {
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useConfirm } from '@/lib/confirm-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import {
   disablePushNotifications,
   enablePushNotifications,
   getPushSubscriptionState,
 } from '@/lib/push-notifications';
 import { useToast } from '@/lib/toast-context';
+
+const NOTIFICATIONS_CACHE_KEY = 'notifications-list';
 
 function PushToggle() {
   const toast = useToast();
@@ -110,11 +113,14 @@ function formatWhen(iso: string) {
 export default function NotificationsPage() {
   const toast = useToast();
   const confirmDialog = useConfirm();
-  const [notifications, setNotifications] = useState<AppNotification[] | null>(null);
+  const cached = getCached<AppNotification[]>(NOTIFICATIONS_CACHE_KEY);
+  const [notifications, setNotifications] = useState<AppNotification[] | null>(cached ?? null);
   const [category, setCategory] = useState<Category>('ALL');
 
   async function load() {
-    setNotifications(await listNotifications());
+    const data = await listNotifications();
+    setNotifications(data);
+    setCached(NOTIFICATIONS_CACHE_KEY, data);
   }
 
   useEffect(() => {
@@ -122,26 +128,34 @@ export default function NotificationsPage() {
     load();
   }, []);
 
+  function updateNotifications(updater: (prev: AppNotification[] | null) => AppNotification[] | null) {
+    setNotifications((prev) => {
+      const next = updater(prev);
+      setCached(NOTIFICATIONS_CACHE_KEY, next ?? []);
+      return next;
+    });
+  }
+
   async function handleMarkAllAsRead() {
     await markAllNotificationsAsRead();
-    setNotifications((prev) => prev?.map((n) => ({ ...n, lue: true })) ?? null);
+    updateNotifications((prev) => prev?.map((n) => ({ ...n, lue: true })) ?? null);
   }
 
   async function handleMarkAsRead(notification: AppNotification) {
     if (notification.lue) return;
-    setNotifications((prev) => prev?.map((n) => (n.id === notification.id ? { ...n, lue: true } : n)) ?? null);
+    updateNotifications((prev) => prev?.map((n) => (n.id === notification.id ? { ...n, lue: true } : n)) ?? null);
     await markNotificationAsRead(notification.id);
   }
 
   async function handleToggleRead(notification: AppNotification) {
     const lue = !notification.lue;
-    setNotifications((prev) => prev?.map((n) => (n.id === notification.id ? { ...n, lue } : n)) ?? null);
+    updateNotifications((prev) => prev?.map((n) => (n.id === notification.id ? { ...n, lue } : n)) ?? null);
     if (lue) await markNotificationAsRead(notification.id);
     else await markNotificationAsUnread(notification.id);
   }
 
   async function handleDelete(notification: AppNotification) {
-    setNotifications((prev) => prev?.filter((n) => n.id !== notification.id) ?? null);
+    updateNotifications((prev) => prev?.filter((n) => n.id !== notification.id) ?? null);
     await deleteNotification(notification.id);
   }
 
@@ -153,7 +167,7 @@ export default function NotificationsPage() {
       danger: true,
     });
     if (!ok) return;
-    setNotifications([]);
+    updateNotifications(() => []);
     await deleteAllNotifications();
     toast('All notifications deleted');
   }

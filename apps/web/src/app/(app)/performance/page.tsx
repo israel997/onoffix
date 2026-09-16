@@ -32,6 +32,7 @@ import {
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
 
 function EvolutionCharts({ data }: { data: EvolutionPoint[] }) {
   if (data.length === 0) return <EmptyState>No data for this range.</EmptyState>;
@@ -82,23 +83,50 @@ export default function PerformancePage() {
   const [from, setFrom] = useState(() => toISODate(new Date()));
   const [to, setTo] = useState(() => toISODate(new Date()));
 
-  const [members, setMembers] = useState<OrganisationMembre[] | null>(null);
-  const [targetUserId, setTargetUserId] = useState<string | null>(null);
-  const [stats, setStats] = useState<MembreStats | null>(null);
-
-  const [officeOptions, setOfficeOptions] = useState<{ id: string; nom: string }[] | null>(null);
-  const [bureauId, setBureauId] = useState<string | null>(null);
-  const [classement, setClassement] = useState<ClassementEntry[] | null>(null);
+  const metaCacheKey = `perf-meta:${isAdmin}`;
+  const metaCached = getCached<{ members: OrganisationMembre[]; officeOptions: { id: string; nom: string }[] }>(
+    metaCacheKey,
+  );
+  const [members, setMembers] = useState<OrganisationMembre[] | null>(metaCached?.members ?? null);
+  const [targetUserId, setTargetUserId] = useState<string | null>(user?.id ?? null);
+  const [officeOptions, setOfficeOptions] = useState<{ id: string; nom: string }[] | null>(
+    metaCached?.officeOptions ?? null,
+  );
+  const [bureauId, setBureauId] = useState<string | null>(metaCached?.officeOptions?.[0]?.id ?? null);
   const [classementError, setClassementError] = useState<string | null>(null);
-
-  const [journal, setJournal] = useState<JournalJour[] | null>(null);
   const [openDay, setOpenDay] = useState<string | null>(null);
+
+  const statsCacheKey = targetUserId ? `perf-stats:${targetUserId}:${from}:${to}` : null;
+  const [stats, setStats] = useState<MembreStats | null>(
+    statsCacheKey ? getCached<MembreStats>(statsCacheKey) ?? null : null,
+  );
+  const journalCacheKey = targetUserId ? `perf-journal:${targetUserId}:${from}:${to}` : null;
+  const [journal, setJournal] = useState<JournalJour[] | null>(
+    journalCacheKey ? getCached<JournalJour[]>(journalCacheKey) ?? null : null,
+  );
+  const evolutionCacheKey = targetUserId ? `perf-evolution:${targetUserId}:${from}:${to}` : null;
+  const [evolution, setEvolution] = useState<EvolutionPoint[] | null>(
+    evolutionCacheKey ? getCached<EvolutionPoint[]>(evolutionCacheKey) ?? null : null,
+  );
+  const bureauEvolutionCacheKey = bureauId ? `perf-bureau-evolution:${bureauId}:${from}:${to}` : null;
+  const [bureauEvolution, setBureauEvolution] = useState<EvolutionPoint[] | null>(
+    bureauEvolutionCacheKey ? getCached<EvolutionPoint[]>(bureauEvolutionCacheKey) ?? null : null,
+  );
+  const classementCacheKey = bureauId ? `perf-classement:${bureauId}:${from}:${to}` : null;
+  const [classement, setClassement] = useState<ClassementEntry[] | null>(
+    classementCacheKey ? getCached<ClassementEntry[]>(classementCacheKey) ?? null : null,
+  );
 
   useEffect(() => {
     if (!user) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTargetUserId((prev) => prev ?? user.id);
-    if (isAdmin) listOrganisationMembres().then(setMembers);
+    if (isAdmin) {
+      listOrganisationMembres().then((data) => {
+        setMembers(data);
+        setCached(metaCacheKey, { ...getCached<{ officeOptions: unknown }>(metaCacheKey), members: data });
+      });
+    }
 
     // Un admin peut voir le classement de n'importe quel office, même ceux dont il
     // n'est pas membre — les autres ne voient que leurs propres offices.
@@ -107,28 +135,46 @@ export default function PerformancePage() {
         const options = bureaux.map((b) => ({ id: b.id, nom: b.nom }));
         setOfficeOptions(options);
         setBureauId((prev) => prev ?? options[0]?.id ?? null);
+        setCached(metaCacheKey, { ...getCached<{ members: unknown }>(metaCacheKey), officeOptions: options });
       });
     } else {
       const options = user.bureaux.map((b) => b.bureau);
       setOfficeOptions(options);
       setBureauId((prev) => prev ?? options[0]?.id ?? null);
+      setCached(metaCacheKey, { ...getCached<{ members: unknown }>(metaCacheKey), officeOptions: options });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
-
-  const [evolution, setEvolution] = useState<EvolutionPoint[] | null>(null);
-  const [bureauEvolution, setBureauEvolution] = useState<EvolutionPoint[] | null>(null);
 
   useEffect(() => {
     if (!targetUserId) return;
-    getMembreStats(targetUserId, { from, to }).then(setStats);
-    getMembreJournal(targetUserId, from, to).then(setJournal);
-    getMembreEvolution(targetUserId, from, to).then(setEvolution).catch(() => setEvolution([]));
+    const key = `perf-stats:${targetUserId}:${from}:${to}`;
+    getMembreStats(targetUserId, { from, to }).then((data) => {
+      setStats(data);
+      setCached(key, data);
+    });
+    const jKey = `perf-journal:${targetUserId}:${from}:${to}`;
+    getMembreJournal(targetUserId, from, to).then((data) => {
+      setJournal(data);
+      setCached(jKey, data);
+    });
+    const eKey = `perf-evolution:${targetUserId}:${from}:${to}`;
+    getMembreEvolution(targetUserId, from, to)
+      .then((data) => {
+        setEvolution(data);
+        setCached(eKey, data);
+      })
+      .catch(() => setEvolution([]));
   }, [targetUserId, from, to]);
 
   useEffect(() => {
     if (!bureauId || !isAdmin) return;
+    const key = `perf-bureau-evolution:${bureauId}:${from}:${to}`;
     getBureauEvolution(bureauId, from, to)
-      .then(setBureauEvolution)
+      .then((data) => {
+        setBureauEvolution(data);
+        setCached(key, data);
+      })
       .catch(() => setBureauEvolution([]));
   }, [bureauId, from, to, isAdmin]);
 
@@ -136,8 +182,12 @@ export default function PerformancePage() {
     if (!bureauId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setClassementError(null);
+    const key = `perf-classement:${bureauId}:${from}:${to}`;
     getBureauClassement(bureauId, from, to)
-      .then(setClassement)
+      .then((data) => {
+        setClassement(data);
+        setCached(key, data);
+      })
       .catch((err) => {
         setClassement(null);
         setClassementError(err instanceof Error ? err.message : 'Something went wrong');

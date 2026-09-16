@@ -24,13 +24,17 @@ import {
 } from '@/lib/api';
 import { BUREAU_COLORS } from '@/lib/bureau-colors';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
+
+const OFFICES_CACHE_KEY = 'offices-list';
 
 export default function OfficesPage() {
   const { user } = useAuth();
   const toast = useToast();
-  const [bureaux, setBureaux] = useState<Bureau[] | null>(null);
-  const [invitations, setInvitations] = useState<MyBureauInvitation[] | null>(null);
+  const cached = getCached<{ bureaux: Bureau[]; invitations: MyBureauInvitation[] }>(OFFICES_CACHE_KEY);
+  const [bureaux, setBureaux] = useState<Bureau[] | null>(cached?.bureaux ?? null);
+  const [invitations, setInvitations] = useState<MyBureauInvitation[] | null>(cached?.invitations ?? null);
   const [showForm, setShowForm] = useState(false);
   const [nom, setNom] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +47,7 @@ export default function OfficesPage() {
     const [bureauxData, invitationsData] = await Promise.all([listBureaux(), listMyBureauInvitations()]);
     setBureaux(bureauxData);
     setInvitations(invitationsData);
+    setCached(OFFICES_CACHE_KEY, { bureaux: bureauxData, invitations: invitationsData });
   }
 
   async function handleAcceptInvitation(invitation: MyBureauInvitation) {

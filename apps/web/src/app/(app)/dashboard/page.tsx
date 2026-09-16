@@ -29,24 +29,51 @@ import {
   type OrganisationStats,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { getPlan, planKeyFromAbonnement } from '@/lib/plans';
+
+interface DashboardCache {
+  stats: OrganisationStats;
+  alertes: Alertes;
+  organisation: Organisation;
+  bureaux: Bureau[];
+}
+
+const DASHBOARD_CACHE_KEY = 'dashboard-home';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<OrganisationStats | null>(null);
-  const [alertes, setAlertes] = useState<Alertes | null>(null);
-  const [organisation, setOrganisation] = useState<Organisation | null>(null);
-  const [bureaux, setBureaux] = useState<Bureau[]>([]);
+  const cached = getCached<DashboardCache>(DASHBOARD_CACHE_KEY);
+  const [stats, setStats] = useState<OrganisationStats | null>(cached?.stats ?? null);
+  const [alertes, setAlertes] = useState<Alertes | null>(cached?.alertes ?? null);
+  const [organisation, setOrganisation] = useState<Organisation | null>(cached?.organisation ?? null);
+  const [bureaux, setBureaux] = useState<Bureau[]>(cached?.bureaux ?? []);
   const [showPlanModal, setShowPlanModal] = useState(false);
 
+  function patchCache(patch: Partial<DashboardCache>) {
+    setCached(DASHBOARD_CACHE_KEY, { ...getCached<DashboardCache>(DASHBOARD_CACHE_KEY), ...patch });
+  }
+
   const loadAlertes = useCallback(() => {
-    getAlertes().then(setAlertes);
+    getAlertes().then((a) => {
+      setAlertes(a);
+      patchCache({ alertes: a });
+    });
   }, []);
 
   useEffect(() => {
-    getOrganisationStats().then(setStats);
-    getOrganisation().then(setOrganisation);
-    listBureaux().then(setBureaux);
+    getOrganisationStats().then((s) => {
+      setStats(s);
+      patchCache({ stats: s });
+    });
+    getOrganisation().then((o) => {
+      setOrganisation(o);
+      patchCache({ organisation: o });
+    });
+    listBureaux().then((b) => {
+      setBureaux(b);
+      patchCache({ bureaux: b });
+    });
     loadAlertes();
   }, [loadAlertes]);
 

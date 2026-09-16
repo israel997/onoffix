@@ -13,7 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Modal } from '@/components/ui/modal';
 import { ListSkeleton } from '@/components/ui/skeleton';
 import { createRapport, listRapports, type RapportSummary, type TypeRapport } from '@/lib/api';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
+
+const REPORTING_LIST_CACHE_KEY = 'reporting-list';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
@@ -89,7 +92,7 @@ type TypeFilter = 'ALL' | TypeRapport;
 
 export default function ReportingPage() {
   const router = useRouter();
-  const [reports, setReports] = useState<RapportSummary[] | null>(null);
+  const [reports, setReports] = useState<RapportSummary[] | null>(getCached<RapportSummary[]>(REPORTING_LIST_CACHE_KEY) ?? null);
   const [showNew, setShowNew] = useState(false);
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
@@ -99,6 +102,7 @@ export default function ReportingPage() {
   async function load() {
     const data = await listRapports(false);
     setReports(data);
+    setCached(REPORTING_LIST_CACHE_KEY, data);
   }
 
   useEffect(() => {

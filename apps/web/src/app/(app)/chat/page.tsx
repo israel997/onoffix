@@ -19,17 +19,24 @@ import {
   type OrganisationMembre,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getCached, setCached } from '@/lib/page-cache';
+
+const DM_CONVERSATIONS_CACHE_KEY = 'dm-conversations';
 
 export default function ChatListPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<DirectConversation[] | null>(null);
+  const [conversations, setConversations] = useState<DirectConversation[] | null>(
+    getCached<DirectConversation[]>(DM_CONVERSATIONS_CACHE_KEY) ?? null,
+  );
   const [members, setMembers] = useState<OrganisationMembre[] | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
 
   async function load() {
-    setConversations(await listDirectConversations());
+    const data = await listDirectConversations();
+    setConversations(data);
+    setCached(DM_CONVERSATIONS_CACHE_KEY, data);
   }
 
   useEffect(() => {

@@ -22,9 +22,11 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
 
 const SUPER_ADMIN_EMAIL = 'israellawani.pro@gmail.com';
+const ADMIN_CACHE_KEY = 'admin-page';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -51,8 +53,9 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const toast = useToast();
   const confirmDialog = useConfirm();
-  const [organisations, setOrganisations] = useState<AdminOrganisation[] | null>(null);
-  const [membres, setMembres] = useState<AdminMembre[] | null>(null);
+  const adminCached = getCached<{ organisations: AdminOrganisation[]; membres: AdminMembre[] }>(ADMIN_CACHE_KEY);
+  const [organisations, setOrganisations] = useState<AdminOrganisation[] | null>(adminCached?.organisations ?? null);
+  const [membres, setMembres] = useState<AdminMembre[] | null>(adminCached?.membres ?? null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const authorized = user?.email === SUPER_ADMIN_EMAIL;
@@ -61,6 +64,7 @@ export default function AdminPage() {
     const [orgsData, membresData] = await Promise.all([adminListOrganisations(), adminListMembers()]);
     setOrganisations(orgsData);
     setMembres(membresData);
+    setCached(ADMIN_CACHE_KEY, { organisations: orgsData, membres: membresData });
   }
 
   useEffect(() => {

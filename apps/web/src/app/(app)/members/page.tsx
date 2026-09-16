@@ -35,7 +35,10 @@ const ROLE_LABEL: Record<'ADMIN' | 'MANAGER' | 'MEMBRE', string> = {
 
 import { useAuth } from '@/lib/auth-context';
 import { useConfirm } from '@/lib/confirm-context';
+import { getCached, setCached } from '@/lib/page-cache';
 import { useToast } from '@/lib/toast-context';
+
+const MEMBERS_CACHE_KEY = 'members-list';
 
 function MembersPageContent() {
   const { user } = useAuth();
@@ -43,8 +46,9 @@ function MembersPageContent() {
   const highlightUserId = searchParams.get('userId');
   const toast = useToast();
   const confirmDialog = useConfirm();
-  const [membres, setMembres] = useState<OrganisationMembre[] | null>(null);
-  const [invitations, setInvitations] = useState<Invitation[] | null>(null);
+  const cached = getCached<{ membres: OrganisationMembre[]; invitations: Invitation[] }>(MEMBERS_CACHE_KEY);
+  const [membres, setMembres] = useState<OrganisationMembre[] | null>(cached?.membres ?? null);
+  const [invitations, setInvitations] = useState<Invitation[] | null>(cached?.invitations ?? null);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [nom, setNom] = useState('');
@@ -67,6 +71,7 @@ function MembersPageContent() {
     ]);
     setMembres(membresData);
     setInvitations(invitationsData);
+    setCached(MEMBERS_CACHE_KEY, { membres: membresData, invitations: invitationsData });
   }
 
   // Lien profond depuis ailleurs dans l'app (ex. l'assigné d'une tâche) : ouvre
