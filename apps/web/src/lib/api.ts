@@ -317,6 +317,19 @@ export function listBureaux() {
   return authFetch<Bureau[]>('/bureaux');
 }
 
+export interface BureauAValider {
+  id: string;
+  nom: string;
+  enCours: number;
+  aValider: number;
+}
+
+/** Bureaux managés par l'appelant avec du travail en cours à suivre — exclut les
+ * bureaux sans tâche en cours ni en attente de validation (voir page Validations). */
+export function getBureauxAValider() {
+  return authFetch<BureauAValider[]>('/bureaux/a-valider');
+}
+
 export function createBureau(data: { nom: string }) {
   return authFetch<Bureau>('/bureaux', { method: 'POST', body: data });
 }

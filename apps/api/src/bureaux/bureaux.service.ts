@@ -5,7 +5,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NiveauAlerte, NotificationType, RoleBureau, RoleGlobal } from '@prisma/client';
+import {
+  NiveauAlerte,
+  NotificationType,
+  RoleBureau,
+  RoleGlobal,
+  StatutTache,
+} from '@prisma/client';
 import type { AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { ChatService } from '../chat/chat.service';
 import { EmailService } from '../email/email.service';
@@ -107,6 +113,57 @@ export class BureauxService {
         tachesCount: await this.prisma.tache.count({ where: { projet: { bureauId: bureau.id } } }),
       })),
     );
+  }
+
+  /** Bureaux managés par l'appelant qui ont réellement du travail à suivre — pas la
+   *  liste entière (un bureau inactif depuis des mois n'a rien à faire dans Validations). */
+  async getAValider(user: AuthenticatedUser) {
+    let bureauIds: string[];
+    if (user.roleGlobal === RoleGlobal.ADMIN) {
+      bureauIds = (
+        await this.prisma.bureau.findMany({
+          where: { organisationId: user.organisationId },
+          select: { id: true },
+        })
+      ).map((b) => b.id);
+    } else if (user.roleGlobal === RoleGlobal.MANAGER) {
+      bureauIds = (
+        await this.prisma.userBureau.findMany({
+          where: { userId: user.userId },
+          select: { bureauId: true },
+        })
+      ).map((m) => m.bureauId);
+    } else {
+      return [];
+    }
+    if (bureauIds.length === 0) return [];
+
+    const taches = await this.prisma.tache.findMany({
+      where: {
+        projet: { bureauId: { in: bureauIds } },
+        statut: { in: [StatutTache.EN_COURS, StatutTache.DECLARE] },
+      },
+      select: { statut: true, projet: { select: { bureauId: true } } },
+    });
+
+    const counts = new Map<string, { enCours: number; aValider: number }>();
+    for (const t of taches) {
+      const bureauId = t.projet.bureauId;
+      if (!bureauId) continue;
+      const entry = counts.get(bureauId) ?? { enCours: 0, aValider: 0 };
+      if (t.statut === StatutTache.EN_COURS) entry.enCours += 1;
+      else entry.aValider += 1;
+      counts.set(bureauId, entry);
+    }
+    if (counts.size === 0) return [];
+
+    const bureaux = await this.prisma.bureau.findMany({
+      where: { id: { in: [...counts.keys()] } },
+      orderBy: [{ ordre: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, nom: true },
+    });
+
+    return bureaux.map((b) => ({ ...b, ...counts.get(b.id)! }));
   }
 
   async findOne(bureauId: string, user: AuthenticatedUser) {

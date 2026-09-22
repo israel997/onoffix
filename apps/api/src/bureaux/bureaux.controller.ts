@@ -61,6 +61,13 @@ export class BureauxController {
     return this.bureauxService.listMyInvitations(user.userId);
   }
 
+  /** Bureaux managés par l'appelant qui ont réellement du travail à suivre (tâche en
+   *  cours ou en attente de validation) — pour la page Validations, pas la liste entière. */
+  @Get('a-valider')
+  getAValider(@CurrentUser() user: AuthenticatedUser) {
+    return this.bureauxService.getAValider(user);
+  }
+
   @Post('invitations/:invitationId/accept')
   @HttpCode(HttpStatus.NO_CONTENT)
   acceptInvitation(
