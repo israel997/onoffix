@@ -128,6 +128,15 @@ export function TaskDetailModal({
         </span>
         <span className="text-muted-foreground">Assigned to</span>
         <span className="text-foreground">{tache.assigneA?.nom ?? 'Unassigned'}</span>
+        {tache.assigneA && (
+          <>
+            <span className="text-muted-foreground">Assigned on</span>
+            <span className="text-foreground">
+              {formatDate(tache.dateAssignation ?? tache.createdAt)}
+              {tache.assignePar && ` · by ${tache.assignePar.nom}`}
+            </span>
+          </>
+        )}
         <span className="text-muted-foreground">Created</span>
         <span className="text-foreground">{formatDate(tache.createdAt)}</span>
         <span className="text-muted-foreground">Started</span>

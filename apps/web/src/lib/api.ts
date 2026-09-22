@@ -824,6 +824,8 @@ export interface Tache {
   dureeEstimeeMinutes: number | null;
   assigneAId: string | null;
   assigneParId: string | null;
+  /** Dernière (ré)assignation — nul si jamais réassignée depuis sa création (voir createdAt). */
+  dateAssignation: string | null;
   dateDebut: string | null;
   dateDeclaration: string | null;
   commentaireDeclaration: string | null;

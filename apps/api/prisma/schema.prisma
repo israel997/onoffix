@@ -348,6 +348,9 @@ model Tache {
   description     String?
   assigneAId      String?     @map("assigne_a")
   assigneParId    String?     @map("assigne_par_id")
+  // Horodatage de la dernière (ré)assignation — distinct de createdAt, qui ne bouge
+  // pas quand une tâche change de mains après sa création.
+  dateAssignation DateTime?   @map("date_assignation")
   statut          StatutTache @default(A_FAIRE)
   dateDebut       DateTime?   @map("date_debut")
   dateDeclaration DateTime?   @map("date_declaration")

@@ -143,7 +143,11 @@ export class TachesService {
       await this.prisma.tacheAssignee.deleteMany({ where: { tacheId, userId: assigneeUserId } });
       await this.prisma.tache.update({
         where: { id: tacheId },
-        data: { assigneAId: assigneeUserId, assigneParId: user.userId },
+        data: {
+          assigneAId: assigneeUserId,
+          assigneParId: user.userId,
+          dateAssignation: new Date(),
+        },
       });
     } else {
       await this.prisma.tacheAssignee.upsert({
@@ -209,7 +213,12 @@ export class TachesService {
       where: { id: tacheId },
       data: tache.assigneAId
         ? { statut: StatutTache.ACCEPTEE }
-        : { statut: StatutTache.ACCEPTEE, assigneAId: user.userId, assigneParId: user.userId },
+        : {
+            statut: StatutTache.ACCEPTEE,
+            assigneAId: user.userId,
+            assigneParId: user.userId,
+            dateAssignation: new Date(),
+          },
       include: TACHE_INCLUDE,
     });
 
@@ -243,6 +252,7 @@ export class TachesService {
       data: {
         statut: StatutTache.A_FAIRE,
         assigneAId: tache.assigneParId ?? null,
+        dateAssignation: tache.assigneParId ? new Date() : null,
         dateDebut: null,
         dateDeclaration: null,
         commentaireDeclaration: null,
