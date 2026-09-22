@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
   createTache,
   getBureau,
@@ -127,18 +128,16 @@ export default function OrganizerPage() {
               </Label>
               <Label>
                 Subject
-                <select
+                <SearchableSelect
+                  size="md"
                   value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
-                >
-                  <option value="">No subject</option>
-                  {organizer.conversations.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.nom}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="No subject"
+                  onSelect={setSubjectId}
+                  options={[
+                    { value: '', label: 'No subject' },
+                    ...organizer.conversations.map((s) => ({ value: s.id, label: s.nom })),
+                  ]}
+                />
               </Label>
               {error && <p className="text-xs text-status-review">{error}</p>}
               <Button type="submit" size="sm" disabled={creating} className="w-fit">
