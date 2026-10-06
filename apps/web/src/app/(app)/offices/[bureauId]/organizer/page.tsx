@@ -55,6 +55,9 @@ export default function OrganizerPage() {
     user?.roleGlobal === 'ADMIN' ||
     (user?.roleGlobal === 'MANAGER' && bureau?.membres.some((m) => m.user.id === user?.id)) ||
     false;
+  // Créer une tâche manuellement demande juste de faire partie du bureau, pas d'être
+  // manager — contrairement à gérer les Subjects (canManage) ou voir Settings.
+  const isMember = isManager || bureau?.membres.some((m) => m.user.id === user?.id) || false;
 
   async function handleCreateTache(event: FormEvent) {
     event.preventDefault();
@@ -110,7 +113,7 @@ export default function OrganizerPage() {
           onSubjectsChanged={load}
         />
 
-        {isManager && (
+        {isMember && (
           <Card id="manual-task-form">
             <CardTitle className="flex items-center gap-2">
               <StickyNoteIcon className="h-5 w-5 text-brand-blue" />

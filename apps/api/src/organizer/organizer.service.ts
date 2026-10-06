@@ -168,7 +168,9 @@ export class OrganizerService {
       });
     }
 
-    await this.assertManager(projet.bureauId!, user);
+    // Créer une tâche manuellement ne demande pas d'être manager — juste de faire partie
+    // du bureau (elle s'assigne à son créateur, aucune action sur un tiers n'est possible ici).
+    await this.assertBureauMember(projet.bureauId!, user);
 
     // Une tâche de bureau créée sans assignation explicite s'assigne à son créateur —
     // modifiable ensuite depuis l'édition de la tâche.
@@ -259,5 +261,13 @@ export class OrganizerService {
     if (!membership) {
       throw new ForbiddenException('Seul un manager du bureau peut effectuer cette action');
     }
+  }
+
+  private async assertBureauMember(bureauId: string, user: AuthenticatedUser) {
+    if (user.roleGlobal === RoleGlobal.ADMIN) return;
+    const membership = await this.prisma.userBureau.findUnique({
+      where: { userId_bureauId: { userId: user.userId, bureauId } },
+    });
+    if (!membership) throw new ForbiddenException('Vous ne faites pas partie de ce bureau');
   }
 }
