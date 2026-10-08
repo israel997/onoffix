@@ -249,7 +249,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
           aria-label="Help & documentation"
           title="Help & documentation"
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-muted hover:text-foreground',
+            'flex h-9 w-9 items-center justify-center rounded-lg text-brand-blue hover:bg-surface-muted',
             !collapsed && 'ml-6',
           )}
         >
@@ -299,7 +299,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
               href="/docs/getting-started"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+              className="mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-brand-blue hover:bg-surface-muted"
             >
               <BookIcon className="h-[18px] w-[18px] shrink-0" />
               Help & docs

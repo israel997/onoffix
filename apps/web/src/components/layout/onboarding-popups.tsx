@@ -75,14 +75,12 @@ export function OnboardingPopups() {
     return (
       <Modal onClose={goToDocsOrClose}>
         <div className="flex flex-col items-center gap-4 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-blue-light text-brand-blue">
-            <BellIcon className="h-6 w-6" />
-          </span>
+          <BellIcon className="h-9 w-9 text-brand-blue" />
           <div>
             <h2 className="text-lg font-bold text-foreground">Turn on push notifications</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Get notified the moment a task is assigned to you, mentioned, or waiting for your
-              validation — even when OOffix is closed.
+              validation, even when OOffix is closed.
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row">
@@ -101,13 +99,11 @@ export function OnboardingPopups() {
   return (
     <Modal onClose={dismissDocs}>
       <div className="flex flex-col items-center gap-4 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-blue-light text-brand-blue">
-          <BookIcon className="h-6 w-6" />
-        </span>
+        <BookIcon className="h-9 w-9 text-brand-blue" />
         <div>
           <h2 className="text-lg font-bold text-foreground">New here?</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Take two minutes to read the guide — it walks you through offices, tasks and
+            Take two minutes to read the guide. It walks you through offices, tasks and
             Check-In so you find your way around fast.
           </p>
         </div>
