@@ -1220,7 +1220,11 @@ html {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 220px;
   gap: 48px;
-  padding: 40px 0 100px;
+  /* Seuls top/bottom ici - les côtés viennent de .wrap (même élément, cf. ci-dessous) : un
+     padding raccourci écraserait son padding latéral de 32px, ce qui collait tout aux bords
+     sur mobile (pas de max-width pour compenser par du centrage, contrairement au desktop). */
+  padding-top: 40px;
+  padding-bottom: 100px;
   align-items: start;
 }
 @media (max-width: 1100px) {
