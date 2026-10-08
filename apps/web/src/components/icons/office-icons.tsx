@@ -718,3 +718,41 @@ export function LayersIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Cloche — activer les notifications push. */
+export function BellIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M6 10.5a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14.5 6 10.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M10 19.5a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Livre ouvert — la documentation de l'app. */
+export function BookIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M12 6.5c-1.6-1.3-3.8-2-6.5-2-1 0-1.5.2-1.5.2v12.8s.5-.2 1.5-.2c2.7 0 4.9.7 6.5 2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 6.5c1.6-1.3 3.8-2 6.5-2 1 0 1.5.2 1.5.2v12.8s-.5-.2-1.5-.2c-2.7 0-4.9.7-6.5 2V6.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

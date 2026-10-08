@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
 import {
   AlarmIcon,
+  BookIcon,
   BriefcaseIcon,
   BuildingIcon,
   ChairIcon,
@@ -241,12 +242,25 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
           hasUnreadChats={hasUnreadChats}
           compact={collapsed}
         />
+        <a
+          href="/docs/getting-started"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Help & documentation"
+          title="Help & documentation"
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-muted hover:text-foreground',
+            !collapsed && 'ml-6',
+          )}
+        >
+          <BookIcon className="h-4 w-4" />
+        </a>
         <button
           onClick={toggleCollapsed}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-muted hover:text-foreground',
+            'mt-1 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-muted hover:text-foreground',
             !collapsed && 'ml-6',
           )}
         >
@@ -281,6 +295,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: { mobileOpen?: bo
               hasUnreadChats={hasUnreadChats}
               compact={false}
             />
+            <a
+              href="/docs/getting-started"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+            >
+              <BookIcon className="h-[18px] w-[18px] shrink-0" />
+              Help & docs
+            </a>
           </aside>
         </div>
       )}
